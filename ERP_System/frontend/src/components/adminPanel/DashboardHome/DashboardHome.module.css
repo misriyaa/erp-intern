@@ -1,0 +1,1064 @@
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+.dashboard {
+  min-height: 100vh;
+  width: 100%;
+  background: #f5f6fa;
+  padding: 30px;
+  color: #1e293b;
+}
+
+.dashboard,
+.dashboard * {
+  box-sizing: border-box;
+}
+
+.container {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.pageSubtitle {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.notificationButton {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #fff;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.notificationButton:hover {
+  background: #f8fafc;
+  color: #3b4cca;
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   KPI GRID
+========================================================= */
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.statCard {
+  min-height: 115px;
+  background: #fff;
+  border: 1px solid #e8edf4;
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  transition: 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.statLabel,
+.smallLabel {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.statValue {
+  margin: 7px 0 0;
+  font-size: 27px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.statDelta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.statPositive {
+  background: #e1f5ec;
+  color: #0f6e4e;
+}
+
+.statNegative {
+  background: #fbe7ea;
+  color: #9a1b34;
+}
+
+/* =========================================================
+   GRIDS
+========================================================= */
+
+.threeColumnGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.twoColumnGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+/* =========================================================
+   COMMON CARD
+========================================================= */
+
+.card {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e8edf4;
+  border-radius: 18px;
+  padding: 22px;
+  transition: 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+/* =========================================================
+   CARD HEADER
+========================================================= */
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.cardControl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #fff;
+  padding: 8px 11px;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cardControl:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* =========================================================
+   DELIVERY
+========================================================= */
+
+.deliveryList {
+  display: flex;
+  flex-direction: column;
+}
+
+.deliveryItem {
+  padding: 15px 12px 15px 17px;
+  border-left: 3px solid #3b4cca;
+  background: #fbfcff;
+  border-radius: 0 11px 11px 0;
+}
+
+.deliveryItem + .deliveryItem {
+  margin-top: 14px;
+}
+
+.deliveryRose {
+  border-left-color: #e11d48;
+}
+
+.deliveryTitle {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: #334155;
+}
+
+.deliveryMeta {
+  margin: 8px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* =========================================================
+   HIGHLIGHTS
+========================================================= */
+
+.highlightGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.highlightCard {
+  min-height: 215px;
+  padding: 22px;
+  border-radius: 18px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.highlightGreen {
+  background: #16a34a;
+}
+
+.highlightBlue {
+  background: #3b4cca;
+}
+
+.highlightLabel {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.highlightTitle {
+  margin: 13px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.highlightDescription {
+  margin: 6px 0 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.highlightIcon {
+  width: 58px;
+  height: 58px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 25px;
+}
+
+/* =========================================================
+   STOCK HEALTH
+========================================================= */
+
+.stockHealth {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.stockChart {
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+}
+
+.stockList {
+  flex: 1;
+}
+
+.stockRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.stockName {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.stockDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.stockValue {
+  font-size: 14px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.stockTotal {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* =========================================================
+   REVENUE CHART
+========================================================= */
+
+.revenueChart {
+  width: 100%;
+  height: 250px;
+}
+
+/* =========================================================
+   APPROVALS
+========================================================= */
+
+.approvalList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.approvalItem {
+  padding: 15px;
+  border: 1px solid #edf1f6;
+  border-radius: 12px;
+}
+
+.approvalTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.approvalName {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.approvalTag {
+  margin-left: 6px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.approvalActions {
+  display: flex;
+  gap: 6px;
+}
+
+.approvalButton {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.approvalButton:hover {
+  transform: scale(1.05);
+}
+
+.approve {
+  background: #16a34a;
+}
+
+.reject {
+  background: #e11d48;
+}
+
+.approvalRole {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* =========================================================
+   QUICK ACTIONS
+========================================================= */
+
+.quickActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.quickAction {
+  min-height: 80px;
+  border: 0;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.quickAction:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.quickActionLeft {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.quickActionIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickActionLabel {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+/* =========================================================
+   EARNINGS
+========================================================= */
+
+.largeValue {
+  margin: 7px 0 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.earningsChart {
+  height: 120px;
+  margin-top: 10px;
+}
+
+/* =========================================================
+   NOTICE BOARD
+========================================================= */
+
+.noticeList {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+
+.noticeItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.noticeTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.noticeDate {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.noticeChip {
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   OUTSTANDING
+========================================================= */
+
+.outstandingStack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.outstandingCard {
+  min-height: 125px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #e8edf4;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.outstandingValue {
+  margin: 7px 0 0;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.outstandingChange {
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.danger {
+  background: #fbe7ea;
+  color: #9a1b34;
+}
+
+.success {
+  background: #e1f5ec;
+  color: #0f6e4e;
+}
+
+/* =========================================================
+   CATEGORIES
+========================================================= */
+
+.categoryInfo {
+  margin-bottom: 18px;
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: #e1f5ec;
+  color: #0f6e4e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.categoryLabel {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.categoryProgress {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.categoryBar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* =========================================================
+   ACTIVITY
+========================================================= */
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px;
+  border: 1px solid #edf1f6;
+  border-radius: 11px;
+}
+
+.activityIcon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.activityTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.activitySubtitle {
+  margin: 5px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* =========================================================
+   TODO
+========================================================= */
+
+.todoList {
+  display: flex;
+  flex-direction: column;
+}
+
+.todoItem {
+  padding: 13px 0;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.todoItem:last-child {
+  border-bottom: 0;
+}
+
+.todoLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.todoCheckbox {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  accent-color: #3b4cca;
+}
+
+.todoTitle {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.todoCompleted {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.todoTime {
+  margin: 5px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.todoStatus {
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.statusCompleted {
+  background: #e1f5ec;
+  color: #0f6e4e;
+}
+
+.statusProgress {
+  background: #e6f0fd;
+  color: #134487;
+}
+
+.statusPending {
+  background: #fcefd9;
+  color: #8a5a00;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1200px) {
+  .container {
+    max-width: 100%;
+  }
+
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .threeColumnGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .threeColumnGrid > .card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .quickActionsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* =========================================================
+   TABLET SMALL
+========================================================= */
+
+@media (max-width: 900px) {
+  .dashboard {
+    padding: 24px;
+  }
+
+  .pageTitle {
+    font-size: 29px;
+  }
+
+  .threeColumnGrid,
+  .twoColumnGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .threeColumnGrid > .card:last-child {
+    grid-column: auto;
+  }
+
+  .highlightGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .revenueChart {
+    height: 230px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 18px;
+  }
+
+  .header {
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .pageTitle {
+    font-size: 26px;
+  }
+
+  .pageSubtitle {
+    font-size: 14px;
+  }
+
+  .notificationButton {
+    width: 44px;
+    height: 44px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .statCard {
+    min-height: 105px;
+    padding: 20px;
+  }
+
+  .statValue {
+    font-size: 25px;
+  }
+
+  .threeColumnGrid,
+  .twoColumnGrid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .highlightGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .quickActionsGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .quickAction {
+    min-height: 72px;
+  }
+
+  .revenueChart {
+    height: 220px;
+  }
+
+  .stockChart {
+    width: 115px;
+    height: 115px;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 520px) {
+  .dashboard {
+    padding: 14px;
+  }
+
+  .pageTitle {
+    font-size: 23px;
+  }
+
+  .pageSubtitle {
+    font-size: 12px;
+  }
+
+  .notificationButton {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .kpiGrid {
+    gap: 14px;
+  }
+
+  .statCard {
+    min-height: 100px;
+    padding: 17px;
+    border-radius: 15px;
+  }
+
+  .statLabel,
+  .smallLabel {
+    font-size: 13px;
+  }
+
+  .statValue {
+    font-size: 23px;
+  }
+
+  .statDelta {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  .card {
+    padding: 17px;
+    border-radius: 15px;
+  }
+
+  .cardTitle {
+    font-size: 16px;
+  }
+
+  .cardControl {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+
+  .highlightGrid,
+  .quickActionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .highlightCard {
+    min-height: 190px;
+  }
+
+  .highlightTitle {
+    font-size: 19px;
+  }
+
+  .stockHealth {
+    gap: 12px;
+  }
+
+  .stockChart {
+    width: 100px;
+    height: 100px;
+  }
+
+  .stockName {
+    font-size: 12px;
+  }
+
+  .stockValue {
+    font-size: 13px;
+  }
+
+  .revenueChart {
+    height: 200px;
+  }
+
+  .largeValue {
+    font-size: 25px;
+  }
+
+  .outstandingCard {
+    min-height: 110px;
+    padding: 18px;
+  }
+
+  .outstandingValue {
+    font-size: 23px;
+  }
+
+  .categoryInfo {
+    font-size: 11px;
+  }
+
+  .activityTitle {
+    font-size: 12px;
+  }
+
+  .activitySubtitle {
+    font-size: 10px;
+  }
+
+  .todoTitle {
+    font-size: 11px;
+  }
+
+  .todoTime {
+    font-size: 10px;
+  }
+
+  .todoStatus {
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 380px) {
+  .dashboard {
+    padding: 10px;
+  }
+
+  .pageTitle {
+    font-size: 21px;
+  }
+
+  .pageSubtitle {
+    font-size: 11px;
+  }
+
+  .statValue {
+    font-size: 21px;
+  }
+
+  .card {
+    padding: 15px;
+  }
+
+  .cardHeader {
+    gap: 8px;
+  }
+
+  .cardTitle {
+    font-size: 15px;
+  }
+
+  .cardControl {
+    font-size: 10px;
+    padding: 6px 7px;
+  }
+
+  .quickAction {
+    padding: 13px;
+  }
+
+  .quickActionLabel {
+    font-size: 13px;
+  }
+}
