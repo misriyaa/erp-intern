@@ -78,20 +78,22 @@ export const getGymPlansService = async (companyId) => {
 
 export const createGymPlanService = async (companyId, data) => {
   if (!companyId) throw new Error("Company ID is required");
+  const { durationMonths, ...restData } = data;
   return await createGymPlanRepo({
-    ...data,
+    ...restData,
     companyId,
-    price: Number(data.price || 0),
-    joiningFee: Number(data.joiningFee || 0),
-    durationMonths: Number(data.durationMonths || 1),
+    duration: Number(restData.duration || 1),
+    price: Number(restData.price || 0),
+    joiningFee: Number(restData.joiningFee || 0),
   });
 };
 
 export const updateGymPlanService = async (companyId, id, data) => {
-  const payload = { ...data };
-  if (data.price !== undefined) payload.price = Number(data.price);
-  if (data.joiningFee !== undefined) payload.joiningFee = Number(data.joiningFee);
-  if (data.durationMonths !== undefined) payload.durationMonths = Number(data.durationMonths);
+  const { durationMonths, ...restData } = data;
+  const payload = { ...restData };
+  if (restData.duration !== undefined) payload.duration = Number(restData.duration);
+  if (restData.price !== undefined) payload.price = Number(restData.price);
+  if (restData.joiningFee !== undefined) payload.joiningFee = Number(restData.joiningFee);
   return await updateGymPlanRepo(id, companyId, payload);
 };
 
