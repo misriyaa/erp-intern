@@ -1,0 +1,1257 @@
+/* =========================================================
+   INVENTORY PAGE
+========================================================= */
+
+.page {
+  min-height: 100vh;
+  width: 100%;
+  padding: 32px;
+  box-sizing: border-box;
+
+  background: #f8fafc;
+  color: #374151;
+
+  font-family: "Inter", sans-serif;
+
+  position: relative;
+  z-index: 1;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  position: relative;
+  z-index: 20;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.header h1 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+/* =========================================================
+   HEADER BUTTONS
+========================================================= */
+
+.secondaryButton,
+.addButton {
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+  padding: 0 16px;
+
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.secondaryButton {
+  color: #374151;
+  background: #ffffff;
+
+  border: 1px solid #d1d5db;
+}
+
+.secondaryButton:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.secondaryButton svg,
+.addButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.addButton {
+  color: #ffffff;
+
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #6366f1
+  );
+
+  border: none;
+
+  box-shadow:
+    0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.addButton:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 7px 18px rgba(79, 70, 229, 0.3);
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+.statsGrid {
+  position: relative;
+  z-index: 10;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 18px;
+
+  margin-bottom: 24px;
+}
+
+.statCard {
+  min-height: 128px;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 22px;
+
+  box-sizing: border-box;
+
+  background: #ffffff;
+
+  border: 1px solid #eef0f4;
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.07);
+}
+
+.statCard p {
+  margin: 0 0 6px;
+
+  color: #6b7280;
+
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.statCard h2 {
+  margin: 0 0 7px;
+
+  color: #111827;
+
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   STAT ICONS
+========================================================= */
+
+.statIcon {
+  width: 46px;
+  height: 46px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  font-size: 19px;
+}
+
+.statIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.greenIcon {
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.blueIcon {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.orangeIcon {
+  color: #d97706;
+  background: #fffbeb;
+}
+
+.redIcon {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+
+/* =========================================================
+   STAT TEXT
+========================================================= */
+
+.growth {
+  display: inline-block;
+
+  padding: 4px 8px;
+
+  color: #059669;
+  background: #ecfdf5;
+
+  border-radius: 6px;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.alertText {
+  color: #6b7280;
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   TABLE CARD
+========================================================= */
+
+.tableCard {
+  position: relative;
+  z-index: 30;
+
+  width: 100%;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 13px;
+
+  overflow: visible;
+
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.toolbar {
+  position: relative;
+  z-index: 100;
+
+  min-height: 72px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 16px 20px;
+
+  box-sizing: border-box;
+
+  background: #ffffff;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  border-radius: 13px 13px 0 0;
+}
+
+
+/* =========================================================
+   SEARCH BOX
+========================================================= */
+
+.searchBox {
+  position: relative;
+  z-index: 101;
+
+  width: 340px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 0 13px;
+
+  box-sizing: border-box;
+
+  color: #6b7280;
+  background: #ffffff;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.searchBox:focus-within {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.searchBox svg {
+  flex-shrink: 0;
+
+  width: 17px;
+  height: 17px;
+}
+
+.searchBox input {
+  width: 100%;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+
+  color: #111827;
+  background: transparent;
+
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.searchBox input::placeholder {
+  color: #9ca3af;
+}
+
+
+/* =========================================================
+   TOOLBAR RIGHT
+========================================================= */
+
+.toolbarRight {
+  position: relative;
+  z-index: 102;
+
+  margin-left: auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+/* =========================================================
+   FILTER / SORT
+========================================================= */
+
+.filterButton,
+.sortButton {
+  height: 44px;
+
+  min-width: 120px;
+
+  padding: 0 13px;
+
+  color: #374151;
+  background: #ffffff;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  cursor: pointer;
+  outline: none;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.filterButton:hover,
+.sortButton:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.filterButton:focus,
+.sortButton:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.08);
+}
+
+
+/* =========================================================
+   REFRESH BUTTON
+========================================================= */
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color: #64748b;
+  background: #ffffff;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.iconButton:hover {
+  color: #4f46e5;
+
+  background: #f5f3ff;
+
+  border-color: #a5b4fc;
+
+  transform: rotate(15deg);
+}
+
+.iconButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+/* =========================================================
+   TABLE WRAPPER
+========================================================= */
+
+.tableWrapper {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+
+  overflow-x: auto;
+  overflow-y: visible;
+
+  border-radius: 0 0 13px 13px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table {
+  width: 100%;
+
+  min-width: 1250px;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  table-layout: auto;
+}
+
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+.table th {
+  height: 52px;
+
+  padding: 0 12px;
+
+  box-sizing: border-box;
+
+  color: #374151;
+  background: #fafafa;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  text-align: left;
+
+  white-space: nowrap;
+}
+
+.table th:first-child {
+  padding-left: 18px;
+}
+
+.table th:last-child {
+  width: 150px;
+  min-width: 150px;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   TABLE BODY
+========================================================= */
+
+.table td {
+  height: 60px;
+
+  padding: 0 12px;
+
+  box-sizing: border-box;
+
+  color: #64748b;
+  background: #ffffff;
+
+  border-bottom: 1px solid #eef0f4;
+
+  font-size: 14px;
+
+  white-space: nowrap;
+
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  position: relative;
+
+  transition:
+    background 0.15s ease;
+}
+
+.table tbody tr:hover td {
+  background: #fafbff;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table td:last-child {
+  width: 150px;
+  min-width: 150px;
+
+  padding-left: 8px;
+  padding-right: 8px;
+
+  text-align: center;
+
+  position: relative;
+  z-index: 20;
+}
+
+
+/* =========================================================
+   PRODUCT CELL
+========================================================= */
+
+.productCell {
+  min-width: 240px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 11px;
+}
+
+.productCell strong {
+  color: #111827;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   PRODUCT IMAGE / ICON
+========================================================= */
+
+.productIcon {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border-radius: 8px;
+
+  font-size: 17px;
+}
+
+.productIcon img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  border-radius: 8px;
+}
+
+
+/* =========================================================
+   PRODUCT ICON TYPES
+========================================================= */
+
+.apple {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.laptop {
+  color: #0891b2;
+  background: #ecfeff;
+}
+
+.headphone {
+  color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.shoe {
+  color: #ea580c;
+  background: #fff7ed;
+}
+
+.vacuum {
+  color: #0284c7;
+  background: #f0f9ff;
+}
+
+.airpods {
+  color: #ea580c;
+  background: #fff7ed;
+}
+
+.shirt {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.helmet {
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.samsung {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.default {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 75px;
+
+  padding: 5px 9px;
+
+  border-radius: 6px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.inStock {
+  color: #059669;
+
+  background: #ecfdf5;
+}
+
+.lowStock {
+  color: #d97706;
+
+  background: #fffbeb;
+}
+
+.noStock {
+  color: #dc2626;
+
+  background: #fef2f2;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.actionButtons {
+  position: relative;
+  z-index: 30;
+
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+}
+
+
+/* =========================================================
+   INDIVIDUAL ACTION BUTTON
+========================================================= */
+
+.actionButton {
+  width: 36px;
+  height: 36px;
+
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color: #64748b;
+  background: #ffffff;
+
+  border: 1px solid #d8dee8;
+
+  border-radius: 7px;
+
+  cursor: pointer;
+
+  outline: none;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.actionButton svg {
+  width: 17px;
+  height: 17px;
+
+  stroke-width: 1.8;
+}
+
+
+/* =========================================================
+   VIEW BUTTON
+========================================================= */
+
+.actionButton:first-child:hover {
+  color: #2563eb;
+
+  background: #eff6ff;
+
+  border-color: #bfdbfe;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 3px 8px rgba(37, 99, 235, 0.12);
+}
+
+
+/* =========================================================
+   EDIT BUTTON
+========================================================= */
+
+.actionButton:nth-child(2):hover {
+  color: #7c3aed;
+
+  background: #f5f3ff;
+
+  border-color: #ddd6fe;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 3px 8px rgba(124, 58, 237, 0.12);
+}
+
+
+/* =========================================================
+   DELETE BUTTON
+========================================================= */
+
+.deleteButton {
+  color: #64748b;
+}
+
+.deleteButton:hover {
+  color: #dc2626;
+
+  background: #fef2f2;
+
+  border-color: #fecaca;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 3px 8px rgba(220, 38, 38, 0.12);
+}
+
+
+/* =========================================================
+   ACTION BUTTON ACTIVE
+========================================================= */
+
+.actionButton:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   EMPTY TABLE
+========================================================= */
+
+.empty {
+  height: 180px !important;
+
+  padding: 50px !important;
+
+  color: #9ca3af !important;
+
+  text-align: center !important;
+
+  font-size: 14px !important;
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.spinner {
+  color: #4f46e5;
+}
+
+
+/* =========================================================
+   SPINNER ANIMATION
+========================================================= */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   Z-INDEX LAYERS
+   IMPORTANT FOR ACTION BUTTONS
+========================================================= */
+
+.page {
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  position: relative;
+  z-index: 20;
+}
+
+.statsGrid {
+  position: relative;
+  z-index: 10;
+}
+
+.tableCard {
+  position: relative;
+  z-index: 30;
+}
+
+.toolbar {
+  position: relative;
+  z-index: 100;
+}
+
+.searchBox {
+  position: relative;
+  z-index: 101;
+}
+
+.toolbarRight {
+  position: relative;
+  z-index: 102;
+}
+
+.tableWrapper {
+  position: relative;
+  z-index: 1;
+}
+
+.table tbody td:last-child {
+  position: relative;
+  z-index: 20;
+}
+
+.actionButtons {
+  position: relative;
+  z-index: 200;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+.tableWrapper::-webkit-scrollbar {
+  height: 7px;
+}
+
+.tableWrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
+/* =========================================================
+   RESPONSIVE - 1200px
+========================================================= */
+
+@media (max-width: 1200px) {
+  .page {
+    padding: 24px;
+  }
+
+  .statsGrid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .toolbarRight {
+    margin-left: auto;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 1000px
+========================================================= */
+
+@media (max-width: 1000px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .searchBox {
+    width: 300px;
+  }
+
+  .toolbarRight {
+    width: 100%;
+
+    margin-left: 0;
+
+    justify-content: flex-end;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 700px
+========================================================= */
+
+@media (max-width: 700px) {
+  .page {
+    padding: 20px 16px;
+  }
+
+  .header {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .secondaryButton,
+  .addButton {
+    flex: 1;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    padding: 14px;
+  }
+
+  .searchBox {
+    width: 100%;
+  }
+
+  .toolbarRight {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      44px;
+
+    gap: 7px;
+  }
+
+  .filterButton,
+  .sortButton {
+    width: 100%;
+
+    min-width: 0;
+  }
+
+  .iconButton {
+    width: 44px;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 500px
+========================================================= */
+
+@media (max-width: 500px) {
+  .page {
+    padding: 16px;
+  }
+
+  .header h1 {
+    font-size: 1.6rem;
+  }
+
+  .headerActions {
+    display: grid;
+
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .secondaryButton,
+  .addButton {
+    width: 100%;
+  }
+
+  .toolbar {
+    padding: 12px;
+  }
+
+  .toolbarRight {
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .filterButton,
+  .sortButton,
+  .iconButton {
+    width: 100%;
+  }
+
+  .table th,
+  .table td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .actionButtons {
+    gap: 5px;
+  }
+
+  .actionButton {
+    width: 32px;
+    height: 32px;
+  }
+
+  .actionButton svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL DEVICES
+========================================================= */
+
+@media (max-width: 380px) {
+  .page {
+    padding: 12px;
+  }
+
+  .headerActions {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    gap: 12px;
+  }
+
+  .statCard {
+    padding: 18px;
+  }
+
+  .toolbarRight {
+    grid-template-columns: 1fr;
+  }
+
+  .iconButton {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+  .headerActions,
+  .toolbar,
+  .actionButtons {
+    display: none !important;
+  }
+
+  .page {
+    padding: 0;
+
+    background: #ffffff;
+
+    color: #111827;
+  }
+
+  .tableCard,
+  .statCard {
+    border: 1px solid #ddd;
+
+    box-shadow: none;
+
+    background: #ffffff;
+  }
+
+  .tableWrapper {
+    overflow: visible;
+  }
+
+  .table {
+    min-width: 0;
+  }
+
+  .table tbody tr:hover td {
+    background: transparent;
+  }
+}

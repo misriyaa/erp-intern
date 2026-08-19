@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+/* Global ERP Theme Variables */
+:root {
+  --bg-main: #f4f6fa;
+  --bg-card: #ffffff;
+  --text-dark: #1f2937;
+  --text-muted: #6b7280;
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+  --card-radius: 14px;
+  --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"],
+html.dark {
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --text-dark: #f8fafc;
+  --text-muted: #94a3b8;
+  --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] body,
+html.dark body {
+  background: var(--bg-main);
+  color: var(--text-dark);
+}
+
+
+/* Reset & Defaults */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-main);
+  color: var(--text-dark);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+}
+
+/* Dashboard & Page Shell Theme */
+
+.dashboard,
+.page-wrapper,
+.page-container {
+  padding: 30px;
+  background: var(--bg-main);
+  min-height: 100vh;
+}
+
+.welcome,
+.page-header {
+  background: #fff;
+  border-radius: var(--card-radius);
+  padding: 25px 30px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--card-shadow);
+}
+
+.welcome h2,
+.page-header h2,
+.page-header h1 {
+  color: #1f2937;
+  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.welcome p,
+.page-header p {
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.welcome button,
+.page-header button,
+.btn-primary-theme {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 22px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+
+.welcome button:hover,
+.page-header button:hover,
+.btn-primary-theme:hover {
+  background: #1d4ed8;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 25px;
+  margin-top: 30px;
+}
+
+@media (max-width: 1100px) {
+  .twoColumn {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Universal Cards & Tables */
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+th,
+td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+tr:hover {
+  background: #fafafa;
+}
+
+/* Scrollbar */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =========================
+   GLOBAL PRINT STYLES
+   Hides navigation shell, sidebars, headers, search bars, and action controls so ONLY table data prints.
+========================= */
+@media print {
+  /* Hide navigation shell and UI controls */
+  aside,
+  header,
+  nav,
+  button,
+  input,
+  select,
+  .no-print,
+  [class*="sidebar"],
+  [class*="header"],
+  [class*="toolbar"],
+  [class*="headerActions"],
+  [class*="actionWrapper"],
+  [class*="actionMenu"],
+  [class*="addCard"],
+  [class*="closeButton"],
+  [class*="overlay"] {
+    display: none !important;
+  }
+
+  /* Reset body and page wrappers */
+  body,
+  html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  [class*="mainContent"],
+  [class*="pageBody"],
+  [class*="appWrapper"],
+  [class*="page"],
+  [class*="container"] {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Format data tables for clean physical/PDF printing */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 10px !important;
+  }
+
+  th,
+  td {
+    padding: 8px 12px !important;
+    border: 1px solid #d1d5db !important;
+    color: #000000 !important;
+    font-size: 12px !important;
+  }
+
+  /* Hide the Action column (last column) in printed tables */
+  th:last-child,
+  td:last-child {
+    display: none !important;
+  }
+}

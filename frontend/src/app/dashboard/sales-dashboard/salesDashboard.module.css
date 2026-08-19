@@ -1,0 +1,1068 @@
+/* =========================================================
+   SALES DASHBOARD
+   salesDashboard.module.css
+   ========================================================= */
+
+.dashboard {
+  width: 100%;
+  min-height: 100vh;
+  padding: 18px 10px 35px;
+  background: #f7f8fa;
+  color: #173452;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  box-sizing: border-box;
+}
+
+.dashboard *,
+.dashboard *::before,
+.dashboard *::after {
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.topHeader {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.topHeader h1 {
+  margin: 0;
+  color: #193957;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.teamAvatars {
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.teamAvatars .avatar {
+  margin-left: -7px;
+  border: 2px solid #ffffff;
+}
+
+.teamAvatars .avatar:first-child {
+  margin-left: 0;
+}
+
+.addTeam {
+  width: 32px;
+  height: 32px;
+  margin-left: -5px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #087f76;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.addTeam:hover {
+  background: #066c65;
+  transform: translateY(-1px);
+}
+
+.dateButton,
+.exportButton,
+.selectButton,
+.viewButton {
+  border: 1px solid #e0e5ea;
+  background: #ffffff;
+  color: #173452;
+  border-radius: 8px;
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dateButton:hover,
+.exportButton:hover,
+.selectButton:hover,
+.viewButton:hover {
+  background: #fafbfc;
+  border-color: #cbd4dc;
+  box-shadow: 0 2px 8px rgba(20, 45, 70, 0.04);
+}
+
+.dateButton svg,
+.exportButton svg,
+.selectButton svg,
+.viewButton svg {
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   COMMON CARD
+   ========================================================= */
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e0e5ea;
+  border-radius: 7px;
+  padding: 20px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cardHeader,
+.sectionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.cardHeader {
+  margin-bottom: 16px;
+}
+
+.cardHeader h2,
+.sectionHeader h2 {
+  margin: 0;
+  color: #173452;
+  font-size: 23px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.sectionHeader {
+  margin-bottom: 18px;
+}
+
+.viewButton {
+  height: 36px;
+  padding: 0 11px;
+  font-size: 14px;
+}
+
+/* =========================================================
+   TOP GRID
+   ========================================================= */
+
+.topGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(390px, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.revenueCard {
+  min-height: 535px;
+}
+
+.regionCard {
+  min-height: 535px;
+}
+
+/* =========================================================
+   CHART FILTER
+   ========================================================= */
+
+.chartFilters {
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  background: #fafbfc;
+  border-radius: 8px;
+}
+
+.chartFilters button {
+  min-width: 40px;
+  height: 32px;
+  padding: 0 9px;
+  border: 0;
+  background: transparent;
+  color: #66788d;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chartFilters button:hover {
+  color: #173452;
+}
+
+.chartFilters .activeFilter {
+  background: #ffffff;
+  color: #173452;
+  box-shadow: 0 1px 4px rgba(20, 45, 70, 0.08);
+}
+
+/* =========================================================
+   REVENUE CHART
+   ========================================================= */
+
+.revenueChart {
+  width: 100%;
+  height: 425px;
+}
+
+/* =========================================================
+   REGION MAP
+   ========================================================= */
+
+.mapArea {
+  width: 100%;
+  height: 335px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.worldMap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  opacity: 0.95;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 420'%3E%3Cg fill='%23eee8ff'%3E%3Cpath d='M55 100l45-28 74 7 40 34-18 35-42 9-22 40-45-5-17-42-29-12zM172 210l42 4 25 32-18 88-30 39-28-39 11-59-27-34zM270 112l57-26 60 8 42 38-24 27-50-7-26 29-46-17zM385 206l61-30 59 12 22 42-23 36-67-5-37-25zM485 93l77-21 67 29 11 43-36 28-55-17-49-26zM603 150l45-30 64 16 29 40-24 35-59-6-40-25zM702 95l65-12 59 32-13 45-56 13-39-31zM700 226l44-19 66 22 23 48-29 32-65-17-34-34zM580 252l55-15 49 35-12 58-50 19-51-32z'/%3E%3C/g%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.regionDot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9d4edd;
+  border: 3px solid #e6d7ff;
+  box-shadow: 0 0 0 4px rgba(157, 78, 221, 0.08);
+}
+
+.dot1 {
+  top: 29%;
+  left: 24%;
+}
+
+.dot2 {
+  top: 39%;
+  left: 50%;
+}
+
+.dot3 {
+  top: 58%;
+  left: 72%;
+}
+
+.regionSummary {
+  width: 100%;
+  min-height: 98px;
+  padding: 15px 15px 12px;
+  border-radius: 7px;
+  background: linear-gradient(
+    135deg,
+    #087f76 0%,
+    #079674 100%
+  );
+  color: #ffffff;
+}
+
+.regionAmount {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.regionAmount strong {
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.regionAmount span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.progressValue {
+  width: 54%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: inherit;
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* =========================================================
+   KPI GRID
+   ========================================================= */
+
+.kpiGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.kpiCard {
+  min-height: 103px;
+  padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid #e0e5ea;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.kpiTitle {
+  display: block;
+  margin-bottom: 4px;
+  color: #60758d;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.kpiCard strong {
+  display: block;
+  color: #173452;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.kpiIcon {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.greenIcon {
+  background: #059669;
+  color: #ffffff;
+}
+
+.orangeIcon {
+  background: #ea580c;
+  color: #ffffff;
+}
+
+.tealIcon {
+  background: #087f76;
+  color: #ffffff;
+}
+
+.purpleIcon {
+  background: #7020a4;
+  color: #ffffff;
+}
+
+/* =========================================================
+   THREE COLUMN AREA
+   ========================================================= */
+
+.threeColumnGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.threeColumnGrid .card {
+  min-height: 380px;
+}
+
+/* =========================================================
+   CUSTOMER LIST
+   ========================================================= */
+
+.customerList,
+.productList,
+.transactionList {
+  display: flex;
+  flex-direction: column;
+}
+
+.customerRow {
+  min-height: 61px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.customerRow:last-child {
+  border-bottom: 0;
+}
+
+.personInfo {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #edf1f5;
+}
+
+.personInfo > div {
+  min-width: 0;
+}
+
+.personInfo strong {
+  display: block;
+  color: #173452;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.personInfo span {
+  display: block;
+  margin-top: 3px;
+  color: #6d8197;
+  font-size: 13px;
+}
+
+.spent {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.spent strong {
+  display: block;
+  color: #173452;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.spent span {
+  display: block;
+  margin-top: 3px;
+  color: #667b91;
+  font-size: 12px;
+}
+
+/* =========================================================
+   PRODUCTS
+   ========================================================= */
+
+.productRow {
+  min-height: 61px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.productRow:last-child {
+  border-bottom: 0;
+}
+
+.productIcon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: #f7f8fa;
+  border: 1px solid #f0f2f4;
+  color: #173452;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.productInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.productInfo > strong {
+  display: block;
+  color: #173452;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.productMeta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+.productMeta > span:first-child {
+  color: #64788e;
+  font-size: 13px;
+}
+
+.salesCount {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.salesCount strong {
+  display: block;
+  color: #173452;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.salesCount span {
+  display: block;
+  margin-top: 3px;
+  color: #657a91;
+  font-size: 12px;
+}
+
+/* Product icon variants */
+
+.apple {
+  color: #173452;
+}
+
+.laptop {
+  color: #173452;
+}
+
+.headphone {
+  color: #173452;
+}
+
+.shoe {
+  color: #173452;
+}
+
+.vacuum {
+  color: #173452;
+}
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 23px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.statusPaid,
+.stockIn {
+  color: #00876d;
+  background: #eaf7f2;
+}
+
+.statusPending {
+  color: #ed7b18;
+  background: #fff3e9;
+}
+
+.statusFailed {
+  color: #df3131;
+  background: #fdecec;
+}
+
+.statusIssued {
+  color: #e44444;
+  background: #fdebec;
+}
+
+.statusSent {
+  color: #168cd0;
+  background: #eaf6fd;
+}
+
+.stockOut {
+  color: #e84242;
+  background: #fdeaea;
+}
+
+/* =========================================================
+   TRANSACTIONS
+   ========================================================= */
+
+.transactionRow {
+  min-height: 61px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.transactionRow:last-child {
+  border-bottom: 0;
+}
+
+.transactionId {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 3px;
+  color: #657a91;
+  font-size: 12px;
+}
+
+.transactionRight {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.transactionRight strong {
+  display: block;
+  color: #173452;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.transactionRight span {
+  display: block;
+  margin-top: 4px;
+  color: #63788f;
+  font-size: 12px;
+}
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.salesTable {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.salesTable thead {
+  background: #ffffff;
+}
+
+.salesTable th {
+  height: 44px;
+  padding: 0 10px;
+  border-bottom: 1px solid #dfe4e9;
+  color: #173452;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.salesTable td {
+  height: 61px;
+  padding: 0 10px;
+  border-bottom: 1px solid #e6eaee;
+  color: #4f6680;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.salesTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.salesTable tbody tr:hover {
+  background: #fafcfd;
+}
+
+.salesTable td:first-child {
+  color: #58708a;
+}
+
+.tableCustomer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tableCustomer .avatar {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+}
+
+.tableCustomer strong {
+  color: #173452;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   CUSTOM SCROLLBAR
+   ========================================================= */
+
+.tableWrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tableWrapper::-webkit-scrollbar-track {
+  background: #f1f3f5;
+  border-radius: 10px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: #cbd4dc;
+  border-radius: 10px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb:hover {
+  background: #aebbc8;
+}
+
+/* =========================================================
+   RESPONSIVE - LARGE TABLET
+   ========================================================= */
+
+@media (max-width: 1250px) {
+  .topGrid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr);
+  }
+
+  .threeColumnGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .threeColumnGrid .card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .revenueChart {
+    height: 400px;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE - TABLET
+   ========================================================= */
+
+@media (max-width: 950px) {
+  .dashboard {
+    padding: 16px 10px 30px;
+  }
+
+  .topHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .topGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .revenueCard,
+  .regionCard {
+    min-height: auto;
+  }
+
+  .regionCard {
+    min-height: 500px;
+  }
+
+  .threeColumnGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .threeColumnGrid .card:last-child {
+    grid-column: auto;
+  }
+
+  .revenueChart {
+    height: 380px;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   ========================================================= */
+
+@media (max-width: 650px) {
+  .dashboard {
+    padding: 12px 8px 25px;
+  }
+
+  .topHeader {
+    margin-bottom: 14px;
+  }
+
+  .topHeader h1 {
+    font-size: 22px;
+  }
+
+  .headerActions {
+    gap: 7px;
+  }
+
+  .teamAvatars {
+    order: 1;
+    width: 100%;
+  }
+
+  .dateButton {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dateButton span,
+  .exportButton span {
+    font-size: 12px;
+  }
+
+  .exportButton {
+    padding: 0 9px;
+  }
+
+  .card {
+    padding: 15px;
+    border-radius: 7px;
+  }
+
+  .cardHeader,
+  .sectionHeader {
+    align-items: flex-start;
+  }
+
+  .cardHeader h2,
+  .sectionHeader h2 {
+    font-size: 19px;
+  }
+
+  .chartFilters {
+    flex-shrink: 0;
+  }
+
+  .chartFilters button {
+    min-width: 32px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  .revenueChart {
+    height: 300px;
+  }
+
+  .regionCard {
+    min-height: 470px;
+  }
+
+  .mapArea {
+    height: 300px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .kpiCard {
+    min-height: 95px;
+  }
+
+  .kpiCard strong {
+    font-size: 27px;
+  }
+
+  .threeColumnGrid {
+    gap: 10px;
+  }
+
+  .customerRow,
+  .transactionRow {
+    min-height: 65px;
+  }
+
+  .productRow {
+    min-height: 65px;
+  }
+
+  .personInfo strong,
+  .productInfo > strong {
+    font-size: 14px;
+  }
+
+  .salesCount strong,
+  .spent strong,
+  .transactionRight strong {
+    font-size: 14px;
+  }
+
+  .tableWrapper {
+    margin: 0 -5px;
+    width: calc(100% + 10px);
+  }
+
+  .salesTable th,
+  .salesTable td {
+    padding: 0 8px;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 430px) {
+  .headerActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .teamAvatars {
+    grid-column: 1 / -1;
+  }
+
+  .dateButton {
+    width: 100%;
+  }
+
+  .exportButton {
+    width: 100%;
+  }
+
+  .cardHeader h2,
+  .sectionHeader h2 {
+    font-size: 18px;
+  }
+
+  .revenueChart {
+    height: 270px;
+  }
+
+  .mapArea {
+    height: 260px;
+  }
+
+  .regionSummary {
+    padding: 13px;
+  }
+
+  .regionAmount strong {
+    font-size: 23px;
+  }
+
+  .kpiCard {
+    padding: 15px;
+  }
+
+  .kpiIcon {
+    width: 45px;
+    height: 45px;
+    flex-basis: 45px;
+  }
+
+  .customerRow,
+  .transactionRow,
+  .productRow {
+    gap: 7px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .spent span,
+  .transactionRight span,
+  .salesCount span {
+    font-size: 11px;
+  }
+}

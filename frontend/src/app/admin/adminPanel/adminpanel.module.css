@@ -1,0 +1,39 @@
+.adminLayout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+.adminContent {
+  flex: 1;
+  margin-left: 280px; /* Sidebar width */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.dashboardArea {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: #f5f7fb;
+}
+
+/* Tablet */
+
+@media (max-width: 992px) {
+  .adminContent {
+    margin-left: 0;
+  }
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+  .dashboardArea {
+    padding: 15px;
+  }
+}
+
+
