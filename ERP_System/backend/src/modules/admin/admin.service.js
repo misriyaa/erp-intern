@@ -45,8 +45,11 @@ export const createAdminService = async ({
   }
 
   // Find or determine Industry
-  const industryCodeUpper = (type || "RETAIL").toUpperCase().includes("GYM")
+  const typeUpper = (type || "RETAIL").toUpperCase();
+  const industryCodeUpper = typeUpper.includes("GYM")
     ? "GYM"
+    : typeUpper.includes("TEXTILE")
+    ? "TEXTILE"
     : "RETAIL";
 
   let industry = await prisma.industry.findUnique({
@@ -57,7 +60,7 @@ export const createAdminService = async ({
     industry = await prisma.industry.create({
       data: {
         code: industryCodeUpper,
-        name: industryCodeUpper === "GYM" ? "Gym" : "Retail",
+        name: industryCodeUpper === "GYM" ? "Gym" : industryCodeUpper === "TEXTILE" ? "Textile" : "Retail",
         status: true,
       },
     });

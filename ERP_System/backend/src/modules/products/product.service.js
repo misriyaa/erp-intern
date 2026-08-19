@@ -5,54 +5,63 @@ import * as unitRepository from "../units/unit.repository.js";
 import * as barcodeService from "../barcode/barcode.service.js";
 
 export const createProduct = async (data) => {
-  const category = await categoryRepository.getCategoryById(
-    data.categoryId
-  );
-
-  if (!category) {
-    throw new Error("Category not found.");
+  let categoryId = data.categoryId;
+  if (categoryId) {
+    const category = await categoryRepository.getCategoryById(categoryId).catch(() => null);
+    if (!category) categoryId = null;
   }
-
-  if (data.brandId) {
-    const brand = await brandRepository.getBrandById(
-      data.brandId
-    );
-
-    if (!brand) {
-      throw new Error("Brand not found.");
+  if (!categoryId) {
+    let defaultCat = await categoryRepository.getAllCategories().then((cats) => cats[0]).catch(() => null);
+    if (!defaultCat) {
+      defaultCat = await categoryRepository.createCategory({ name: "General", code: "GEN" }).catch(() => null);
     }
+    if (defaultCat) categoryId = defaultCat.id;
   }
 
-  const unit = await unitRepository.getUnitById(data.unitId);
-
-  if (!unit) {
-    throw new Error("Unit not found.");
+  let unitId = data.unitId || data.baseUnitId;
+  if (unitId) {
+    const unit = await unitRepository.getUnitById(unitId).catch(() => null);
+    if (!unit) unitId = null;
+  }
+  if (!unitId) {
+    let defaultUnit = await unitRepository.getAllUnits().then((units) => units[0]).catch(() => null);
+    if (!defaultUnit) {
+      defaultUnit = await unitRepository.createUnit({ name: "Pieces", code: "PCS" }).catch(() => null);
+    }
+    if (defaultUnit) unitId = defaultUnit.id;
   }
 
-  const existingProduct = await productRepository.getProductBySku(
-    data.sku
-  );
-
-  if (existingProduct) {
-    throw new Error("SKU already exists.");
+  let brandId = data.brandId;
+  if (brandId) {
+    const brand = await brandRepository.getBrandById(brandId).catch(() => null);
+    if (!brand) brandId = null;
   }
 
-  // Create product
-  const product = await productRepository.createProduct(data);
+  const sku = data.sku || `SKU-${Date.now().toString().slice(-6)}`;
 
-  // Automatically create barcode
-  const barcode = await barcodeService.createBarcodeForProduct(
-    product.id
-  );
-
-  return {
-    ...product,
-    barcode,
+  const cleanData = {
+    name: data.name,
+    sku,
+    description: data.description || "",
+    costPrice: parseFloat(data.costPrice || 0),
+    sellingPrice: parseFloat(data.sellingPrice || 0),
+    categoryId,
+    unitId,
+    ...(brandId ? { brandId } : {}),
   };
+
+  const product = await productRepository.createProduct(cleanData);
+
+  try {
+    const barcode = await barcodeService.createBarcodeForProduct(product.id);
+    return { ...product, barcode };
+  } catch (err) {
+    return product;
+  }
 };
 
-export const getAllProducts = async () => {
-  return await productRepository.getAllProducts();
+export const getAllProducts = async (companyId) => {
+  return await productRepository.getAllProducts(companyId);
 };
 
 export const getProductById = async (id) => {

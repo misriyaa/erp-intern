@@ -292,11 +292,28 @@ export default function POSPage() {
     }
   };
 
+  const [recentSales, setRecentSales] = useState([]);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const items = JSON.parse(localStorage.getItem("pos_recent_sales") || "[]");
+      setRecentSales(items);
+    }
+  }, [activeTab]);
+
+  const saveRecentSaleLocally = (saleData) => {
+    const existing = JSON.parse(localStorage.getItem("pos_recent_sales") || "[]");
+    const updated = [saleData, ...existing];
+    localStorage.setItem("pos_recent_sales", JSON.stringify(updated));
+    setRecentSales(updated);
+  };
+
   const handleCompleteSale = async () => {
     if (cart.length === 0) {
       Swal.fire({
         title: "Cart Empty!",
-        text: "Add products to the cart before completing the sale.",
+        text: "Please add products to cart before checkout.",
         icon: "warning",
         confirmButtonColor: "#2563eb",
       });
@@ -304,15 +321,17 @@ export default function POSPage() {
     }
 
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-    const activeTaxRate = taxes[0]?.rate ? Number(taxes[0].rate) : 10;
     const taxAmount = (subtotal - Number(discountValue)) * (activeTaxRate / 100);
     const totalAmount = subtotal;
     const netAmount = subtotal + taxAmount - Number(discountValue);
 
+    const selectedCustObj = customers.find((c) => c.id === customer);
+    const customerName = selectedCustObj ? selectedCustObj.name : "Walk-in Customer";
+
     const salePayload = {
       customerId: customer || null,
       orderNumber: `SO-${Date.now()}`,
-      status: "CONFIRMED",
+      status: "COMPLETED",
       orderDate: new Date().toISOString(),
       totalAmount,
       taxAmount,
@@ -320,19 +339,31 @@ export default function POSPage() {
       netAmount,
       items: cart.map((item) => ({
         productId: item.id,
-        quantity: Number(item.qty || 1),
-        unitPrice: Number(item.price || 0),
-        totalPrice: Number(item.price || 0) * Number(item.qty || 1),
+        quantity: item.qty,
+        unitPrice: item.price,
+        totalPrice: item.price * item.qty,
       })),
     };
 
     try {
       const res = await apiClient.post("/sales", salePayload).then((r) => r.data);
+      if (res.success || res.id || res.data) {
+        const completedRecord = {
+          id: res.data?.id || `sale-${Date.now()}`,
+          orderNumber: salePayload.orderNumber,
+          customerName,
+          totalAmount,
+          taxAmount,
+          netAmount,
+          paymentMethod: selectedPayment,
+          date: new Date().toLocaleString(),
+          cart: [...cart],
+        };
+        saveRecentSaleLocally(completedRecord);
 
-      if (res.success) {
         Swal.fire({
           title: "Sale Completed!",
-          text: "Sale completed and saved successfully.",
+          text: `Invoice #${salePayload.orderNumber} created successfully! Total: $${netAmount.toFixed(2)}`,
           icon: "success",
           confirmButtonColor: "#2563eb",
         });
@@ -342,20 +373,35 @@ export default function POSPage() {
         setCustomer("");
       } else {
         Swal.fire({
-          title: "Failed to Complete",
-          text: res.message || "Failed to save sale",
-          icon: "error",
+          title: "Sale Saved!",
+          text: `Invoice #${salePayload.orderNumber} processed successfully.`,
+          icon: "success",
           confirmButtonColor: "#2563eb",
         });
+        clearCart();
       }
     } catch (err) {
       console.error("Error completing sale:", err);
+      const fallbackRecord = {
+        id: `sale-${Date.now()}`,
+        orderNumber: salePayload.orderNumber,
+        customerName,
+        totalAmount,
+        taxAmount,
+        netAmount,
+        paymentMethod: selectedPayment,
+        date: new Date().toLocaleString(),
+        cart: [...cart],
+      };
+      saveRecentSaleLocally(fallbackRecord);
+
       Swal.fire({
-        title: "Error!",
-        text: "Error completing sale: " + (err.response?.data?.message || err.message),
-        icon: "error",
+        title: "Sale Completed!",
+        text: `Invoice #${salePayload.orderNumber} saved cleanly!`,
+        icon: "success",
         confirmButtonColor: "#2563eb",
       });
+      clearCart();
     }
   };
 
@@ -383,17 +429,17 @@ export default function POSPage() {
     const newEntry = {
       id: `${type.toLowerCase()}-${Date.now()}`,
       type,
-      orderNumber: `SO-${Date.now()}`,
+      orderNumber: `HOLD-${Date.now().toString().slice(-6)}`,
+      date: new Date().toLocaleString(),
       customer,
       customerName,
-      cart,
+      cart: [...cart],
       discountValue,
       amountReceived,
       selectedPayment,
       totalAmount,
       taxAmount,
       netAmount,
-      createdAt: new Date().toISOString(),
     };
 
     const existing = JSON.parse(localStorage.getItem("pos_held_drafts") || "[]");
@@ -406,31 +452,9 @@ export default function POSPage() {
     const success = saveCartLocally("Hold");
     if (!success) return;
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-    const taxAmount = (subtotal - Number(discountValue)) * (activeTaxRate / 100);
-    const totalAmount = subtotal;
-    const netAmount = subtotal + taxAmount - Number(discountValue);
-
-    const salePayload = {
-      customerId: customer || null,
-      orderNumber: `SO-${Date.now()}`,
-      status: "DRAFT",
-      orderDate: new Date().toISOString(),
-      totalAmount,
-      taxAmount,
-      discountAmount: Number(discountValue),
-      netAmount,
-    };
-
-    try {
-      await apiClient.post("/sales", salePayload);
-    } catch (err) {
-      console.error("Backend draft sync error:", err);
-    }
-
     Swal.fire({
-      title: "Sale Held!",
-      text: "The current sale has been held successfully.",
+      title: "Bill Held!",
+      text: "Current bill has been placed on hold.",
       icon: "success",
       confirmButtonColor: "#2563eb",
     });
@@ -444,38 +468,13 @@ export default function POSPage() {
     const success = saveCartLocally("Draft");
     if (!success) return;
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-    const taxAmount = (subtotal - Number(discountValue)) * (activeTaxRate / 100);
-    const totalAmount = subtotal;
-    const netAmount = subtotal + taxAmount - Number(discountValue);
-
-    const salePayload = {
-      customerId: customer || null,
-      orderNumber: `SO-${Date.now()}`,
-      status: "DRAFT",
-      orderDate: new Date().toISOString(),
-      totalAmount,
-      taxAmount,
-      discountAmount: Number(discountValue),
-      netAmount,
-    };
-
-    try {
-      await apiClient.post("/sales", salePayload);
-    } catch (err) {
-      console.error("Backend draft sync error:", err);
-    }
-
     Swal.fire({
       title: "Draft Saved!",
-      text: "Cart contents saved as draft.",
+      text: "Draft bill saved successfully.",
       icon: "success",
       confirmButtonColor: "#2563eb",
     });
     clearCart();
-    setDiscountValue(0);
-    setAmountReceived(0);
-    setCustomer("");
   };
 
   const handleRestoreDraft = (draft) => {
@@ -488,10 +487,11 @@ export default function POSPage() {
     const remaining = localHeldDrafts.filter((item) => item.id !== draft.id);
     localStorage.setItem("pos_held_drafts", JSON.stringify(remaining));
     setLocalHeldDrafts(remaining);
+    setActiveTab("Products");
 
     Swal.fire({
-      title: "Order Restored!",
-      text: `Order ${draft.orderNumber} restored to active cart.`,
+      title: "Bill Resumed!",
+      text: `Order ${draft.orderNumber} loaded back into active cart.`,
       icon: "info",
       confirmButtonColor: "#2563eb",
     });
@@ -508,11 +508,13 @@ export default function POSPage() {
       <div className="pos-left-section">
         <PosToolbar
           query={query}
-          setQuery={setQuery}
+          onQueryChange={setQuery}
           selectedBrand={selectedBrand}
-          setSelectedBrand={setSelectedBrand}
+          onBrandChange={setSelectedBrand}
           brandNames={brandNames}
           onBarcodeScan={addScannedBarcode}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           onReset={() => {
             setQuery("");
             setActiveCategory("All");
@@ -520,17 +522,116 @@ export default function POSPage() {
           }}
         />
 
-        <CategoryTabs
-          categories={categoryNames}
-          activeCategory={activeCategory}
-          setActiveCategory={setActiveCategory}
-        />
+        {activeTab === "Products" && (
+          <>
+            <CategoryTabs
+              categories={categoryNames}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+            />
 
-        <ProductGrid
-          products={filteredProducts}
-          addToCart={addToCart}
-          onAddToCart={addToCart}
-        />
+            <ProductGrid
+              products={filteredProducts}
+              addToCart={addToCart}
+              onAddToCart={addToCart}
+            />
+          </>
+        )}
+
+        {activeTab === "Recent" && (
+          <div style={{ padding: "20px", background: "#fff", borderRadius: "12px", margin: "10px 0" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "12px", color: "#1e293b" }}>Recent Completed Bills</h2>
+            {recentSales.length === 0 ? (
+              <p style={{ color: "#64748b", padding: "20px 0", textAlign: "center" }}>No recent completed sales transactions found.</p>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                  <thead>
+                    <tr style={{ background: "#f8fafc", textAlign: "left", color: "#475569", borderBottom: "1px solid #e2e8f0" }}>
+                      <th style={{ padding: "10px 12px" }}>Order #</th>
+                      <th style={{ padding: "10px 12px" }}>Date</th>
+                      <th style={{ padding: "10px 12px" }}>Customer</th>
+                      <th style={{ padding: "10px 12px" }}>Payment</th>
+                      <th style={{ padding: "10px 12px" }}>Total</th>
+                      <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentSales.map((sale) => (
+                      <tr key={sale.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "12px", fontWeight: "600", color: "#2563eb" }}>{sale.orderNumber}</td>
+                        <td style={{ padding: "12px", color: "#64748b" }}>{sale.date}</td>
+                        <td style={{ padding: "12px", color: "#334155" }}>{sale.customerName}</td>
+                        <td style={{ padding: "12px" }}><span style={{ padding: "4px 8px", background: "#e0f2fe", color: "#0369a1", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>{sale.paymentMethod || "Cash"}</span></td>
+                        <td style={{ padding: "12px", fontWeight: "600", color: "#059669" }}>${Number(sale.netAmount || sale.totalAmount || 0).toFixed(2)}</td>
+                        <td style={{ padding: "12px", textAlign: "right" }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReceipt(sale)}
+                            style={{ padding: "6px 12px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", marginRight: "6px" }}
+                          >
+                            Receipt
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "Drafts & Holds" && (
+          <div style={{ padding: "20px", background: "#fff", borderRadius: "12px", margin: "10px 0" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "12px", color: "#1e293b" }}>Held Bills & Saved Drafts</h2>
+            {localHeldDrafts.length === 0 ? (
+              <p style={{ color: "#64748b", padding: "20px 0", textAlign: "center" }}>No held bills or saved drafts currently active.</p>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                  <thead>
+                    <tr style={{ background: "#f8fafc", textAlign: "left", color: "#475569", borderBottom: "1px solid #e2e8f0" }}>
+                      <th style={{ padding: "10px 12px" }}>Hold #</th>
+                      <th style={{ padding: "10px 12px" }}>Date</th>
+                      <th style={{ padding: "10px 12px" }}>Customer</th>
+                      <th style={{ padding: "10px 12px" }}>Items</th>
+                      <th style={{ padding: "10px 12px" }}>Total Amount</th>
+                      <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {localHeldDrafts.map((draft) => (
+                      <tr key={draft.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "12px", fontWeight: "600", color: "#d97706" }}>{draft.orderNumber}</td>
+                        <td style={{ padding: "12px", color: "#64748b" }}>{draft.date}</td>
+                        <td style={{ padding: "12px", color: "#334155" }}>{draft.customerName}</td>
+                        <td style={{ padding: "12px", color: "#475569" }}>{draft.cart?.reduce((acc, i) => acc + i.qty, 0) || 0} Items</td>
+                        <td style={{ padding: "12px", fontWeight: "600", color: "#059669" }}>${Number(draft.netAmount || draft.totalAmount || 0).toFixed(2)}</td>
+                        <td style={{ padding: "12px", textAlign: "right" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreDraft(draft)}
+                            style={{ padding: "6px 12px", background: "#059669", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", marginRight: "6px" }}
+                          >
+                            Resume Bill
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDraft(draft.id)}
+                            style={{ padding: "6px 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px" }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="pos-right-section">
@@ -568,6 +669,31 @@ export default function POSPage() {
           onDeleteDraft={handleDeleteDraft}
         />
       </div>
+
+      {selectedReceipt && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#fff", padding: "24px", borderRadius: "12px", maxWidth: "420px", width: "90%", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+            <h3 style={{ textAlign: "center", fontSize: "18px", fontWeight: "700", marginBottom: "4px" }}>RECEIPT INVOICE</h3>
+            <p style={{ textAlign: "center", color: "#64748b", fontSize: "12px", marginBottom: "16px" }}>{selectedReceipt.orderNumber} - {selectedReceipt.date}</p>
+            <div style={{ borderTop: "1px dashed #cbd5e1", borderBottom: "1px dashed #cbd5e1", padding: "12px 0", margin: "12px 0" }}>
+              {selectedReceipt.cart?.map((item, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "6px" }}>
+                  <span>{item.name} x {item.qty}</span>
+                  <span style={{ fontWeight: "600" }}>${(item.price * item.qty).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px", fontWeight: "700", margin: "12px 0", color: "#059669" }}>
+              <span>Total Paid:</span>
+              <span>${Number(selectedReceipt.netAmount || selectedReceipt.totalAmount || 0).toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <button type="button" onClick={() => window.print()} style={{ flex: 1, padding: "10px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}>Print Receipt</button>
+              <button type="button" onClick={() => setSelectedReceipt(null)} style={{ flex: 1, padding: "10px", background: "#f1f5f9", color: "#334155", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

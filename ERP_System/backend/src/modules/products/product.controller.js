@@ -2,7 +2,11 @@ import * as productService from "./product.service.js";
 
 export const createProduct = async (req, res) => {
   try {
-    const product = await productService.createProduct(req.body);
+    const companyId = req.user?.companyId;
+    const product = await productService.createProduct({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
 
     return res.status(201).json({
       success: true,
@@ -19,7 +23,8 @@ export const createProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const products = await productService.getAllProducts();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const products = await productService.getAllProducts(companyId);
 
     return res.status(200).json({
       success: true,

@@ -3,8 +3,13 @@ import prisma from "../../config/prisma.js";
 /**
  * Get all employees
  */
-const getAllEmployees = async () => {
+const getAllEmployees = async (companyId, type) => {
+  const where = {};
+  if (companyId) where.companyId = companyId;
+  if (type) where.type = type;
+
   return await prisma.user.findMany({
+    where,
     include: {
       roleRef: true,
       branch: true,

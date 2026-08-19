@@ -47,6 +47,7 @@ import reportsRoutes from "./modules/reports/reports.routes.js";
 
 import companyRoutes from "./modules/company/company.routes.js";
 import gymRoutes from "./modules/gym/gym.routes.js";
+import textileRoutes from "./modules/textile/textile.routes.js";
 
 import {
   attachUserIfAuthenticated,
@@ -125,6 +126,11 @@ app.use(
 app.use(
   "/api/gym",
   gymRoutes
+);
+
+app.use(
+  "/api/textile",
+  textileRoutes
 );
 
 app.use(

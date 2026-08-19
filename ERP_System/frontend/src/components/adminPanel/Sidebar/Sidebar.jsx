@@ -21,7 +21,7 @@ import styles from "./Sidebar.module.css";
 export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
   const { settings, logoUrl } = useSettings();
-  const { user, company, isModuleEnabled, isGym, clearSession } = useCompany();
+  const { user, company, isModuleEnabled, isGym, isTextile, clearSession } = useCompany();
 
   const isActivePath = (href) => {
     if (!href) return false;
@@ -47,8 +47,11 @@ export default function Sidebar({ isOpen, onClose }) {
 
   // Filter master catalog based on enabled modules and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
-    if (isGym && item.industry === "RETAIL") return false;
-    if (!isGym && item.industry === "GYM") return false;
+    if (item.industry) {
+      if (isGym && item.industry !== "GYM") return false;
+      if (isTextile && item.industry !== "TEXTILE") return false;
+      if (!isGym && !isTextile && item.industry !== "RETAIL") return false;
+    }
     return isModuleEnabled(item.moduleCode);
   });
 
@@ -99,7 +102,7 @@ export default function Sidebar({ isOpen, onClose }) {
         )}
 
         <h4 className={styles.title}>
-          {isGym ? "GYM MANAGEMENT MODULES" : "RETAIL MANAGEMENT"}
+          {isGym ? "GYM MANAGEMENT MODULES" : isTextile ? "TEXTILE ERP MODULES" : "RETAIL MANAGEMENT"}
         </h4>
 
         {visibleNavItems.map((item) => {

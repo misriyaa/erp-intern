@@ -48,12 +48,16 @@ const QUICK_SEARCH_ITEMS = [
   { label: "Categories", href: "/admin/categories", icon: FiTag, category: "Inventory" },
   { label: "System Settings", href: "/admin/settings", icon: FiSettings, category: "Settings" },
   { label: "My Profile", href: "/settings/profile", icon: FiUser, category: "Account" },
+  { label: "Textile Products", href: "/textile/products", icon: FiBox, category: "Textile" },
+  { label: "Raw Materials", href: "/textile/raw-materials", icon: FiBox, category: "Textile" },
+  { label: "Production Tracking", href: "/textile/production", icon: FiClock, category: "Textile" },
+  { label: "Quality Control", href: "/textile/quality-control", icon: FiBox, category: "Textile" },
 ];
 
 export default function Header({ toggleSidebar }) {
   const router = useRouter();
   const { settings } = useSettings();
-  const { company, isGym } = useCompany();
+  const { company, isGym, isTextile } = useCompany();
 
   // User state
   const [user, setUser] = useState(null);
@@ -165,6 +169,8 @@ export default function Header({ toggleSidebar }) {
             padding: "6px 14px",
             background: isGym
               ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+              : isTextile
+              ? "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
               : "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
             color: "#ffffff",
             borderRadius: "20px",
@@ -175,7 +181,9 @@ export default function Header({ toggleSidebar }) {
             whiteSpace: "nowrap",
           }}
         >
-          <span>{isGym ? "🏋️ GYM ERP MODE" : "🛒 RETAIL ERP MODE"}</span>
+          <span>
+            {isGym ? "🏋️ GYM ERP MODE" : isTextile ? "🧵 TEXTILE ERP MODE" : "🛒 RETAIL ERP MODE"}
+          </span>
         </div>
 
         {/* Dynamic Search Container */}

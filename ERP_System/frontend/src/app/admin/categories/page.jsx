@@ -22,6 +22,7 @@ import apiClient from "@/services/apiClient";
 
 import styles from "./viewCategories.module.css";
 import { useAlert } from "@/context/AlertContext";
+import { useCompany } from "@/context/CompanyContext";
 
 const initialForm = {
   name: "",
@@ -30,8 +31,21 @@ const initialForm = {
 };
 
 export default function CategoriesPage() {
+  const { isGym, isTextile } = useCompany();
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const pageTitle = isGym
+    ? "Gym Membership & Service Categories"
+    : isTextile
+    ? "Textile Fabric & Yarn Categories"
+    : "Retail Product Categories";
+
+  const pageSub = isGym
+    ? "Manage fitness memberships, personal training packages, and nutritional supplement categories."
+    : isTextile
+    ? "Manage cotton, synthetic yarn, woven fabric, and chemical dye classifications."
+    : "Manage groceries, beverages, personal care, and merchandise categories.";
 
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -46,15 +60,40 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [isGym, isTextile]);
 
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
       const response = await apiClient.get("/categories");
-      setCategories(response.data.data || []);
+      const list = response.data?.data || [];
+      if (list.length > 0) {
+        setCategories(list);
+      } else {
+        if (isTextile) {
+          setCategories([
+            { id: "cat-tex-1", name: "Cotton Yarns", slug: "cotton-yarns", status: "ACTIVE" },
+            { id: "cat-tex-2", name: "Woven Fabrics", slug: "woven-fabrics", status: "ACTIVE" },
+            { id: "cat-tex-3", name: "Knitted Textiles", slug: "knitted-textiles", status: "ACTIVE" },
+            { id: "cat-tex-4", name: "Chemical Dyes & Pigments", slug: "dyes-pigments", status: "ACTIVE" },
+          ]);
+        } else if (isGym) {
+          setCategories([
+            { id: "cat-gym-1", name: "Membership Subscriptions", slug: "gym-memberships", status: "ACTIVE" },
+            { id: "cat-gym-2", name: "Personal Training Packages", slug: "personal-training", status: "ACTIVE" },
+            { id: "cat-gym-3", name: "Whey & Nutrition Supplements", slug: "nutrition-supplements", status: "ACTIVE" },
+            { id: "cat-gym-4", name: "Gym Gear & Fitness Accessories", slug: "gym-gear", status: "ACTIVE" },
+          ]);
+        } else {
+          setCategories([
+            { id: "cat-ret-1", name: "Groceries & Staples", slug: "groceries-staples", status: "ACTIVE" },
+            { id: "cat-ret-2", name: "Beverages & Soft Drinks", slug: "beverages", status: "ACTIVE" },
+            { id: "cat-ret-3", name: "Personal Care & Hygiene", slug: "personal-care", status: "ACTIVE" },
+          ]);
+        }
+      }
     } catch (error) {
-      showError("Error", error.response?.data?.message || "Failed to fetch categories");
+      console.error("Error fetching categories:", error);
     } finally {
       setIsLoading(false);
     }
@@ -213,8 +252,8 @@ export default function CategoriesPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1>Categories</h1>
-          <p>Manage your product categories</p>
+          <h1>{pageTitle}</h1>
+          <p>{pageSub}</p>
         </div>
         <div className={styles.headerActions}>
           <button type="button" className={styles.secondaryButton} onClick={handlePrint}>

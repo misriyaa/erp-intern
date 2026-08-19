@@ -325,6 +325,7 @@ export default function AddAdminPage() {
               >
                 <option value="RETAIL">Retail (RETAIL)</option>
                 <option value="GYM">Gym & Fitness (GYM)</option>
+                <option value="TEXTILE">Textile ERP (TEXTILE)</option>
               </select>
             </div>
 
@@ -506,6 +507,7 @@ export default function AddAdminPage() {
                   const adminName = item.fullName || item.name || "Admin User";
                   const industryCode = item.company?.industry?.code || item.type || "RETAIL";
                   const isGymClient = industryCode.toUpperCase().includes("GYM");
+                  const isTextileClient = industryCode.toUpperCase().includes("TEXTILE");
 
                   return (
                     <tr key={item.id}>
@@ -539,11 +541,11 @@ export default function AddAdminPage() {
                             borderRadius: "12px",
                             fontSize: "12px",
                             fontWeight: "700",
-                            background: isGymClient ? "#d1fae5" : "#e0e7ff",
-                            color: isGymClient ? "#047857" : "#4338ca",
+                            background: isGymClient ? "#d1fae5" : isTextileClient ? "#ccfbf1" : "#e0e7ff",
+                            color: isGymClient ? "#047857" : isTextileClient ? "#0f766e" : "#4338ca",
                           }}
                         >
-                          {isGymClient ? "🏋️ GYM" : "🛒 RETAIL"}
+                          {isGymClient ? "🏋️ GYM" : isTextileClient ? "🧵 TEXTILE" : "🛒 RETAIL"}
                         </span>
                       </td>
                       <td>

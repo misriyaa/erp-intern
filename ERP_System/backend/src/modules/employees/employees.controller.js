@@ -10,14 +10,13 @@ import {
 // Get all employees
 const getEmployees = async (req, res, next) => {
   try {
+    const companyId = req.user?.companyId || req.query.companyId;
+    const type = req.user?.type || req.query.type;
 
-    const result =
-      await fetchAllEmployees();
+    const result = await fetchAllEmployees(companyId, type);
 
     return res.status(200).json(result);
-
   } catch (error) {
-
     next(error);
   }
 };

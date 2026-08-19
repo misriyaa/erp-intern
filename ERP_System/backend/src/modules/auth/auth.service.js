@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 import { sendOTPEmail } from "../../config/mail.js";
 import { generateToken } from "../../config/jwt.js";
+import { DEFAULT_INDUSTRY_MODULES } from "../../config/industries.js";
 
 import {
   findUserByLogin,
@@ -37,9 +38,14 @@ const loginService = async (login, password) => {
 
   const token = generateToken(employee.id);
 
-  const rawCode =
-    employee.company?.industry?.code || employee.type || "RETAIL";
-  const industryCodeUpper = rawCode.toUpperCase().includes("GYM") ? "GYM" : "RETAIL";
+  const rawCodeUpper = (
+    employee.company?.industry?.code || employee.type || "RETAIL"
+  ).toUpperCase();
+  const industryCodeUpper = rawCodeUpper.includes("GYM")
+    ? "GYM"
+    : rawCodeUpper.includes("TEXTILE")
+    ? "TEXTILE"
+    : "RETAIL";
 
   const companyModules =
     employee.company?.modules
@@ -47,37 +53,8 @@ const loginService = async (login, password) => {
       .map((cm) => cm.module.code) || [];
 
   const defaultCodes =
-    industryCodeUpper === "GYM"
-      ? [
-          "DASHBOARD",
-          "MEMBERS",
-          "MEMBERSHIP_PLANS",
-          "TRAINERS",
-          "ATTENDANCE",
-          "PAYMENTS",
-          "EXPENSES",
-          "BRANCHES",
-          "EMPLOYEES",
-          "REPORTS",
-          "SETTINGS",
-        ]
-      : [
-          "DASHBOARD",
-          "PRODUCTS",
-          "CATEGORIES",
-          "BRANDS",
-          "INVENTORY",
-          "CUSTOMERS",
-          "SUPPLIERS",
-          "PURCHASES",
-          "SALES",
-          "PAYMENTS",
-          "EXPENSES",
-          "BRANCHES",
-          "EMPLOYEES",
-          "REPORTS",
-          "SETTINGS",
-        ];
+    DEFAULT_INDUSTRY_MODULES[industryCodeUpper] ||
+    DEFAULT_INDUSTRY_MODULES.RETAIL;
 
   const enabledModuleCodes = companyModules.length > 0 ? companyModules : defaultCodes;
 
@@ -100,7 +77,7 @@ const loginService = async (login, password) => {
       name: employee.company?.name || "ERP Enterprise",
       industry: {
         code: industryCodeUpper,
-        name: industryCodeUpper === "GYM" ? "Gym" : "Retail",
+        name: industryCodeUpper === "GYM" ? "Gym" : industryCodeUpper === "TEXTILE" ? "Textile" : "Retail",
       },
     },
     modules: enabledModuleCodes,

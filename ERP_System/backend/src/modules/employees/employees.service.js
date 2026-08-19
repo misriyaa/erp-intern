@@ -42,8 +42,8 @@ const removeSensitiveFields = (employee) => {
 
 
 // Get all employees
-const fetchAllEmployees = async () => {
-  const employees = await getAllEmployees();
+const fetchAllEmployees = async (companyId, type) => {
+  const employees = await getAllEmployees(companyId, type);
 
   return {
     success: true,

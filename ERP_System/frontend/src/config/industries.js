@@ -19,11 +19,15 @@ import {
   FiCreditCard,
   FiAward,
   FiMonitor,
+  FiLayers,
+  FiCpu,
+  FiCheckCircle,
 } from "react-icons/fi";
 
 export const INDUSTRY_CODES = {
   RETAIL: "RETAIL",
   GYM: "GYM",
+  TEXTILE: "TEXTILE",
 };
 
 export const ROUTE_MODULE_MAP = {
@@ -81,6 +85,12 @@ export const ROUTE_MODULE_MAP = {
   "/gym/attendance": "ATTENDANCE",
   "/gym/payments": "PAYMENTS",
 
+  // Textile Modules
+  "/textile/products": "PRODUCTS",
+  "/textile/raw-materials": "RAW_MATERIALS",
+  "/textile/production": "PRODUCTION",
+  "/textile/quality-control": "QUALITY_CONTROL",
+
   // Core Operations
   "/admin/expenses": "EXPENSES",
   "/admin/branches": "BRANCHES",
@@ -109,6 +119,18 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "TRAINERS", label: "Gym Trainers", href: "/gym/trainers", icon: FiUserCheck, industry: "GYM" },
   { moduleCode: "ATTENDANCE", label: "Attendance Log", href: "/gym/attendance", icon: FiCheckSquare, industry: "GYM" },
   { moduleCode: "PAYMENTS", label: "Payments & Fees", href: "/gym/payments", icon: FiCreditCard, industry: "GYM" },
+  { moduleCode: "BRANCHES", label: "Fitness Centers & Facilities", href: "/admin/branches", icon: FiMapPin, industry: "GYM" },
+  { moduleCode: "SUPPLIERS", label: "Equipment Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "GYM" },
+
+  // Textile Industry Modules
+  { moduleCode: "PRODUCTS", label: "Textile Products", href: "/textile/products", icon: FiShoppingBag, industry: "TEXTILE" },
+  { moduleCode: "RAW_MATERIALS", label: "Raw Materials", href: "/textile/raw-materials", icon: FiLayers, industry: "TEXTILE" },
+  { moduleCode: "PRODUCTION", label: "Production Tracking", href: "/textile/production", icon: FiCpu, industry: "TEXTILE" },
+  { moduleCode: "INVENTORY", label: "Inventory Stock", href: "/warehouse/stock", icon: FiPackage, industry: "TEXTILE" },
+  { moduleCode: "QUALITY_CONTROL", label: "Quality Control", href: "/textile/quality-control", icon: FiCheckCircle, industry: "TEXTILE" },
+  { moduleCode: "BRANCHES", label: "Mills & Manufacturing Units", href: "/admin/branches", icon: FiMapPin, industry: "TEXTILE" },
+  { moduleCode: "SUPPLIERS", label: "Yarn & Dye Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "TEXTILE" },
+  { moduleCode: "SALES", label: "Fabric Sales & Export", href: "/sales", icon: FiShoppingCart, industry: "TEXTILE" },
 
   // Retail Industry Modules
   { moduleCode: "SALES", label: "POS Terminal", href: "/pos", icon: FiMonitor, industry: "RETAIL" },
@@ -120,14 +142,14 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "INVENTORY", label: "Inventory / Stock", href: "/warehouse/stock", icon: FiPackage, industry: "RETAIL" },
   { moduleCode: "INVENTORY", label: "Warehouse Management", href: "/warehouse", icon: FiBriefcase, industry: "RETAIL" },
   { moduleCode: "CUSTOMERS", label: "Customers", href: "/customers", icon: FiUsers, industry: "RETAIL" },
-  { moduleCode: "SUPPLIERS", label: "Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RETAIL" },
+  { moduleCode: "SUPPLIERS", label: "Goods Vendors & Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RETAIL" },
   { moduleCode: "PURCHASES", label: "Purchases", href: "/purchases", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "SALES", label: "Sales Orders", href: "/sales", icon: FiShoppingCart, industry: "RETAIL" },
+  { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL" },
 
   // Shared Core Operations
-  { moduleCode: "EXPENSES", label: "Expenses", href: "/admin/expenses", icon: FiDollarSign },
-  { moduleCode: "BRANCHES", label: "Branches", href: "/admin/branches", icon: FiMapPin },
+  { moduleCode: "EXPENSES", label: "Expenses & Accounts", href: "/admin/expenses", icon: FiDollarSign },
   { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck },
-  { moduleCode: "REPORTS", label: "Reports", href: "/reports", icon: FiBarChart2 },
+  { moduleCode: "REPORTS", label: "Reports & Analytics", href: "/reports", icon: FiBarChart2 },
   { moduleCode: "SETTINGS", label: "Settings", href: "/admin/settings", icon: FiSettings },
 ];

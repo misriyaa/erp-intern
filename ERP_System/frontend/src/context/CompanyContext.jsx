@@ -79,14 +79,27 @@ export function CompanyProvider({ children }) {
     company?.industry?.code || (user?.type || "RETAIL").toUpperCase();
 
   const isGym = industryCode.includes("GYM");
-  const isRetail = !isGym;
+  const isTextile = industryCode.includes("TEXTILE");
+  const isRetail = !isGym && !isTextile;
 
   const isModuleEnabled = (moduleCode) => {
     const roleUpper = (user?.role || "").toUpperCase();
     if (roleUpper.includes("SUPER")) return true;
 
     if (!moduleCode) return true;
-    return modules.includes(moduleCode.toUpperCase());
+    const codeUpper = moduleCode.toUpperCase();
+
+    if (isRetail && ["DASHBOARD", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
+      return true;
+    }
+    if (isGym && ["DASHBOARD", "MEMBERS", "MEMBERSHIP_PLANS", "TRAINERS", "ATTENDANCE", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "SUPPLIERS", "REPORTS", "SETTINGS"].includes(codeUpper)) {
+      return true;
+    }
+    if (isTextile && ["DASHBOARD", "PRODUCTS", "RAW_MATERIALS", "PRODUCTION", "INVENTORY", "QUALITY_CONTROL", "SUPPLIERS", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
+      return true;
+    }
+
+    return modules.length === 0 || modules.includes(codeUpper);
   };
 
   return (
@@ -98,6 +111,7 @@ export function CompanyProvider({ children }) {
         permissions,
         industryCode,
         isGym,
+        isTextile,
         isRetail,
         loading,
         isModuleEnabled,

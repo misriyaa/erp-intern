@@ -19,7 +19,13 @@ async function main() {
     create: { code: "GYM", name: "Gym", status: true },
   });
 
-  console.log("✅ Industries Seeded:", retailIndustry.code, gymIndustry.code);
+  const textileIndustry = await prisma.industry.upsert({
+    where: { code: "TEXTILE" },
+    update: { name: "Textile", status: true },
+    create: { code: "TEXTILE", name: "Textile", status: true },
+  });
+
+  console.log("✅ Industries Seeded:", retailIndustry.code, gymIndustry.code, textileIndustry.code);
 
   // 2. Seed Modules Catalog
   const moduleList = [
@@ -42,6 +48,9 @@ async function main() {
     { code: "MEMBERSHIP_PLANS", name: "Membership Plans", description: "Subscription plan management" },
     { code: "TRAINERS", name: "Gym Trainers", description: "Personal trainer allocation & profiles" },
     { code: "ATTENDANCE", name: "Attendance Log", description: "Member check-in & check-out log" },
+    { code: "RAW_MATERIALS", name: "Raw Materials", description: "Yarn, Cotton, Dyes, and Chemical Stock" },
+    { code: "PRODUCTION", name: "Production Tracking", description: "Textile batch processing & stage tracking" },
+    { code: "QUALITY_CONTROL", name: "Quality Control", description: "Quality inspection and defect logging" },
   ];
 
   const createdModules = {};
@@ -66,6 +75,12 @@ async function main() {
   const gymModuleCodes = [
     "DASHBOARD", "MEMBERS", "MEMBERSHIP_PLANS", "TRAINERS", "ATTENDANCE",
     "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"
+  ];
+
+  const textileModuleCodes = [
+    "DASHBOARD", "PRODUCTS", "RAW_MATERIALS", "PRODUCTION", "INVENTORY",
+    "QUALITY_CONTROL", "SUPPLIERS", "SALES", "PAYMENTS", "EXPENSES",
+    "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"
   ];
 
   for (const code of retailModuleCodes) {
@@ -99,6 +114,25 @@ async function main() {
         update: { defaultEnabled: true },
         create: {
           industryId: gymIndustry.id,
+          moduleId: createdModules[code].id,
+          defaultEnabled: true,
+        },
+      });
+    }
+  }
+
+  for (const code of textileModuleCodes) {
+    if (createdModules[code]) {
+      await prisma.industryModule.upsert({
+        where: {
+          industryId_moduleId: {
+            industryId: textileIndustry.id,
+            moduleId: createdModules[code].id,
+          },
+        },
+        update: { defaultEnabled: true },
+        create: {
+          industryId: textileIndustry.id,
           moduleId: createdModules[code].id,
           defaultEnabled: true,
         },

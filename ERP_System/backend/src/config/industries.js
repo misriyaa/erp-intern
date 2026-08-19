@@ -1,6 +1,7 @@
 export const INDUSTRY_CODES = {
   RETAIL: "RETAIL",
   GYM: "GYM",
+  TEXTILE: "TEXTILE",
 };
 
 export const DEFAULT_INDUSTRY_MODULES = {
@@ -35,4 +36,22 @@ export const DEFAULT_INDUSTRY_MODULES = {
     "REPORTS",
     "SETTINGS",
   ],
+
+  TEXTILE: [
+    "DASHBOARD",
+    "PRODUCTS",
+    "RAW_MATERIALS",
+    "PRODUCTION",
+    "INVENTORY",
+    "QUALITY_CONTROL",
+    "SUPPLIERS",
+    "SALES",
+    "PAYMENTS",
+    "EXPENSES",
+    "BRANCHES",
+    "EMPLOYEES",
+    "REPORTS",
+    "SETTINGS",
+  ],
 };
+

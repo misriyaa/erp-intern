@@ -25,8 +25,13 @@ import {
 import styles from "./products.module.css";
 import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
+import { useCompany } from "@/context/CompanyContext";
+import { useRouter } from "next/navigation";
 
 export default function ProductsPage() {
+  const router = useRouter();
+  const { isGym, isTextile } = useCompany();
+
   /* =========================================================
      STATE
   ========================================================= */
@@ -49,27 +54,25 @@ export default function ProductsPage() {
   ========================================================= */
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (isTextile) {
+      router.replace("/textile/products");
+    } else if (isGym) {
+      router.replace("/gym/plans");
+    } else {
+      fetchProducts();
+    }
+  }, [isGym, isTextile]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
 
       const res = await apiClient.get("/products");
+      const fetched = res.data?.data || (Array.isArray(res.data) ? res.data : []);
 
-      if (res.data && res.data.data) {
-        setProductsData(res.data.data);
-      } else {
-        setProductsData([]);
-      }
+      setProductsData(fetched);
     } catch (error) {
       console.error("Error fetching products:", error);
-
-      showError(
-        "Products couldn't be loaded",
-        "Failed to fetch products from the server."
-      );
     } finally {
       setLoading(false);
     }
