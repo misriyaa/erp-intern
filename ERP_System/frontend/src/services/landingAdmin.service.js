@@ -1,21 +1,14 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import axios from "axios";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // ==============================
 // GET LANDING PAGE
 // ==============================
 
 export async function getLandingPage() {
-  const response = await fetch(`${API_URL}/api/landing`);
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      result.message || "Failed to fetch landing page"
-    );
-  }
-
-  return result.data;
+  const response = await axios.get(`${API_URL}/api/landing`);
+  return response.data.data;
 }
 
 // ==============================
@@ -23,18 +16,6 @@ export async function getLandingPage() {
 // ==============================
 
 export async function updateLandingPage(formData) {
-  const response = await fetch(`${API_URL}/api/landing`, {
-    method: "PUT",
-    body: formData,
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      result.message || "Failed to update landing page"
-    );
-  }
-
-  return result;
+  const response = await axios.put(`${API_URL}/api/landing`, formData);
+  return response.data;
 }

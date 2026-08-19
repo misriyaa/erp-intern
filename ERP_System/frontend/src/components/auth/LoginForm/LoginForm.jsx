@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import axios from "axios";
 import { FiMail, FiLock, FiEye, FiEyeOff, FiBriefcase } from "react-icons/fi";
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
 import styles from "./LoginForm.module.css";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function LoginForm() {
   const { settings, logoUrl } = useSettings();
@@ -36,20 +39,14 @@ export default function LoginForm() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          login: formData.login,
-          password: formData.password,
-        }),
+      const response = await axios.post(`${API_BASE}/api/auth/login`, {
+        login: formData.login,
+        password: formData.password,
       });
 
-      const data = await res.json();
+      const data = response.data;
 
-      if (!res.ok) {
+      if (!data.success && !data.token) {
         throw new Error(data.message || "Login failed");
       }
 
@@ -73,7 +70,7 @@ export default function LoginForm() {
 
       window.location.href = "/dashboard";
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Login failed");
     } finally {
       setLoading(false);
     }

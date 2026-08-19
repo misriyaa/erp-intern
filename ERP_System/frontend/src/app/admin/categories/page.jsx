@@ -18,7 +18,7 @@ import {
 } from "react-icons/fi";
 import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import axios from "axios";
+import apiClient from "@/services/apiClient";
 
 import styles from "./viewCategories.module.css";
 import { useAlert } from "@/context/AlertContext";
@@ -51,7 +51,7 @@ export default function CategoriesPage() {
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/categories");
+      const response = await apiClient.get("/categories");
       setCategories(response.data.data || []);
     } catch (error) {
       showError("Error", error.response?.data?.message || "Failed to fetch categories");
@@ -127,10 +127,10 @@ export default function CategoriesPage() {
       };
 
       if (editingId !== null) {
-        await axios.put(`http://localhost:5000/api/categories/${editingId}`, payload);
+        await apiClient.put(`/categories/${editingId}`, payload);
         toast.success("Category updated successfully");
       } else {
-        await axios.post("http://localhost:5000/api/categories", payload);
+        await apiClient.post("/categories", payload);
         toast.success("Category created successfully");
       }
       fetchCategories();
@@ -162,7 +162,7 @@ export default function CategoriesPage() {
       type: "danger",
       onConfirm: async () => {
         try {
-          await axios.delete(`http://localhost:5000/api/categories/${id}`);
+          await apiClient.delete(`/categories/${id}`);
           showSuccess("Product updated", "Category deleted successfully");
           fetchCategories();
         } catch (error) {

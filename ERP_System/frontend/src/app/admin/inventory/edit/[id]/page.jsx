@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import apiClient from "@/services/apiClient";
 import { toast, Toaster } from "react-hot-toast";
 import { useRouter, useParams } from "next/navigation";
 import { FiSave, FiPackage } from "react-icons/fi";
@@ -32,7 +33,7 @@ export default function EditInventoryPage() {
 
   const fetchInventoryData = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/inventory/${id}`);
+      const res = await apiClient.get(`/inventory/${id}`);
       if (res.data && res.data.data) {
         const inv = res.data.data;
         setInventory({
@@ -55,7 +56,7 @@ export default function EditInventoryPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/products");
+      const res = await apiClient.get("/products");
       if (res.data && res.data.data) {
         setProducts(res.data.data);
       }
@@ -66,7 +67,7 @@ export default function EditInventoryPage() {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/warehouses");
+      const res = await apiClient.get("/warehouses");
       if (res.data && res.data.data) {
         setWarehouses(res.data.data);
       }
@@ -96,7 +97,7 @@ export default function EditInventoryPage() {
     setSubmitting(true);
 
     try {
-      await axios.put(`http://localhost:5000/api/inventory/${id}`, {
+      await apiClient.put(`/inventory/${id}`, {
         productId: inventory.productId,
         warehouseId: inventory.warehouseId,
         quantity: inventory.quantity || 0,

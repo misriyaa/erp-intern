@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import axios from "axios";
+import apiClient from "@/services/apiClient";
 import {
   FiPlus,
   FiPrinter,
@@ -50,9 +51,7 @@ export default function DepartmentsPage() {
       setLoading(true);
       setError(null);
 
-      const res = await axios.get(
-        "http://localhost:5000/api/departments"
-      );
+      const res = await apiClient.get("/departments");
 
       if (res.data.success) {
         setDepartments(res.data.data);
@@ -155,8 +154,8 @@ export default function DepartmentsPage() {
 
     try {
       if (editingId) {
-        await axios.put(
-          `http://localhost:5000/api/departments/${editingId}`,
+        await apiClient.put(
+          `/departments/${editingId}`,
           payload
         );
 
@@ -165,8 +164,8 @@ export default function DepartmentsPage() {
           "Department updated successfully"
         );
       } else {
-        await axios.post(
-          "http://localhost:5000/api/departments",
+        await apiClient.post(
+          "/departments",
           payload
         );
 
@@ -213,8 +212,8 @@ export default function DepartmentsPage() {
 
       onConfirm: async () => {
         try {
-          await axios.delete(
-            `http://localhost:5000/api/departments/${id}`
+          await apiClient.delete(
+            `/departments/${id}`
           );
 
           showSuccess(

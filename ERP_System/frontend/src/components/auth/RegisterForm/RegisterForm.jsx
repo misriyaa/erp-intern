@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import axios from "axios";
 import {
   FiUser,
   FiMail,
@@ -14,6 +15,8 @@ import {
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
 import styles from "./RegisterForm.module.css";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function RegisterForm() {
   const { settings, logoUrl } = useSettings();
@@ -54,18 +57,17 @@ export default function RegisterForm() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email }),
+      const response = await axios.post(`${API_BASE}/api/auth/send-otp`, {
+        email: formData.email,
       });
-      const data = await response.json();
       
-      if (!response.ok) throw new Error(data.message || "Failed to send OTP");
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to send OTP");
+      }
       
       setStep(2);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -78,36 +80,33 @@ export default function RegisterForm() {
 
     try {
       // 1. Verify OTP
-      const verifyRes = await fetch("http://localhost:5000/api/auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, otp }),
+      const verifyRes = await axios.post(`${API_BASE}/api/auth/verify-otp`, {
+        email: formData.email,
+        otp,
       });
-      const verifyData = await verifyRes.json();
       
-      if (!verifyRes.ok) throw new Error(verifyData.message || "Invalid OTP");
+      if (!verifyRes.data.success) {
+        throw new Error(verifyRes.data.message || "Invalid OTP");
+      }
 
       // 2. Signup
       const signupPayload = {
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
-        employeeId: formData.employeeId
+        employeeId: formData.employeeId,
       };
 
-      const signupRes = await fetch("http://localhost:5000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signupPayload),
-      });
-      const signupData = await signupRes.json();
+      const signupRes = await axios.post(`${API_BASE}/api/auth/signup`, signupPayload);
 
-      if (!signupRes.ok) throw new Error(signupData.message || "Signup failed");
+      if (!signupRes.data.success) {
+        throw new Error(signupRes.data.message || "Signup failed");
+      }
 
       showSuccess("Employee added", "Account created successfully! Redirecting to login...");
       window.location.href = "/auth/login";
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Verification failed");
     } finally {
       setLoading(false);
     }

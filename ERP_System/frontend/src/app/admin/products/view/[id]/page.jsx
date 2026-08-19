@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from 'axios';
+import apiClient from '@/services/apiClient';
 import { toast, Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import {
@@ -25,7 +26,7 @@ export default function ViewProductPage({ params }) {
 
   const fetchProduct = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/products/${params.id}`);
+      const res = await apiClient.get(`/products/${params.id}`);
       if (res.data?.data) {
         setProduct(res.data.data);
       } else {

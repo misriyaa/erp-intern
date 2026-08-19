@@ -504,6 +504,53 @@ export default function GymMembers() {
           </div>
         </div>
       )}
+
+      {/* VIEW MEMBER DETAILS MODAL */}
+      {viewingMember && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" }}>
+          <div style={{ background: "#ffffff", borderRadius: "16px", width: "100%", maxWidth: "550px", padding: "28px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                  {viewingMember.fullName}
+                </h2>
+                <span style={{ fontSize: "12px", color: "#4f46e5", fontWeight: "600" }}>
+                  Member ID: {viewingMember.memberId}
+                </span>
+              </div>
+              <button onClick={() => setViewingMember(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#64748b" }}>
+                <FiX />
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px", color: "#334155" }}>
+              <div><strong style={{ color: "#64748b" }}>Gender:</strong> {viewingMember.gender || "N/A"}</div>
+              <div><strong style={{ color: "#64748b" }}>DOB:</strong> {viewingMember.dob ? new Date(viewingMember.dob).toLocaleDateString() : "N/A"}</div>
+              <div><strong style={{ color: "#64748b" }}>Phone:</strong> {viewingMember.phone || "N/A"}</div>
+              <div><strong style={{ color: "#64748b" }}>Email:</strong> {viewingMember.email || "N/A"}</div>
+              <div><strong style={{ color: "#64748b" }}>Plan:</strong> {viewingMember.plan?.name || "No Plan"}</div>
+              <div><strong style={{ color: "#64748b" }}>Trainer:</strong> {viewingMember.trainer?.fullName || "Unassigned"}</div>
+              <div><strong style={{ color: "#64748b" }}>Start Date:</strong> {viewingMember.startDate ? new Date(viewingMember.startDate).toLocaleDateString() : "N/A"}</div>
+              <div><strong style={{ color: "#64748b" }}>Expiry Date:</strong> {viewingMember.expiryDate ? new Date(viewingMember.expiryDate).toLocaleDateString() : "N/A"}</div>
+              <div><strong style={{ color: "#64748b" }}>Status:</strong> <span style={{ fontWeight: "700" }}>{viewingMember.status}</span></div>
+              <div><strong style={{ color: "#64748b" }}>Emergency Contact:</strong> {viewingMember.emergencyContact || "N/A"}</div>
+              <div style={{ gridColumn: "1 / -1" }}><strong style={{ color: "#64748b" }}>Emergency Phone:</strong> {viewingMember.emergencyPhone || "N/A"}</div>
+              <div style={{ gridColumn: "1 / -1" }}><strong style={{ color: "#64748b" }}>Address:</strong> {viewingMember.address || "N/A"}</div>
+              {viewingMember.notes && (
+                <div style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "10px", borderRadius: "8px", marginTop: "6px" }}>
+                  <strong style={{ color: "#64748b" }}>Notes:</strong> {viewingMember.notes}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+              <button onClick={() => setViewingMember(null)} style={{ padding: "10px 20px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

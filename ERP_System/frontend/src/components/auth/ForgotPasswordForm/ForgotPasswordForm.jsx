@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import axios from "axios";
 import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import styles from "./ForgotPasswordForm.module.css";
 import { useAlert } from "@/context/AlertContext";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function ForgotPasswordForm() {
   const { showSuccess } = useAlert();
@@ -27,18 +30,13 @@ export default function ForgotPasswordForm() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) throw new Error(data.message || "Failed to send OTP");
-      
+      const response = await axios.post(`${API_BASE}/api/auth/forgot-password`, { email });
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to send OTP");
+      }
       setStep(2);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -51,18 +49,13 @@ export default function ForgotPasswordForm() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/verify-reset-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) throw new Error(data.message || "Invalid OTP");
-      
+      const response = await axios.post(`${API_BASE}/api/auth/verify-reset-otp`, { email, otp });
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Invalid OTP");
+      }
       setStep(3);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -80,19 +73,15 @@ export default function ForgotPasswordForm() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) throw new Error(data.message || "Failed to reset password");
+      const response = await axios.post(`${API_BASE}/api/auth/reset-password`, { email, password });
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to reset password");
+      }
 
-      showSuccess("Employee added", "Password reset successfully! Redirecting to login...");
+      showSuccess("Password Reset", "Password reset successfully! Redirecting to login...");
       window.location.href = "/auth/login";
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }

@@ -68,7 +68,7 @@ export default function ManagersPage() {
   const fetchManagers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/employees");
+      const res = await apiClient.get("/employees");
       const allEmployees = res.data?.data || [];
       // Filter managers or all employees with manager/admin role
       setManagers(allEmployees);
@@ -158,7 +158,7 @@ export default function ManagersPage() {
         employeeId: autoId,
       };
 
-      await axios.post("http://localhost:5000/api/employees", payload, { headers });
+      await apiClient.post("/employees", payload);
 
       toast.success("Manager added successfully!");
       showSuccess("Manager Account Created", `Manager ${payload.fullName} has been created with role Admin.`);
@@ -182,7 +182,7 @@ export default function ManagersPage() {
       type: "danger",
       onConfirm: async () => {
         try {
-          await axios.delete(`http://localhost:5000/api/employees/${id}`);
+          await apiClient.delete(`/employees/${id}`);
           showSuccess("Manager Deleted", "Manager record deleted successfully.");
           fetchManagers();
         } catch (err) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import axios from "axios";
+import apiClient from "@/services/apiClient";
 import { toast, Toaster } from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 
@@ -48,9 +48,7 @@ export default function InventoryPage() {
     try {
       setLoading(true);
 
-      const res = await axios.get(
-        "http://localhost:5000/api/inventory"
-      );
+      const res = await apiClient.get("/inventory");
 
       if (res.data && res.data.data) {
         setInventoriesData(res.data.data);
@@ -79,9 +77,7 @@ export default function InventoryPage() {
 
       onConfirm: async () => {
         try {
-          await axios.delete(
-            `http://localhost:5000/api/inventory/${id}`
-          );
+          await apiClient.delete(`/inventory/${id}`);
 
           showSuccess(
             "Inventory updated",

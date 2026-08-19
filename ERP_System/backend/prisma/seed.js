@@ -187,57 +187,9 @@ async function main() {
     },
   });
 
-  // Retail Admin Account
-  await prisma.user.upsert({
-    where: { email: "retailadmin@erp.com" },
-    update: {
-      passwordHash,
-      isVerified: true,
-      companyId: retailCompany.id,
-    },
-    create: {
-      fullName: "Retail Admin",
-      email: "retailadmin@erp.com",
-      employeeId: "ADM-RETAIL-01",
-      phone: "9876543210",
-      passwordHash,
-      plainPassword: "admin123",
-      role: "ADMIN",
-      roleId: adminRole.id,
-      isVerified: true,
-      type: "RETAIL",
-      companyId: retailCompany.id,
-    },
-  });
-
-  // Gym Admin Account
-  await prisma.user.upsert({
-    where: { email: "gymadmin@erp.com" },
-    update: {
-      passwordHash,
-      isVerified: true,
-      companyId: gymCompany.id,
-    },
-    create: {
-      fullName: "Gym Admin",
-      email: "gymadmin@erp.com",
-      employeeId: "ADM-GYM-01",
-      phone: "9876543211",
-      passwordHash,
-      plainPassword: "admin123",
-      role: "ADMIN",
-      roleId: adminRole.id,
-      isVerified: true,
-      type: "GYM",
-      companyId: gymCompany.id,
-    },
-  });
-
   console.log("==========================================");
-  console.log("🎉 FULL DATABASE SEEDING COMPLETED SUCCESSFULLY!");
+  console.log("🎉 DATABASE SEEDING COMPLETED SUCCESSFULLY!");
   console.log("👑 SUPER ADMIN LOGIN: superadmin@erp.com / admin123");
-  console.log("🛒 RETAIL ADMIN LOGIN: retailadmin@erp.com / admin123");
-  console.log("🏋️ GYM ADMIN LOGIN: gymadmin@erp.com / admin123");
   console.log("==========================================");
 }
 

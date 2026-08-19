@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, User, Loader2 } from "lucide-react";
-import axios from "axios";
+import apiClient from "@/services/apiClient";
 import { toast, Toaster } from "react-hot-toast";
 import styles from "./addEmployees.module.css";
 import { getRoles } from "@/services/roleService";
@@ -130,13 +130,9 @@ export default function AddEmployeePage() {
     setSubmitting(true);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const response = await axios.post(
-        "http://localhost:5000/api/employees",
-        formData,
-        { headers }
+      const response = await apiClient.post(
+        "/employees",
+        formData
       );
 
       console.log("Employee created:", response.data);

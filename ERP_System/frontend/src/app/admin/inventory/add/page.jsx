@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import apiClient from "@/services/apiClient";
 import { toast, Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { FiSave, FiPackage } from "react-icons/fi";
@@ -12,7 +12,7 @@ import { useAlert } from "@/context/AlertContext";
 const initialInventory = {
   productId: "",
   warehouseId: "",
-  quantity: 0,
+  quantity: "",
   minimumStock: 10,
   maximumStock: 1000,
   reorderLevel: 20,
@@ -33,7 +33,7 @@ export default function AddInventoryPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/products");
+      const res = await apiClient.get("/products");
       if (res.data && res.data.data) {
         setProducts(res.data.data);
       }
@@ -44,7 +44,7 @@ export default function AddInventoryPage() {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/warehouses");
+      const res = await apiClient.get("/warehouses");
       if (res.data && res.data.data) {
         setWarehouses(res.data.data);
       }
@@ -74,7 +74,7 @@ export default function AddInventoryPage() {
     setSubmitting(true);
 
     try {
-      await axios.post("http://localhost:5000/api/inventory", {
+      await apiClient.post("/inventory", {
         productId: inventory.productId,
         warehouseId: inventory.warehouseId,
         quantity: inventory.quantity || 0,

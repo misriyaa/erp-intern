@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const defaultLandingData = {
@@ -26,16 +28,8 @@ const defaultLandingData = {
 
 export async function getLandingPage() {
   try {
-    const response = await fetch(`${API_URL}/api/landing`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return defaultLandingData;
-    }
-
-    const result = await response.json();
-    return result.data || defaultLandingData;
+    const response = await axios.get(`${API_URL}/api/landing`);
+    return response.data?.data || defaultLandingData;
   } catch (error) {
     console.error("Landing API Error:", error);
     return defaultLandingData;

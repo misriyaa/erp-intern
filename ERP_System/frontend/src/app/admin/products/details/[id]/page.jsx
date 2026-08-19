@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import axios from 'axios';
+import apiClient from "@/services/apiClient";
 import { toast, Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import {
@@ -37,7 +38,7 @@ export default function ProductDetailsPage({ params }) {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+      const res = await apiClient.get(`/products/${id}`);
       if (res.data?.data) {
         setProduct(res.data.data);
       } else {
@@ -97,7 +98,7 @@ export default function ProductDetailsPage({ params }) {
 
     if (confirmed) {
       try {
-        await axios.delete(`http://localhost:5000/api/products/${id}`);
+        await apiClient.delete(`/products/${id}`);
         toast.success("Product deleted successfully");
         router.push("/admin/products/view");
       } catch (err) {

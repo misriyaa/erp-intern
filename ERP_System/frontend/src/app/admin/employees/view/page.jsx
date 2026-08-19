@@ -192,7 +192,7 @@ export default function EmployeePage() {
       type: "danger",
       onConfirm: async () => {
         try {
-          await axios.delete(`http://localhost:5000/api/employees/${employeeId}`);
+          await apiClient.delete(`/employees/${employeeId}`);
           showSuccess("Employee added", "Employee profile deleted successfully.");
           setEmployees((previous) => previous.filter((employee) => employee.id !== employeeId));
         } catch (error) {
@@ -223,10 +223,9 @@ export default function EmployeePage() {
     try {
       const updateData = { ...formData };
 
-      const response = await axios.put(
-        `http://localhost:5000/api/employees/${currentEmployee.id}`,
-        updateData,
-        getAuthHeaders()
+      const response = await apiClient.put(
+        `/employees/${currentEmployee.id}`,
+        updateData
       );
 
       toast.success(

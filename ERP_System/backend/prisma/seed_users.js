@@ -101,65 +101,11 @@ async function main() {
     },
   });
 
-  // 2. Retail Admin Account
-  const retailAdmin = await prisma.user.upsert({
-    where: { email: "retailadmin@erp.com" },
-    update: {
-      passwordHash,
-      isVerified: true,
-      companyId: retailCompany.id,
-    },
-    create: {
-      fullName: "Retail Admin",
-      email: "retailadmin@erp.com",
-      employeeId: "ADM-RETAIL-01",
-      phone: "9876543210",
-      passwordHash,
-      plainPassword: "admin123",
-      role: "ADMIN",
-      roleId: adminRole.id,
-      isVerified: true,
-      type: "RETAIL",
-      companyId: retailCompany.id,
-    },
-  });
-
-  // 3. Gym Admin Account
-  const gymAdmin = await prisma.user.upsert({
-    where: { email: "gymadmin@erp.com" },
-    update: {
-      passwordHash,
-      isVerified: true,
-      companyId: gymCompany.id,
-    },
-    create: {
-      fullName: "Gym Admin",
-      email: "gymadmin@erp.com",
-      employeeId: "ADM-GYM-01",
-      phone: "9876543211",
-      passwordHash,
-      plainPassword: "admin123",
-      role: "ADMIN",
-      roleId: adminRole.id,
-      isVerified: true,
-      type: "GYM",
-      companyId: gymCompany.id,
-    },
-  });
-
   console.log("==========================================");
   console.log("👑 SUPER ADMIN LOGIN:");
   console.log("Email: superadmin@erp.com");
   console.log("Password: admin123");
   console.log("Employee ID / Login: SA-001");
-  console.log("------------------------------------------");
-  console.log("🛒 RETAIL ADMIN LOGIN:");
-  console.log("Email: retailadmin@erp.com");
-  console.log("Password: admin123");
-  console.log("------------------------------------------");
-  console.log("🏋️ GYM ADMIN LOGIN:");
-  console.log("Email: gymadmin@erp.com");
-  console.log("Password: admin123");
   console.log("==========================================");
 }
 
