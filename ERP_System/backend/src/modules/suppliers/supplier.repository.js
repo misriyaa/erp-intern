@@ -11,6 +11,13 @@ export const getAllSuppliers = async () => {
     orderBy: {
       createdAt: "desc",
     },
+    include: {
+      purchases: {
+        include: {
+          items: true,
+        },
+      },
+    },
   });
 };
 

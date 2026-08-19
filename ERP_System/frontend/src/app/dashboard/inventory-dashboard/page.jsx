@@ -22,10 +22,10 @@ import {
 import styles from "./inventoryDashboard.module.css";
 
 /* =========================================================
-   DATA
+   FALLBACK DEFAULT DATA
 ========================================================= */
 
-const categoryData = [
+const defaultCategoryData = [
   { name: "Electronics", value: 110 },
   { name: "Clothing", value: 95 },
   { name: "Machines", value: 78 },
@@ -34,7 +34,7 @@ const categoryData = [
   { name: "Books", value: 38 },
 ];
 
-const productStockData = [
+const defaultProductStockData = [
   { month: "Jan", products: 220, outOfStock: 60 },
   { month: "Feb", products: 240, outOfStock: 80 },
   { month: "Mar", products: 200, outOfStock: 55 },
@@ -49,203 +49,45 @@ const productStockData = [
   { month: "Dec", products: 370, outOfStock: 120 },
 ];
 
-const inventoryValueData = [
-  { month: "Jan", value: 320 },
-  { month: "Feb", value: 410 },
-  { month: "Mar", value: 380 },
-  { month: "Apr", value: 460 },
-  { month: "May", value: 570 },
-  { month: "Jun", value: 420 },
-  { month: "Jul", value: 510 },
-  { month: "Aug", value: 480 },
-  { month: "Sep", value: 540 },
-  { month: "Oct", value: 460 },
-  { month: "Nov", value: 520 },
-  { month: "Dec", value: 580 },
-];
-
 const stockMiniData = [
-  { value: 175 },
-  { value: 195 },
-  { value: 185 },
-  { value: 220 },
-  { value: 245 },
-  { value: 220 },
-  { value: 265 },
-  { value: 245 },
-  { value: 280 },
-  { value: 255 },
-  { value: 295 },
-  { value: 270 },
+  { value: 175 }, { value: 195 }, { value: 185 }, { value: 220 },
+  { value: 245 }, { value: 220 }, { value: 265 }, { value: 245 },
+  { value: 280 }, { value: 255 }, { value: 295 }, { value: 270 },
 ];
 
 const valueMiniData = [
-  { value: 120 },
-  { value: 160 },
-  { value: 145 },
-  { value: 205 },
-  { value: 185 },
-  { value: 260 },
-  { value: 205 },
-  { value: 130 },
-  { value: 180 },
-  { value: 145 },
-  { value: 170 },
-  { value: 150 },
+  { value: 120 }, { value: 160 }, { value: 145 }, { value: 205 },
+  { value: 185 }, { value: 260 }, { value: 205 }, { value: 130 },
+  { value: 180 }, { value: 145 }, { value: 170 }, { value: 150 },
 ];
 
-const suppliers = [
-  {
-    code: "#LED0020",
-    name: "Apex Computers",
-    supplied: "$40,000",
-    icon: "▣",
-    status: "Active",
-  },
-  {
-    code: "#LED0019",
-    name: "Beats Headphones",
-    supplied: "$34,000",
-    icon: "♧",
-    status: "Inactive",
-  },
-  {
-    code: "#LED0018",
-    name: "Dazzle Shoes",
-    supplied: "$32,000",
-    icon: "▱",
-    status: "Active",
-  },
-  {
-    code: "#LED0017",
-    name: "Best Accessories",
-    supplied: "$27,000",
-    icon: "▢",
-    status: "Active",
-  },
-  {
-    code: "#LED0016",
-    name: "A-Z Store",
-    supplied: "$13,000",
-    icon: "▤",
-    status: "Inactive",
-  },
+const defaultSuppliers = [
+  { code: "#SUP0020", name: "Apex Computers", contact: "Alexander Kenn", items: 45 },
+  { code: "#SUP0019", name: "Beats Electronics", contact: "Gabriella White", items: 30 },
+  { code: "#SUP0018", name: "Dazzle Footwear", contact: "Christopher Rey", items: 85 },
+  { code: "#SUP0017", name: "Logitech Systems", contact: "Penelope Ton", items: 60 },
 ];
 
-const warehouses = [
-  {
-    code: "#WRH0020",
-    name: "Smart Stock Hub",
-    contact: "Ethan Walker",
-    capacity: "30,000",
-    percentage: 85,
-  },
-  {
-    code: "#WRH0019",
-    name: "Flow Grid Storage",
-    contact: "Madison Clark",
-    capacity: "20,000",
-    percentage: 75,
-  },
-  {
-    code: "#WRH0018",
-    name: "Prime Storage Solutions",
-    contact: "James Harris",
-    capacity: "300,000",
-    percentage: 61,
-  },
-  {
-    code: "#WRH0017",
-    name: "Global Supply Depot",
-    contact: "Avery Thompson",
-    capacity: "25,000",
-    percentage: 40,
-  },
-  {
-    code: "#WRH0016",
-    name: "Silverline Storage",
-    contact: "Benjamin Wright",
-    capacity: "16,000",
-    percentage: 32,
-  },
+const defaultWarehouses = [
+  { code: "#WRH0020", name: "Central Metro Hub", contact: "Alexander Kenn", capacity: "450,000", percentage: 86 },
+  { code: "#WRH0019", name: "East Coast Logistics", contact: "Sophia Martinez", capacity: "120,000", percentage: 72 },
+  { code: "#WRH0018", name: "Prime Storage Solutions", contact: "James Harris", capacity: "300,000", percentage: 61 },
+  { code: "#WRH0017", name: "Global Supply Depot", contact: "Avery Thompson", capacity: "25,000", percentage: 40 },
 ];
 
-const recentStocks = [
-  {
-    code: "#PRD0020",
-    product: "Apple iPhone 15",
-    sku: "APP-PH-15",
-    category: "Smartphones",
-    brand: "Apple",
-    unit: "Piece",
-    quantity: "02",
-    sellingPrice: "$250",
-    purchasePrice: "$230",
-    icon: "●",
-  },
-  {
-    code: "#PRD0019",
-    product: "Dell XPS 13 9310",
-    sku: "DEL-LAP-9310",
-    category: "Computers",
-    brand: "Dell",
-    unit: "Piece",
-    quantity: "12",
-    sellingPrice: "$300",
-    purchasePrice: "$280",
-    icon: "▣",
-  },
-  {
-    code: "#PRD0018",
-    product: "Bose QuietComfort 45",
-    sku: "BOS-HD-45",
-    category: "Headphones",
-    brand: "Bose",
-    unit: "Piece",
-    quantity: "15",
-    sellingPrice: "$100",
-    purchasePrice: "$80",
-    icon: "◉",
-  },
-  {
-    code: "#PRD0017",
-    product: "Adidas Running Shoe",
-    sku: "ADI-SHO-RUN",
-    category: "Footwear",
-    brand: "Adidas",
-    unit: "Pack",
-    quantity: "20",
-    sellingPrice: "$400",
-    purchasePrice: "$380",
-    icon: "▱",
-  },
-  {
-    code: "#PRD0016",
-    product: "Samsung Galaxy S24",
-    sku: "SAM-PH-S24",
-    category: "Smartphones",
-    brand: "Samsung",
-    unit: "Piece",
-    quantity: "08",
-    sellingPrice: "$280",
-    purchasePrice: "$255",
-    icon: "◈",
-  },
+const defaultRecentStocks = [
+  { code: "#PRD0020", product: "Apple iPhone 15", sku: "APP-PH-15", category: "Smartphones", brand: "Apple", unit: "Piece", quantity: "02", sellingPrice: "$250", purchasePrice: "$230" },
+  { code: "#PRD0019", product: "Dell XPS 13 9310", sku: "DEL-LAP-9310", category: "Computers", brand: "Dell", unit: "Piece", quantity: "12", sellingPrice: "$300", purchasePrice: "$280" },
+  { code: "#PRD0018", product: "Bose QuietComfort 45", sku: "BOS-HD-45", category: "Headphones", brand: "Bose", unit: "Piece", quantity: "15", sellingPrice: "$100", purchasePrice: "$80" },
+  { code: "#PRD0017", product: "Adidas Running Shoe", sku: "ADI-SHO-RUN", category: "Footwear", brand: "Adidas", unit: "Pack", quantity: "20", sellingPrice: "$400", purchasePrice: "$380" },
+  { code: "#PRD0016", product: "Samsung Galaxy S24", sku: "SAM-PH-S24", category: "Smartphones", brand: "Samsung", unit: "Piece", quantity: "08", sellingPrice: "$280", purchasePrice: "$255" },
 ];
-
-/* =========================================================
-   CUSTOM TOOLTIP
-========================================================= */
 
 function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
+  if (!active || !payload || !payload.length) return null;
   return (
     <div className={styles.tooltip}>
       <strong>{label}</strong>
-
       {payload.map((item, index) => (
         <div key={index}>
           <span>{item.name}</span>
@@ -255,10 +97,6 @@ function CustomTooltip({ active, payload, label }) {
     </div>
   );
 }
-
-/* =========================================================
-   CAPACITY CIRCLE
-========================================================= */
 
 function CapacityCircle({ percentage }) {
   const color =
@@ -283,13 +121,7 @@ function CapacityCircle({ percentage }) {
   );
 }
 
-/* =========================================================
-   PAGE
-========================================================= */
-
 export default function InventoryDashboard() {
-  const [categories, setCategories] = useState([]);
-  const [inventories, setInventories] = useState([]);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalQuantity: 0,
@@ -297,54 +129,188 @@ export default function InventoryDashboard() {
     totalValue: 0,
   });
 
+  const [categoriesList, setCategoriesList] = useState(defaultCategoryData);
+  const [suppliersList, setSuppliersList] = useState(defaultSuppliers);
+  const [warehousesList, setWarehousesList] = useState(defaultWarehouses);
+  const [recentStocksList, setRecentStocksList] = useState(defaultRecentStocks);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    fetchData();
+    fetchLiveInventoryData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchLiveInventoryData = async () => {
     try {
-      const [prodRes, catRes, invRes] = await Promise.all([
-        apiClient.get("/products").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/categories").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/inventory").catch(() => ({ data: { data: [] } })),
+      setLoading(true);
+      const [prodRes, catRes, invReportRes, suppRes, wrhRes, invListRes] = await Promise.all([
+        apiClient.get("/products").catch(() => null),
+        apiClient.get("/categories").catch(() => null),
+        apiClient.get("/reports/inventory").catch(() => null),
+        apiClient.get("/suppliers").catch(() => null),
+        apiClient.get("/warehouses").catch(() => null),
+        apiClient.get("/inventory").catch(() => null),
       ]);
 
-      const prods = prodRes.data?.data || [];
-      const cats = catRes.data?.data || [];
-      const invs = invRes.data?.data || [];
+      const prods = prodRes?.data?.data || prodRes?.data || [];
+      const cats = catRes?.data?.data || catRes?.data || [];
+      const invReport = invReportRes?.data?.data;
+      const suppliers = suppRes?.data?.data || suppRes?.data || [];
+      const warehouses = wrhRes?.data?.data || wrhRes?.data || [];
+      const inventories = invListRes?.data?.data || invListRes?.data || [];
 
-      setCategories(cats);
-      setInventories(invs);
-
+      // 1. Process Stats
       let totalQty = 0;
       let lowCount = 0;
       let totalVal = 0;
 
-      prods.forEach((p) => {
-        const qty = p.inventories?.reduce((a, b) => a + (b.quantity || 0), 0) || 0;
-        totalQty += qty;
-        totalVal += qty * (parseFloat(p.sellingPrice) || 0);
-        if (qty < 10) lowCount++;
-      });
+      if (invReport?.summary && invReport.summary.totalItems > 0) {
+        totalQty = invReport.summary.totalItems;
+        lowCount = invReport.summary.lowStockCount;
+        totalVal = invReport.summary.totalValuationRetail;
+      } else if (inventories.length > 0) {
+        inventories.forEach((item) => {
+          const qty = Number(item.quantity || 0);
+          totalQty += qty;
+          if (item.product?.sellingPrice) {
+            totalVal += qty * Number(item.product.sellingPrice);
+          }
+          if (item.reorderLevel && qty <= item.reorderLevel) {
+            lowCount++;
+          }
+        });
+      } else {
+        prods.forEach((p) => {
+          const qty = p.inventories?.reduce((a, b) => a + Number(b.quantity || 0), 0) ?? Number(p.quantity || 0);
+          totalQty += qty;
+          totalVal += qty * (parseFloat(p.sellingPrice) || 0);
+          if (qty < 10) lowCount++;
+        });
+      }
 
       setStats({
-        totalProducts: prods.length,
-        totalQuantity: totalQty,
-        lowStockCount: lowCount,
-        totalValue: totalVal,
+        totalProducts: prods.length || 0,
+        totalQuantity: totalQty || 0,
+        lowStockCount: lowCount || 0,
+        totalValue: totalVal || 0,
       });
+
+      // 2. Process Categories distribution dynamically
+      if (Array.isArray(cats) && cats.length > 0) {
+        const formattedCats = cats.map((c) => {
+          const categoryProducts = prods.filter((p) => p.categoryId === c.id || p.category?.name === c.name);
+          const totalCategoryQty = categoryProducts.reduce((sum, p) => {
+            const pQty = p.inventories?.reduce((a, b) => a + Number(b.quantity || 0), 0) ?? Number(p.quantity || 0) ?? 1;
+            return sum + pQty;
+          }, 0);
+
+          return {
+            name: c.name || "Category",
+            value: totalCategoryQty > 0 ? totalCategoryQty : categoryProducts.length,
+          };
+        }).filter((c) => c.value > 0);
+
+        if (formattedCats.length > 0) {
+          setCategoriesList(formattedCats.slice(0, 6));
+        }
+      }
+
+      // 3. Process Dynamic Suppliers (calculate actual supplied item count and sort top suppliers)
+      if (Array.isArray(suppliers) && suppliers.length > 0) {
+        const formattedSupp = suppliers.map((s, idx) => {
+          let itemCount = 0;
+          if (Array.isArray(s.purchases) && s.purchases.length > 0) {
+            itemCount = s.purchases.reduce((acc, p) => {
+              const pItemsCount = Array.isArray(p.items)
+                ? p.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+                : 1;
+              return acc + pItemsCount;
+            }, 0);
+          }
+
+          const code = s.taxNumber
+            ? `TAX-${s.taxNumber}`
+            : `#SUP${String(idx + 1).padStart(4, "0")}`;
+
+          return {
+            id: s.id,
+            code,
+            name: s.companyName || s.name || "Supplier",
+            contact: s.contactPerson || s.phone || s.email || "No contact info",
+            items: itemCount,
+          };
+        }).sort((a, b) => b.items - a.items);
+
+        setSuppliersList(formattedSupp.slice(0, 6));
+      }
+
+      // 4. Process Dynamic Warehouses
+      if (Array.isArray(warehouses) && warehouses.length > 0) {
+        const formattedWrh = warehouses.map((w, idx) => {
+          let currentStock = 0;
+          if (Array.isArray(w.inventories)) {
+            currentStock = w.inventories.reduce((acc, inv) => acc + Number(inv.quantity || 0), 0);
+          }
+
+          const percentage = totalQty > 0
+            ? Math.min(100, Math.max(10, Math.round((currentStock / totalQty) * 100)))
+            : 50;
+
+          return {
+            id: w.id,
+            code: w.code ? `#${w.code}` : `#WRH${String(idx + 1).padStart(4, "0")}`,
+            name: w.name || "Warehouse",
+            contact: w.phone || w.city || "Manager",
+            capacity: currentStock.toLocaleString(),
+            percentage: percentage,
+          };
+        });
+
+        setWarehousesList(formattedWrh.slice(0, 6));
+      }
+
+      // 5. Process Dynamic Recent Stock Items
+      if (invReport?.items?.length > 0) {
+        const formattedStocks = invReport.items.slice(0, 5).map((item, idx) => ({
+          code: item.sku ? `#${item.sku}` : `#PRD${String(idx + 1).padStart(4, "0")}`,
+          product: item.productName || "Product",
+          sku: item.sku || "SKU-001",
+          category: item.categoryName || "General",
+          brand: "Brand",
+          unit: "Piece",
+          quantity: String(item.quantity).padStart(2, "0"),
+          sellingPrice: `$${Number(item.sellingPrice || 0).toFixed(2)}`,
+          purchasePrice: `$${Number(item.costPrice || 0).toFixed(2)}`,
+        }));
+        setRecentStocksList(formattedStocks);
+      } else if (Array.isArray(prods) && prods.length > 0) {
+        const formattedStocks = prods.slice(0, 5).map((p, idx) => {
+          const qty = p.inventories?.reduce((a, b) => a + Number(b.quantity || 0), 0) ?? Number(p.quantity || 0);
+          return {
+            code: p.sku ? `#${p.sku}` : `#PRD${String(idx + 1).padStart(4, "0")}`,
+            product: p.name || "Product",
+            sku: p.sku || `SKU-${idx + 1}`,
+            category: p.category?.name || "General",
+            brand: p.brand?.name || "Generic",
+            unit: p.unit?.name || "Piece",
+            quantity: String(qty).padStart(2, "0"),
+            sellingPrice: p.sellingPrice ? `$${Number(p.sellingPrice).toFixed(2)}` : "$0.00",
+            purchasePrice: p.costPrice ? `$${Number(p.costPrice).toFixed(2)}` : "$0.00",
+          };
+        });
+        setRecentStocksList(formattedStocks);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching live inventory dashboard metrics:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <main className={styles.dashboard}>
       <DashboardNav />
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
 
+      {/* HEADER */}
       <header className={styles.topbar}>
         <div>
           <h1>Inventory Dashboard</h1>
@@ -369,514 +335,140 @@ export default function InventoryDashboard() {
         </div>
       </header>
 
-      {/* =====================================================
-          TOP CONTENT
-      ===================================================== */}
-
+      {/* TOP CONTENT */}
       <section className={styles.topGrid}>
         {/* LEFT MINI CARDS */}
-
         <div className={styles.leftColumn}>
           {/* TOTAL STOCK */}
-
           <article className={styles.summaryCard}>
             <div className={styles.summaryTop}>
               <div>
                 <p className={styles.cardLabel}>Total Stock</p>
-
                 <div className={styles.valueRow}>
-                  <strong>{stats.totalQuantity || 250}</strong>
-
-                  <span className={styles.positive}>
-                    +6.43%
-                  </span>
+                  <strong>{stats.totalQuantity}</strong>
+                  <span className={styles.positive}>+6.43%</span>
                 </div>
               </div>
-
-              <div className={`${styles.iconBox} ${styles.greenIcon}`}>
-                ◇
-              </div>
+              <div className={`${styles.iconBox} ${styles.greenIcon}`}>◇</div>
             </div>
 
             <div className={styles.miniChart}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stockMiniData}>
-                  <defs>
-                    <linearGradient
-                      id="stockMiniGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="0%"
-                        stopColor="#079574"
-                        stopOpacity={0.25}
-                      />
-
-                      <stop
-                        offset="100%"
-                        stopColor="#079574"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-
-                  <Area
+              <ResponsiveContainer width="100%" height={45}>
+                <LineChart data={stockMiniData}>
+                  <Line
                     type="monotone"
                     dataKey="value"
-                    stroke="#079574"
-                    strokeWidth={2.5}
-                    fill="url(#stockMiniGradient)"
+                    stroke="#087c75"
+                    strokeWidth={2}
                     dot={false}
                   />
-                </AreaChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </article>
 
-          {/* INVENTORY VALUE */}
-
+          {/* TOTAL VALUE */}
           <article className={styles.summaryCard}>
             <div className={styles.summaryTop}>
               <div>
-                <p className={styles.cardLabel}>
-                  Inventory Value
-                </p>
-
+                <p className={styles.cardLabel}>Inventory Value</p>
                 <div className={styles.valueRow}>
-                  <strong>{stats.totalValue ? `$${stats.totalValue.toLocaleString()}` : "$2,300"}</strong>
-
-                  <span className={styles.negative}>
-                    -3.72%
-                  </span>
+                  <strong>${stats.totalValue.toLocaleString()}</strong>
+                  <span className={styles.negative}>-2.15%</span>
                 </div>
               </div>
-
-              <div className={`${styles.iconBox} ${styles.orangeIcon}`}>
-                $
-              </div>
+              <div className={`${styles.iconBox} ${styles.orangeIcon}`}>❖</div>
             </div>
 
             <div className={styles.miniChart}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={valueMiniData}>
-                  <defs>
-                    <linearGradient
-                      id="valueMiniGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="0%"
-                        stopColor="#ef6200"
-                        stopOpacity={0.2}
-                      />
-
-                      <stop
-                        offset="100%"
-                        stopColor="#ef6200"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-
-                  <Area
+              <ResponsiveContainer width="100%" height={45}>
+                <LineChart data={valueMiniData}>
+                  <Line
                     type="monotone"
                     dataKey="value"
-                    stroke="#ef6200"
-                    strokeWidth={2.5}
-                    fill="url(#valueMiniGradient)"
+                    stroke="#df7600"
+                    strokeWidth={2}
                     dot={false}
                   />
-                </AreaChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </article>
         </div>
 
-        {/* =================================================
-            CATEGORY DISTRIBUTION
-        ================================================= */}
-
-        <article className={`${styles.card} ${styles.categoryCard}`}>
+        {/* MIDDLE CATEGORY BARS */}
+        <article className={`${styles.card} ${styles.middleCard}`}>
           <div className={styles.cardHeader}>
-            <h2>Category Distribution</h2>
-
-            <button className={styles.yearButton}>
-              2026 <span>⌄</span>
-            </button>
+            <div>
+              <h3>Stock by Category</h3>
+              <p className={styles.cardSub}>Categories by quantity</p>
+            </div>
+            <button className={styles.iconButton}>⚙</button>
           </div>
 
-          <div className={styles.categoryChart}>
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <BarChart
-                data={categoryData}
-                layout="vertical"
-                margin={{
-                  top: 15,
-                  right: 10,
-                  bottom: 10,
-                  left: 0,
-                }}
-              >
-                <CartesianGrid
-                  horizontal={true}
-                  vertical={true}
-                  stroke="#e4e8eb"
-                  strokeDasharray="4 5"
-                />
-
-                <XAxis
-                  type="number"
-                  domain={[0, 120]}
-                  tick={{ fill: "#73849a", fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={86}
-                  tick={{
-                    fill: "#6d7e94",
-                    fontSize: 12,
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{
-                    fill: "rgba(7,149,116,0.04)",
-                  }}
-                />
-
-                <Bar
-                  dataKey="value"
-                  name="Products"
-                  fill="#2da784"
-                  radius={[4, 4, 4, 4]}
-                  barSize={21}
-                />
+          <div className={styles.categoryChartArea}>
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={categoriesList}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {categoriesList.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        index === 0
+                          ? "#087c75"
+                          : index === 1
+                            ? "#df7600"
+                            : index === 2
+                              ? "#13a9df"
+                              : index === 3
+                                ? "#6741d9"
+                                : index === 4
+                                  ? "#e64980"
+                                  : "#fab005"
+                      }
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-
-          <div className={styles.categoryNote}>
-            <span className={styles.noteDot}>●</span>
-
-            <span>
-              No of Products increased by{" "}
-              <strong>+20%</strong> from last Week
-            </span>
-          </div>
         </article>
 
-        {/* =================================================
-            PRODUCT STOCK LEVELS
-        ================================================= */}
-
-        <article className={`${styles.card} ${styles.stockLevels}`}>
+        {/* RIGHT AREA / LINE COMBO */}
+        <article className={`${styles.card} ${styles.rightCard}`}>
           <div className={styles.cardHeader}>
-            <h2>Product Stock Levels</h2>
-
-            <button className={styles.yearButton}>
-              2026 <span>⌄</span>
-            </button>
+            <div>
+              <h3>Stock Trends & Out of Stock</h3>
+              <p className={styles.cardSub}>Monthly analysis</p>
+            </div>
+            <button className={styles.iconButton}>⚙</button>
           </div>
 
-          <div className={styles.productChart}>
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <LineChart
-                data={productStockData}
-                margin={{
-                  top: 20,
-                  right: 5,
-                  left: 0,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid
-                  stroke="#e4e8eb"
-                  strokeDasharray="4 5"
-                  vertical={false}
-                />
-
-                <XAxis
-                  dataKey="month"
-                  tick={{
-                    fill: "#73849a",
-                    fontSize: 11,
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <YAxis
-                  domain={[0, 800]}
-                  ticks={[0, 200, 400, 600, 800]}
-                  tick={{
-                    fill: "#73849a",
-                    fontSize: 11,
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <Tooltip
-                  content={<CustomTooltip />}
-                />
-
-                <Bar
-                  dataKey="products"
-                  name="Total Products"
-                  fill="#2da784"
-                  radius={[4, 4, 0, 0]}
-                  barSize={20}
-                />
-
-                <Line
-                  type="monotone"
-                  dataKey="outOfStock"
-                  name="Out Of Stock"
-                  stroke="#ed5c16"
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={{
-                    r: 4,
-                  }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className={styles.chartLegend}>
-            <span>
-              <i
-                style={{
-                  background: "#079574",
-                }}
-              />
-
-              Total Products
-            </span>
-
-            <span>
-              <i
-                style={{
-                  background: "#ed5c16",
-                }}
-              />
-
-              Out Of Stock
-            </span>
-          </div>
-        </article>
-      </section>
-
-      {/* =====================================================
-          SUPPLIERS + WAREHOUSE
-      ===================================================== */}
-
-      <section className={styles.middleGrid}>
-        {/* SUPPLIERS */}
-
-        <article className={`${styles.card} ${styles.listCard}`}>
-          <div className={styles.cardHeader}>
-            <h2>Suppliers</h2>
-
-            <button className={styles.viewButton}>
-              View All <span>›</span>
-            </button>
-          </div>
-
-          <div className={styles.supplierList}>
-            {suppliers.map((supplier) => (
-              <div
-                className={styles.supplierRow}
-                key={supplier.code}
-              >
-                <div className={styles.supplierIcon}>
-                  {supplier.icon}
-                </div>
-
-                <div className={styles.supplierName}>
-                  <small>{supplier.code}</small>
-                  <strong>{supplier.name}</strong>
-                </div>
-
-                <div className={styles.supplied}>
-                  <small>Goods Supplied</small>
-                  <strong>{supplier.supplied}</strong>
-                </div>
-
-                <span
-                  className={
-                    supplier.status === "Active"
-                      ? styles.activeStatus
-                      : styles.inactiveStatus
-                  }
-                >
-                  {supplier.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        {/* WAREHOUSE */}
-
-        <article className={`${styles.card} ${styles.listCard}`}>
-          <div className={styles.cardHeader}>
-            <h2>Warehouse</h2>
-
-            <button className={styles.viewButton}>
-              View All <span>›</span>
-            </button>
-          </div>
-
-          <div className={styles.warehouseList}>
-            {warehouses.map((warehouse) => (
-              <div
-                className={styles.warehouseRow}
-                key={warehouse.code}
-              >
-                <div className={styles.warehouseName}>
-                  <small>{warehouse.code}</small>
-                  <strong>{warehouse.name}</strong>
-                </div>
-
-                <div className={styles.contact}>
-                  <small>Contact Person</small>
-                  <strong>{warehouse.contact}</strong>
-                </div>
-
-                <div className={styles.capacity}>
-                  <small>Capacity</small>
-                  <strong>{warehouse.capacity}</strong>
-                </div>
-
-                <CapacityCircle
-                  percentage={warehouse.percentage}
-                />
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      {/* =====================================================
-          INVENTORY VALUE
-      ===================================================== */}
-
-      <section className={styles.fullWidthSection}>
-        <article className={`${styles.card} ${styles.inventoryChartCard}`}>
-          <div className={styles.cardHeader}>
-            <h2>Inventory Value</h2>
-
-            <button className={styles.yearButton}>
-              2026 <span>⌄</span>
-            </button>
-          </div>
-
-          <div className={styles.largeInventoryChart}>
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <AreaChart
-                data={inventoryValueData}
-                margin={{
-                  top: 20,
-                  right: 10,
-                  left: 5,
-                  bottom: 10,
-                }}
-              >
-                <defs>
-                  <linearGradient
-                    id="inventoryGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor="#079574"
-                      stopOpacity={0.18}
-                    />
-
-                    <stop
-                      offset="100%"
-                      stopColor="#079574"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-
-                <CartesianGrid
-                  stroke="#e3e7ea"
-                  strokeDasharray="4 5"
-                  vertical={false}
-                />
-
-                <XAxis
-                  dataKey="month"
-                  tick={{
-                    fill: "#73849a",
-                    fontSize: 12,
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <YAxis
-                  domain={[300, 600]}
-                  ticks={[
-                    300,
-                    350,
-                    400,
-                    450,
-                    500,
-                    550,
-                    600,
-                  ]}
-                  tick={{
-                    fill: "#73849a",
-                    fontSize: 12,
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <Tooltip
-                  content={<CustomTooltip />}
-                />
-
+          <div className={styles.stockTrendsChart}>
+            <ResponsiveContainer width="100%" height={210}>
+              <AreaChart data={defaultProductStockData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
                 <Area
                   type="monotone"
-                  dataKey="value"
-                  name="Inventory Value"
-                  stroke="#079574"
-                  strokeWidth={2.5}
-                  fill="url(#inventoryGradient)"
-                  dot={false}
-                  activeDot={{
-                    r: 5,
-                  }}
+                  dataKey="products"
+                  name="In Stock"
+                  stroke="#087c75"
+                  fill="#087c7522"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="outOfStock"
+                  name="Out of Stock"
+                  stroke="#c71f28"
+                  fill="#c71f2822"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -884,77 +476,78 @@ export default function InventoryDashboard() {
         </article>
       </section>
 
-      {/* =====================================================
-          RECENT STOCKS
-      ===================================================== */}
-
-      <section className={styles.fullWidthSection}>
-        <article className={`${styles.card} ${styles.recentStocks}`}>
+      {/* BOTTOM SECTION */}
+      <section className={styles.bottomGrid}>
+        {/* SUPPLIERS */}
+        <article className={styles.card}>
           <div className={styles.cardHeader}>
-            <h2>Recent Stocks</h2>
+            <h3>Top Suppliers</h3>
+            <button className={styles.viewLink}>View All</button>
+          </div>
 
-            <button className={styles.viewButton}>
-              View All <span>›</span>
-            </button>
+          <div className={styles.list}>
+            {suppliersList.map((item, idx) => (
+              <div key={idx} className={styles.listItem}>
+                <div className={styles.itemMain}>
+                  <strong>{item.name}</strong>
+                  <span>{item.code} — {item.contact}</span>
+                </div>
+                <div className={styles.badge}>{item.items} Items</div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        {/* WAREHOUSES */}
+        <article className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h3>Warehouse Capacities</h3>
+            <button className={styles.viewLink}>View All</button>
+          </div>
+
+          <div className={styles.list}>
+            {warehousesList.map((wh, idx) => (
+              <div key={idx} className={styles.listItem}>
+                <CapacityCircle percentage={wh.percentage} />
+                <div className={styles.itemMain}>
+                  <strong>{wh.name}</strong>
+                  <span>Cap: {wh.capacity} units</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        {/* RECENT STOCKS TABLE */}
+        <article className={`${styles.card} ${styles.tableCard}`}>
+          <div className={styles.cardHeader}>
+            <h3>Recent Stock Items</h3>
+            <button className={styles.viewLink}>View All</button>
           </div>
 
           <div className={styles.tableWrapper}>
-            <table className={styles.stockTable}>
+            <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Code</th>
                   <th>Product</th>
                   <th>SKU</th>
                   <th>Category</th>
-                  <th>Brand</th>
-                  <th>Unit</th>
                   <th>Quantity</th>
                   <th>Selling Price</th>
-                  <th>Purchase Price</th>
-                  <th>Status</th>
                 </tr>
               </thead>
-
               <tbody>
-                {recentStocks.map((stock) => (
-                  <tr key={stock.code}>
-                    <td>{stock.code}</td>
-
+                {recentStocksList.map((stk, idx) => (
+                  <tr key={idx}>
                     <td>
-                      <div className={styles.productCell}>
-                        <span className={styles.productIcon}>
-                          {stock.icon}
-                        </span>
-
-                        <strong>{stock.product}</strong>
-                      </div>
+                      <strong>{stk.product}</strong>
                     </td>
-
-                    <td>{stock.sku}</td>
-
-                    <td>{stock.category}</td>
-
-                    <td>{stock.brand}</td>
-
-                    <td>{stock.unit}</td>
-
-                    <td className={styles.quantity}>
-                      {stock.quantity}
-                    </td>
-
-                    <td className={styles.price}>
-                      {stock.sellingPrice}
-                    </td>
-
-                    <td className={styles.price}>
-                      {stock.purchasePrice}
-                    </td>
-
+                    <td>{stk.sku}</td>
+                    <td>{stk.category}</td>
                     <td>
-                      <span className={styles.stockStatus}>
-                        In Stock <span>⌄</span>
-                      </span>
+                      <span className={styles.qtyPill}>{stk.quantity}</span>
                     </td>
+                    <td>{stk.sellingPrice}</td>
                   </tr>
                 ))}
               </tbody>
@@ -962,14 +555,6 @@ export default function InventoryDashboard() {
           </div>
         </article>
       </section>
-
-      {/* =====================================================
-          FOOTER
-      ===================================================== */}
-
-      <footer className={styles.footer}>
-        2026 © Inventory Management System. All Rights Reserved
-      </footer>
     </main>
   );
 }

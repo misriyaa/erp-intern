@@ -1,5 +1,50 @@
 import invoiceRepository from "./invoices.repository.js";
 import InvoiceSchema from "./invoices.schema.js";
+import prisma from "../../config/prisma.js";
+
+async function reduceInventoryStock(items, referenceNo, performedBy = "Invoice Creation") {
+  if (!Array.isArray(items) || items.length === 0) return;
+
+  for (const item of items) {
+    const productId = item.productId || item.id;
+    const soldQty = Number(item.quantity || item.qty || 1);
+
+    if (!productId || soldQty <= 0) continue;
+
+    const inventoryRecords = await prisma.inventory.findMany({
+      where: { productId },
+    }).catch(() => []);
+
+    if (inventoryRecords && inventoryRecords.length > 0) {
+      let remainingToDeduct = soldQty;
+      for (const inv of inventoryRecords) {
+        if (remainingToDeduct <= 0) break;
+        const currentQty = inv.quantity || 0;
+        const deductQty = Math.min(currentQty, remainingToDeduct);
+        const newQty = Math.max(0, currentQty - deductQty);
+
+        await prisma.inventory.update({
+          where: { id: inv.id },
+          data: { quantity: newQty },
+        }).catch(() => null);
+
+        await prisma.stockMovement.create({
+          data: {
+            productId,
+            warehouseId: inv.warehouseId,
+            type: "SALE",
+            quantity: -deductQty,
+            referenceNo: referenceNo || "INVOICE",
+            remarks: `Deducted ${deductQty} unit(s) for invoice ${referenceNo || ""}`,
+            performedBy,
+          },
+        }).catch(() => null);
+
+        remainingToDeduct -= deductQty;
+      }
+    }
+  }
+}
 
 class InvoiceService {
   // ==========================================
@@ -39,6 +84,10 @@ class InvoiceService {
       balanceAmount,
       paymentStatus,
     });
+
+    if (data.items && Array.isArray(data.items)) {
+      await reduceInventoryStock(data.items, data.invoiceNumber, "Invoice");
+    }
 
     return await invoiceRepository.create(invoice);
   }

@@ -18,6 +18,10 @@ class PaymentRepository {
       orderBy: {
         paymentDate: "desc",
       },
+      include: {
+        invoice: true,
+        customer: true,
+      },
     });
   }
 

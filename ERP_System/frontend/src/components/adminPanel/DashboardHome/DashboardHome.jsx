@@ -413,7 +413,7 @@ export default function DashboardHome() {
 
           <Stat
             label="Total Inventory Value"
-            value={stats.totalValue ? `$${stats.totalValue.toLocaleString()}` : "$0.00"}
+            value={stats.totalValue ? `₹${stats.totalValue.toLocaleString()}` : "₹0.00"}
             delta="+8.2%"
           />
         </div>

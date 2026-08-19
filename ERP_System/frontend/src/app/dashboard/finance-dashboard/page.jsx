@@ -1,6 +1,8 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import DashboardNav from "@/components/adminPanel/DashboardNav/DashboardNav";
+import apiClient from "@/services/apiClient";
 import {
   CalendarDays,
   Download,
@@ -37,7 +39,11 @@ import {
 
 import styles from "./financeDashboard.module.css";
 
-const monthlyData = [
+/* =========================================================
+   FALLBACK DATA
+========================================================= */
+
+const defaultMonthlyData = [
   { month: "Jan", revenue: 40000, expense: 22000 },
   { month: "Feb", revenue: 70000, expense: 48000 },
   { month: "Mar", revenue: 28000, expense: 25000 },
@@ -52,7 +58,7 @@ const monthlyData = [
   { month: "Dec", revenue: 60000, expense: 22000 },
 ];
 
-const profitData = [
+const defaultProfitData = [
   { month: "Jan", profit: 55000, sales: 25000 },
   { month: "Feb", profit: 48000, sales: 22000 },
   { month: "Mar", profit: 50000, sales: 28000 },
@@ -67,112 +73,41 @@ const profitData = [
   { month: "Dec", profit: 30000, sales: 60000 },
 ];
 
-const revenueData = [
+const defaultRevenueData = [
   { name: "Sales", value: 60 },
   { name: "Recurring", value: 30 },
   { name: "Service Fees", value: 10 },
 ];
 
-const expenseData = [
+const defaultExpenseData = [
   { name: "Salaries", value: 50 },
   { name: "Marketing", value: 30 },
   { name: "Miscellaneous", value: 20 },
 ];
 
-const invoices = [
-  {
-    id: "#INV0020",
-    name: "Apex Computers",
-    amount: "$10,000",
-    status: "Paid",
-    type: "computer",
-  },
-  {
-    id: "#INV0019",
-    name: "Beats Headphones",
-    amount: "$5,000",
-    status: "Unpaid",
-    type: "headphone",
-  },
-  {
-    id: "#INV0018",
-    name: "Dazzle Shoes",
-    amount: "$25,000",
-    status: "Canceled",
-    type: "shoe",
-  },
-  {
-    id: "#INV0017",
-    name: "Best Accessories",
-    amount: "$15,500",
-    status: "Partially",
-    type: "accessory",
-  },
-  {
-    id: "#INV0016",
-    name: "A-Z Store",
-    amount: "$34,000",
-    status: "Overdue",
-    type: "store",
-  },
+const defaultInvoices = [
+  { id: "#INV0020", name: "Apex Computers", amount: "$10,000", status: "Paid", type: "computer" },
+  { id: "#INV0019", name: "Beats Headphones", amount: "$5,000", status: "Unpaid", type: "headphone" },
+  { id: "#INV0018", name: "Dazzle Shoes", amount: "$25,000", status: "Canceled", type: "shoe" },
+  { id: "#INV0017", name: "Best Accessories", amount: "$15,500", status: "Partially", type: "accessory" },
+  { id: "#INV0016", name: "A-Z Store", amount: "$34,000", status: "Overdue", type: "store" },
 ];
 
-const payments = [
-  {
-    id: "#PAY0020",
-    date: "11 Sep 2025",
-    payee: "Zenith Supplies",
-    description: "Office Stationery",
-    invoice: "#INV0020",
-    amount: "$10,000",
-    bank: "BOA – 4567329878",
-    method: "Cash",
-    status: "Paid",
-    icon: Leaf,
-  },
-  {
-    id: "#PAY0019",
-    date: "05 Sep 2025",
-    payee: "Delta Traders",
-    description: "Courier Charges",
-    invoice: "#INV0019",
-    amount: "$5,000",
-    bank: "WF – 9981432098",
-    method: "Credit Card",
-    status: "Unpaid",
-    icon: Triangle,
-  },
-  {
-    id: "#PAY0018",
-    date: "27 Aug 2025",
-    payee: "Nova Enterprises",
-    description: "Marketing Flyers",
-    invoice: "#INV0018",
-    amount: "$2,000",
-    bank: "JPM – 3205987643",
-    method: "Debit Card",
-    status: "Partially Paid",
-    icon: Flower2,
-  },
-  {
-    id: "#PAY0017",
-    date: "16 Aug 2025",
-    payee: "Apex Manufacturing",
-    description: "Office Rent",
-    invoice: "#INV0017",
-    amount: "$1,500",
-    bank: "CITI – 6721345098",
-    method: "UPI",
-    status: "Paid",
-    icon: Building2,
-  },
+const defaultPayments = [
+  { id: "#PAY0020", date: "11 Sep 2025", payee: "Zenith Supplies", description: "Office Stationery", invoice: "#INV0020", amount: "$10,000", bank: "BOA – 4567329878", method: "Cash", status: "Paid", icon: Leaf },
+  { id: "#PAY0019", date: "05 Sep 2025", payee: "Delta Traders", description: "Courier Charges", invoice: "#INV0019", amount: "$5,000", bank: "WF – 9981432098", method: "Credit Card", status: "Unpaid", icon: Triangle },
+  { id: "#PAY0018", date: "27 Aug 2025", payee: "Nova Enterprises", description: "Marketing Flyers", invoice: "#INV0018", amount: "$2,000", bank: "JPM – 3205987643", method: "Debit Card", status: "Partially Paid", icon: Flower2 },
+  { id: "#PAY0017", date: "16 Aug 2025", payee: "Apex Manufacturing", description: "Office Rent", invoice: "#INV0017", amount: "$1,500", bank: "CITI – 6721345098", method: "UPI", status: "Paid", icon: Building2 },
 ];
 
 const revenueColors = ["#079669", "#ef5b00", "#7020a5"];
 const expenseColors = ["#ef8b24", "#7020a5", "#3c8b83"];
 
 function formatMoney(value) {
-  return `${Math.round(value / 1000)}K`;
+  if (value >= 1000) {
+    return `${Math.round(value / 1000)}K`;
+  }
+  return `${value}`;
 }
 
 function InvoiceIcon({ type }) {
@@ -270,7 +205,7 @@ function DonutChart({ data, colors, centerValue, centerLabel }) {
             strokeWidth={3}
           >
             {data.map((entry, index) => (
-              <Cell key={entry.name} fill={colors[index]} />
+              <Cell key={entry.name || index} fill={colors[index % colors.length]} />
             ))}
           </Pie>
         </PieChart>
@@ -285,9 +220,180 @@ function DonutChart({ data, colors, centerValue, centerLabel }) {
 }
 
 export default function FinanceDashboard() {
+  const [chartMonthlyData, setChartMonthlyData] = useState(defaultMonthlyData);
+  const [profitChartData, setProfitChartData] = useState(defaultProfitData);
+  const [revenueDonutData, setRevenueDonutData] = useState(defaultRevenueData);
+  const [expenseDonutData, setExpenseDonutData] = useState(defaultExpenseData);
+  const [invoicesList, setInvoicesList] = useState(defaultInvoices);
+  const [paymentsList, setPaymentsList] = useState(defaultPayments);
+  const [financeStats, setFinanceStats] = useState({
+    totalRevenue: "₹125,000",
+    totalExpenses: "₹89,500",
+    pendingInvoices: 12,
+    budgetUtilization: "65%",
+    netProfit: "₹35,500",
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLiveFinanceData();
+  }, []);
+
+  const fetchLiveFinanceData = async () => {
+    try {
+      setLoading(true);
+      const [salesReportRes, purchaseReportRes, invoicesRes, expensesRes, paymentsRes] = await Promise.all([
+        apiClient.get("/reports/sales?groupBy=month").catch(() => null),
+        apiClient.get("/reports/purchase?groupBy=month").catch(() => null),
+        apiClient.get("/invoices").catch(() => null),
+        apiClient.get("/expenses").catch(() => null),
+        apiClient.get("/payments").catch(() => null),
+      ]);
+
+      const salesReport = salesReportRes?.data?.data;
+      const purchaseReport = purchaseReportRes?.data?.data;
+      const liveInvoices = invoicesRes?.data?.data || invoicesRes?.data || [];
+      const liveExpenses = expensesRes?.data?.data || expensesRes?.data || [];
+      const livePayments = paymentsRes?.data?.data || paymentsRes?.data || [];
+
+      // 1. Process Revenue & Expenses KPI
+      const salesTotal = salesReport?.summary?.totalSales || 0;
+      const invoicesTotal = liveInvoices.reduce((acc, inv) => acc + Number(inv.totalAmount || 0), 0);
+      const totRev = Math.max(salesTotal, invoicesTotal);
+
+      const purchasesTotal = purchaseReport?.summary?.totalPurchases || 0;
+      const expensesTotal = liveExpenses.reduce((acc, exp) => acc + Number(exp.amount || 0), 0);
+      const totExp = purchasesTotal + expensesTotal;
+
+      const netProf = totRev - totExp;
+      const openInvCount = liveInvoices.filter((i) => i.paymentStatus !== "PAID" && i.status !== "CANCELLED").length;
+      const budgetPct = totRev > 0 ? Math.min(100, Math.round((totExp / totRev) * 100)) : 0;
+
+      setFinanceStats({
+        totalRevenue: `₹${totRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        totalExpenses: `₹${totExp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        pendingInvoices: openInvCount,
+        budgetUtilization: `${budgetPct}%`,
+        netProfit: `₹${netProf.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      });
+
+      // 2. Process Monthly Bar Chart (Revenue vs Expense) & Profit Margin Line Chart
+      if (salesReport?.chartData?.length > 0 || purchaseReport?.chartData?.length > 0) {
+        const monthMap = {};
+
+        if (salesReport?.chartData) {
+          salesReport.chartData.forEach((item) => {
+            monthMap[item.date] = { month: item.date, revenue: Number(item.sales || 0), expense: 0 };
+          });
+        }
+
+        if (purchaseReport?.chartData) {
+          purchaseReport.chartData.forEach((item) => {
+            if (!monthMap[item.date]) {
+              monthMap[item.date] = { month: item.date, revenue: 0, expense: Number(item.purchases || 0) };
+            } else {
+              monthMap[item.date].expense = Number(item.purchases || 0);
+            }
+          });
+        }
+
+        const chartArray = Object.values(monthMap).sort((a, b) => a.month.localeCompare(b.month));
+
+        if (chartArray.length > 0) {
+          setChartMonthlyData(chartArray);
+
+          const profitArray = chartArray.map((item) => ({
+            month: item.month,
+            profit: Math.max(0, item.revenue - item.expense),
+            sales: item.revenue,
+          }));
+          setProfitChartData(profitArray);
+        }
+      }
+
+      // 3. Process Live Recent Invoices List
+      if (Array.isArray(liveInvoices) && liveInvoices.length > 0) {
+        const formattedInvoices = liveInvoices.slice(0, 5).map((inv, idx) => {
+          let statusText = "Paid";
+          if (inv.status === "CANCELLED") statusText = "Canceled";
+          else if (inv.paymentStatus === "PARTIAL") statusText = "Partially";
+          else if (inv.paymentStatus === "PENDING" || inv.status === "DRAFT") statusText = "Unpaid";
+          else if (inv.paymentStatus === "PAID") statusText = "Paid";
+
+          return {
+            id: inv.invoiceNumber ? `#${inv.invoiceNumber}` : `#INV-${inv.id.substring(0, 6)}`,
+            name: inv.customerName || inv.clientName || (inv.customerId ? `Customer (${inv.customerId.substring(0, 6)})` : "Retail Account"),
+            amount: `₹${Number(inv.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            status: statusText,
+            type: idx % 4 === 0 ? "computer" : idx % 4 === 1 ? "headphone" : idx % 4 === 2 ? "shoe" : "accessory",
+          };
+        });
+        setInvoicesList(formattedInvoices);
+      }
+
+      // 4. Process Revenue Breakdown Donut Data
+      const paidRevSum = liveInvoices.filter((i) => i.paymentStatus === "PAID").reduce((a, b) => a + Number(b.totalAmount || 0), 0);
+      const partialRevSum = liveInvoices.filter((i) => i.paymentStatus === "PARTIAL").reduce((a, b) => a + Number(b.paidAmount || 0), 0);
+      const pendingRevSum = liveInvoices.reduce((a, b) => a + Number(b.balanceAmount || 0), 0);
+      const revTotalSum = paidRevSum + partialRevSum + pendingRevSum || totRev || 1;
+
+      setRevenueDonutData([
+        { name: "Paid Revenue", value: Math.round(((paidRevSum + partialRevSum) / revTotalSum) * 100) || 60 },
+        { name: "Pending Balance", value: Math.round((pendingRevSum / revTotalSum) * 100) || 30 },
+        { name: "Other Sales", value: Math.max(5, 100 - (Math.round(((paidRevSum + partialRevSum) / revTotalSum) * 100) + Math.round((pendingRevSum / revTotalSum) * 100))) },
+      ]);
+
+      // 5. Process Expenses Breakdown Donut Data
+      const purchaseExpSum = purchasesTotal || Math.round(totExp * 0.7);
+      const opsExpSum = expensesTotal || Math.round(totExp * 0.3);
+      const expTotalSum = purchaseExpSum + opsExpSum || totExp || 1;
+
+      setExpenseDonutData([
+        { name: "Purchases & Stock", value: Math.round((purchaseExpSum / expTotalSum) * 100) || 70 },
+        { name: "Operational Costs", value: Math.round((opsExpSum / expTotalSum) * 100) || 20 },
+        { name: "Other Expenses", value: Math.max(5, 100 - (Math.round((purchaseExpSum / expTotalSum) * 100) + Math.round((opsExpSum / expTotalSum) * 100))) },
+      ]);
+
+      // 6. Process Live Payments Table
+      const rawPayments = livePayments.length > 0
+        ? livePayments
+        : liveInvoices.filter((i) => Number(i.paidAmount || 0) > 0).map((i) => ({
+            paymentNumber: `PAY-${i.invoiceNumber}`,
+            paymentDate: i.updatedAt || i.invoiceDate,
+            payeeName: i.customerName || `Customer (${i.customerId?.substring(0, 6)})`,
+            notes: "Invoice Settlement",
+            invoiceNumber: i.invoiceNumber,
+            amount: i.paidAmount,
+            paymentMethod: "Bank Transfer",
+            status: i.paymentStatus,
+          }));
+
+      if (Array.isArray(rawPayments) && rawPayments.length > 0) {
+        const formattedPayments = rawPayments.slice(0, 5).map((p, idx) => ({
+          id: p.paymentNumber ? `#${p.paymentNumber}` : (p.id ? `#PAY-${String(p.id).slice(0, 6)}` : `#PAY00${idx + 15}`),
+          date: p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Recent",
+          payee: p.payeeName || p.customer?.name || p.customerName || "Customer Account",
+          description: p.notes || p.description || "Invoice Settlement",
+          invoice: p.invoiceNumber ? `#${p.invoiceNumber}` : (p.invoice?.invoiceNumber ? `#${p.invoice.invoiceNumber}` : `#INV00${idx + 15}`),
+          amount: `₹${Number(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          bank: "BOA – 4567329878",
+          method: p.paymentMethod || p.method || "Bank Transfer",
+          status: p.status === "PAID" || p.status === "Paid" || p.status === "COMPLETED" ? "Paid" : p.status === "PARTIAL" ? "Partially" : "Unpaid",
+          icon: Leaf,
+        }));
+        setPaymentsList(formattedPayments);
+      }
+    } catch (err) {
+      console.error("Error fetching live finance telemetry:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className={styles.dashboard}>
       <DashboardNav />
+
       {/* HEADER */}
       <header className={styles.header}>
         <h1>Finance Dashboard</h1>
@@ -322,7 +428,7 @@ export default function FinanceDashboard() {
           <div className={styles.bigChart}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={monthlyData}
+                data={chartMonthlyData}
                 margin={{
                   top: 20,
                   right: 12,
@@ -353,7 +459,7 @@ export default function FinanceDashboard() {
                 />
 
                 <Tooltip
-                  formatter={(value) => `$${value.toLocaleString()}`}
+                  formatter={(value) => `₹${value.toLocaleString()}`}
                   contentStyle={{
                     borderRadius: "10px",
                     border: "1px solid #e4e8ed",
@@ -400,8 +506,8 @@ export default function FinanceDashboard() {
           </div>
 
           <div className={styles.invoiceList}>
-            {invoices.map((invoice) => (
-              <div className={styles.invoiceRow} key={invoice.id}>
+            {invoicesList.map((invoice, idx) => (
+              <div className={styles.invoiceRow} key={invoice.id + idx}>
                 <InvoiceIcon type={invoice.type} />
 
                 <div className={styles.invoiceName}>
@@ -428,7 +534,7 @@ export default function FinanceDashboard() {
       <section className={styles.statsGrid}>
         <StatCard
           title="Total Revenue"
-          value="$125,000"
+          value={financeStats.totalRevenue}
           change="+12.4%"
           subtitle="Last 30 days"
           icon={Receipt}
@@ -437,7 +543,7 @@ export default function FinanceDashboard() {
 
         <StatCard
           title="Total Expenses"
-          value="$89,500"
+          value={financeStats.totalExpenses}
           change="-6.8%"
           subtitle="Last 30 days"
           icon={CreditCard}
@@ -447,7 +553,7 @@ export default function FinanceDashboard() {
 
         <StatCard
           title="Pending Invoices"
-          value="12"
+          value={financeStats.pendingInvoices}
           change="+5.2%"
           subtitle="Last 30 days"
           icon={FileText}
@@ -456,7 +562,7 @@ export default function FinanceDashboard() {
 
         <StatCard
           title="Budget Utilization"
-          value="65%"
+          value={financeStats.budgetUtilization}
           change="+5.2%"
           subtitle="Last 30 days"
           icon={BarChart3}
@@ -465,7 +571,7 @@ export default function FinanceDashboard() {
 
         <StatCard
           title="Net Profit / Loss"
-          value="$35,500"
+          value={financeStats.netProfit}
           change="+18%"
           subtitle="Last 30 days"
           icon={TrendingUp}
@@ -475,10 +581,10 @@ export default function FinanceDashboard() {
 
       {/* CHARTS */}
       <section className={styles.chartsGrid}>
-        {/* REVENUE */}
+        {/* REVENUE DONUT */}
         <div className={`${styles.card} ${styles.revenueDonutCard}`}>
           <div className={styles.cardHeader}>
-            <h2>Revenue</h2>
+            <h2>Revenue Breakdown</h2>
 
             <button className={styles.selectButton}>
               Weekly
@@ -488,7 +594,7 @@ export default function FinanceDashboard() {
 
           <div className={styles.donutArea}>
             <DonutChart
-              data={revenueData}
+              data={revenueDonutData}
               colors={revenueColors}
               centerValue="90%"
               centerLabel=""
@@ -496,11 +602,11 @@ export default function FinanceDashboard() {
           </div>
 
           <div className={styles.legendList}>
-            {revenueData.map((item, index) => (
-              <div className={styles.legendItem} key={item.name}>
+            {revenueDonutData.map((item, index) => (
+              <div className={styles.legendItem} key={item.name + index}>
                 <span
                   className={styles.legendDot}
-                  style={{ backgroundColor: revenueColors[index] }}
+                  style={{ backgroundColor: revenueColors[index % revenueColors.length] }}
                 />
                 <span>{item.name}</span>
               </div>
@@ -522,7 +628,7 @@ export default function FinanceDashboard() {
           <div className={styles.lineChart}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={profitData}
+                data={profitChartData}
                 margin={{
                   top: 20,
                   right: 15,
@@ -551,7 +657,7 @@ export default function FinanceDashboard() {
                 />
 
                 <Tooltip
-                  formatter={(value) => `$${value.toLocaleString()}`}
+                  formatter={(value) => `₹${Number(value).toLocaleString()}`}
                   contentStyle={{
                     borderRadius: "10px",
                     border: "1px solid #e4e8ed",
@@ -590,10 +696,10 @@ export default function FinanceDashboard() {
           </div>
         </div>
 
-        {/* EXPENSES */}
+        {/* EXPENSES DONUT */}
         <div className={`${styles.card} ${styles.expenseCard}`}>
           <div className={styles.cardHeader}>
-            <h2>Expenses</h2>
+            <h2>Expenses Breakdown</h2>
 
             <button className={styles.selectButton}>
               2026
@@ -603,7 +709,7 @@ export default function FinanceDashboard() {
 
           <div className={styles.expenseDonut}>
             <DonutChart
-              data={expenseData}
+              data={expenseDonutData}
               colors={expenseColors}
               centerValue="50%"
               centerLabel="Salaries"
@@ -611,12 +717,12 @@ export default function FinanceDashboard() {
           </div>
 
           <div className={styles.expenseLegend}>
-            {expenseData.map((item, index) => (
-              <div className={styles.expenseLegendRow} key={item.name}>
+            {expenseDonutData.map((item, index) => (
+              <div className={styles.expenseLegendRow} key={item.name + index}>
                 <div>
                   <span
                     className={styles.legendDot}
-                    style={{ backgroundColor: expenseColors[index] }}
+                    style={{ backgroundColor: expenseColors[index % expenseColors.length] }}
                   />
                   <span>{item.name}</span>
                 </div>
@@ -631,7 +737,7 @@ export default function FinanceDashboard() {
       {/* RECENT PAYMENTS */}
       <section className={`${styles.card} ${styles.paymentsCard}`}>
         <div className={styles.cardHeader}>
-          <h2>Recent Payments</h2>
+          <h2>Recent Payments & Settlements</h2>
 
           <button className={styles.viewButton}>
             View All
@@ -656,11 +762,11 @@ export default function FinanceDashboard() {
             </thead>
 
             <tbody>
-              {payments.map((payment) => {
-                const Icon = payment.icon;
+              {paymentsList.map((payment, idx) => {
+                const Icon = payment.icon || Leaf;
 
                 return (
-                  <tr key={payment.id}>
+                  <tr key={payment.id + idx}>
                     <td>{payment.id}</td>
 
                     <td>{payment.date}</td>

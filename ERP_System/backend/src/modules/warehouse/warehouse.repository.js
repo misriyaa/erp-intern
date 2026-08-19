@@ -11,6 +11,9 @@ export const getAllWarehouses = async () => {
     orderBy: {
       createdAt: "desc",
     },
+    include: {
+      inventories: true,
+    },
   });
 };
 

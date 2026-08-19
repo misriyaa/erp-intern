@@ -318,6 +318,12 @@ export default function POSPage() {
       taxAmount,
       discountAmount: Number(discountValue),
       netAmount,
+      items: cart.map((item) => ({
+        productId: item.id,
+        quantity: Number(item.qty || 1),
+        unitPrice: Number(item.price || 0),
+        totalPrice: Number(item.price || 0) * Number(item.qty || 1),
+      })),
     };
 
     try {

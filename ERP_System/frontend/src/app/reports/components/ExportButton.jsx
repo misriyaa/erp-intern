@@ -77,7 +77,7 @@ export default function ExportButton({ data = [], columns = [], filename = "repo
         
         // Format currencies
         if (col.isCurrency) {
-          return `$${Number(val).toFixed(2)}`;
+          return `₹${Number(val).toFixed(2)}`;
         }
         
         // Format dates
