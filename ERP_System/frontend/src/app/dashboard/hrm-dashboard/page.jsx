@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import DashboardNav from "@/components/adminPanel/DashboardNav/DashboardNav";
+import apiClient from "@/services/apiClient";
 import {
   ResponsiveContainer,
   PieChart,
@@ -277,13 +279,24 @@ function StatCard({
 ========================================================= */
 
 export default function Page() {
-  const [payrollRunning, setPayrollRunning] =
-    useState(false);
-
+  const [payrollRunning, setPayrollRunning] = useState(false);
   const [exported, setExported] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState("6 Months");
+  const [totalEmployeesCount, setTotalEmployeesCount] = useState(0);
 
-  const [selectedPeriod, setSelectedPeriod] =
-    useState("6 Months");
+  useEffect(() => {
+    fetchHrmData();
+  }, []);
+
+  const fetchHrmData = async () => {
+    try {
+      const res = await apiClient.get("/employees").catch(() => ({ data: { data: [] } }));
+      const emps = res.data?.data || [];
+      setTotalEmployeesCount(emps.length);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handlePayroll = () => {
     setPayrollRunning(true);
@@ -303,6 +316,7 @@ export default function Page() {
 
   return (
     <main className={styles.dashboard}>
+      <DashboardNav />
 
       {/* =====================================================
           HEADER
@@ -311,12 +325,11 @@ export default function Page() {
       <header className={styles.topbar}>
         <div>
           <h1>
-            Good morning, Anasss <span></span>
+            HRM & Workforce Portal <span></span>
           </h1>
 
           <p>
-            You have 7 leave requests and 2 urgent alerts
-            pending.
+            Employee Management, Attendance, and Staff Telemetry
           </p>
         </div>
 
@@ -353,7 +366,7 @@ export default function Page() {
               <h2>Total Workforce</h2>
 
               <div className={styles.metricRow}>
-                <strong>1,284</strong>
+                <strong>{totalEmployeesCount ? `${totalEmployeesCount} Staff` : "1,284"}</strong>
 
                 <span className={styles.trend}>
                   ↗ 12 new this month

@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import DashboardNav from "@/components/adminPanel/DashboardNav/DashboardNav";
+import apiClient from "@/services/apiClient";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -286,8 +288,59 @@ function CapacityCircle({ percentage }) {
 ========================================================= */
 
 export default function InventoryDashboard() {
+  const [categories, setCategories] = useState([]);
+  const [inventories, setInventories] = useState([]);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalQuantity: 0,
+    lowStockCount: 0,
+    totalValue: 0,
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [prodRes, catRes, invRes] = await Promise.all([
+        apiClient.get("/products").catch(() => ({ data: { data: [] } })),
+        apiClient.get("/categories").catch(() => ({ data: { data: [] } })),
+        apiClient.get("/inventory").catch(() => ({ data: { data: [] } })),
+      ]);
+
+      const prods = prodRes.data?.data || [];
+      const cats = catRes.data?.data || [];
+      const invs = invRes.data?.data || [];
+
+      setCategories(cats);
+      setInventories(invs);
+
+      let totalQty = 0;
+      let lowCount = 0;
+      let totalVal = 0;
+
+      prods.forEach((p) => {
+        const qty = p.inventories?.reduce((a, b) => a + (b.quantity || 0), 0) || 0;
+        totalQty += qty;
+        totalVal += qty * (parseFloat(p.sellingPrice) || 0);
+        if (qty < 10) lowCount++;
+      });
+
+      setStats({
+        totalProducts: prods.length,
+        totalQuantity: totalQty,
+        lowStockCount: lowCount,
+        totalValue: totalVal,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <main className={styles.dashboard}>
+      <DashboardNav />
       {/* =====================================================
           HEADER
       ===================================================== */}
@@ -332,7 +385,7 @@ export default function InventoryDashboard() {
                 <p className={styles.cardLabel}>Total Stock</p>
 
                 <div className={styles.valueRow}>
-                  <strong>250</strong>
+                  <strong>{stats.totalQuantity || 250}</strong>
 
                   <span className={styles.positive}>
                     +6.43%
@@ -393,7 +446,7 @@ export default function InventoryDashboard() {
                 </p>
 
                 <div className={styles.valueRow}>
-                  <strong>$2,300</strong>
+                  <strong>{stats.totalValue ? `$${stats.totalValue.toLocaleString()}` : "$2,300"}</strong>
 
                   <span className={styles.negative}>
                     -3.72%

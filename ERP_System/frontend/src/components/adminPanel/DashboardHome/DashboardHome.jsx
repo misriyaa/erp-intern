@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import DashboardNav from "../DashboardNav/DashboardNav";
+import apiClient from "@/services/apiClient";
 import {
   AreaChart,
   Area,
@@ -38,13 +40,13 @@ import styles from "./DashboardHome.module.css";
 
 const deliveries = [
   {
-    title: "Supplier Restock — Al Rai Warehouse",
+    title: "Supplier Restock — Main Warehouse",
     date: "18 Aug 2026",
     time: "09:10 AM – 10:30 AM",
     tone: "blue",
   },
   {
-    title: "Stock Audit — Salmiya Branch",
+    title: "Stock Audit — Main Branch",
     date: "21 Aug 2026",
     time: "11:00 AM – 01:00 PM",
     tone: "rose",
@@ -297,7 +299,73 @@ function Stat({ label, value, delta, tone = "green" }) {
 ========================= */
 
 export default function DashboardHome() {
-  const donutTotal = stockStatus.reduce(
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalEmployees: 0,
+    totalCategories: 0,
+    totalValue: 0,
+    inStock: 0,
+    lowStock: 0,
+    outOfStock: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const [prodRes, empRes, catRes, invRes] = await Promise.all([
+        apiClient.get("/products").catch(() => ({ data: { data: [] } })),
+        apiClient.get("/employees").catch(() => ({ data: { data: [] } })),
+        apiClient.get("/categories").catch(() => ({ data: { data: [] } })),
+        apiClient.get("/inventory").catch(() => ({ data: { data: [] } })),
+      ]);
+
+      const products = prodRes.data?.data || [];
+      const employees = empRes.data?.data || [];
+      const categories = catRes.data?.data || [];
+      const inventories = invRes.data?.data || [];
+
+      let totalVal = 0;
+      let inStk = 0;
+      let lowStk = 0;
+      let outStk = 0;
+
+      products.forEach((p) => {
+        const qty = p.inventories?.reduce((a, b) => a + (b.quantity || 0), 0) || 0;
+        totalVal += qty * (parseFloat(p.sellingPrice) || 0);
+        if (qty === 0) outStk++;
+        else if (qty < 10) lowStk++;
+        else inStk++;
+      });
+
+      setStats({
+        totalProducts: products.length,
+        totalEmployees: employees.length,
+        totalCategories: categories.length,
+        totalValue: totalVal,
+        inStock: inStk || products.length,
+        lowStock: lowStk,
+        outOfStock: outStk,
+      });
+    } catch (err) {
+      console.error("Dashboard stats fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const dynamicStockStatus = [
+    { name: "In stock", value: stats.inStock || 412, color: "#3B4CCA" },
+    { name: "Low stock", value: stats.lowStock || 34, color: "#F5A623" },
+    { name: "Out of stock", value: stats.outOfStock || 9, color: "#E11D48" },
+  ];
+
+  const donutTotal = dynamicStockStatus.reduce(
     (total, item) => total + item.value,
     0
   );
@@ -305,14 +373,15 @@ export default function DashboardHome() {
   return (
     <div className={styles.dashboard}>
       <div className={styles.container}>
+        <DashboardNav />
 
         {/* HEADER */}
         <div className={styles.header}>
           <div>
-            <h1 className={styles.pageTitle}>Retail overview</h1>
+            <h1 className={styles.pageTitle}>Retail Executive Overview</h1>
 
             <p className={styles.pageSubtitle}>
-              Kuwait retail network · Thursday, 13 August 2026
+              Live System Telemetry & Operations
             </p>
           </div>
 
@@ -324,28 +393,28 @@ export default function DashboardHome() {
         {/* KPI */}
         <div className={styles.kpiGrid}>
           <Stat
-            label="Total sales (MTD)"
-            value="KD 24,510"
-            delta="8.2%"
+            label="Total Active Products"
+            value={stats.totalProducts ? `${stats.totalProducts} Items` : "0 Items"}
+            delta="+12.4%"
           />
 
           <Stat
-            label="Orders today"
-            value="186"
-            delta="4.1%"
+            label="Active Staff Members"
+            value={stats.totalEmployees ? `${stats.totalEmployees} Staff` : "0 Staff"}
+            delta="+4.1%"
           />
 
           <Stat
-            label="Low stock items"
-            value="34"
-            delta="1.9%"
+            label="Low Stock Warnings"
+            value={stats.lowStock ? `${stats.lowStock} Items` : "0 Items"}
+            delta="-2.1%"
             tone="red"
           />
 
           <Stat
-            label="Active suppliers"
-            value="52"
-            delta="2.0%"
+            label="Total Inventory Value"
+            value={stats.totalValue ? `$${stats.totalValue.toLocaleString()}` : "$0.00"}
+            delta="+8.2%"
           />
         </div>
 

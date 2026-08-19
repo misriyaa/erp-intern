@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import DashboardNav from "@/components/adminPanel/DashboardNav/DashboardNav";
 import {
   ResponsiveContainer,
   BarChart,
@@ -265,6 +266,7 @@ function MiniChart({ data, type = "green" }) {
 export default function POSDashboard() {
   return (
     <main className={styles.dashboard}>
+      <DashboardNav />
       {/* ================= HEADER ================= */}
 
       <header className={styles.topbar}>

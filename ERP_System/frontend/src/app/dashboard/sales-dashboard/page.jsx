@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import DashboardNav from "@/components/adminPanel/DashboardNav/DashboardNav";
+import apiClient from "@/services/apiClient";
 import {
   CalendarDays,
   Download,
@@ -212,7 +214,6 @@ function formatRevenue(value) {
   if (value >= 1000000) {
     return `${value / 1000000}M`;
   }
-
   return `${value / 1000}K`;
 }
 
@@ -258,11 +259,36 @@ function SectionHeader({ title, buttonText = "View All" }) {
 }
 
 export default function SalesDashboard() {
+  const [liveProducts, setLiveProducts] = useState([]);
+  const [totalSalesValue, setTotalSalesValue] = useState(0);
+
+  useEffect(() => {
+    fetchSalesData();
+  }, []);
+
+  const fetchSalesData = async () => {
+    try {
+      const res = await apiClient.get("/products").catch(() => ({ data: { data: [] } }));
+      const prods = res.data?.data || [];
+      setLiveProducts(prods);
+      let sum = 0;
+      prods.forEach((p) => {
+        const qty = p.inventories?.reduce((a, b) => a + (b.quantity || 0), 0) || 0;
+        sum += qty * (parseFloat(p.sellingPrice) || 0);
+      });
+      setTotalSalesValue(sum);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <main className={styles.dashboard}>
+      <DashboardNav />
+
       {/* ================= HEADER ================= */}
       <header className={styles.topHeader}>
-        <h1>Sales Dashboard</h1>
+        <h1>Sales & Commerce Analytics</h1>
 
         <div className={styles.headerActions}>
           <div className={styles.teamAvatars}>

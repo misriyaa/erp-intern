@@ -1,5 +1,6 @@
 "use client";
 
+import DashboardNav from "@/components/adminPanel/DashboardNav/DashboardNav";
 import {
   CalendarDays,
   Download,
@@ -286,6 +287,7 @@ function DonutChart({ data, colors, centerValue, centerLabel }) {
 export default function FinanceDashboard() {
   return (
     <main className={styles.dashboard}>
+      <DashboardNav />
       {/* HEADER */}
       <header className={styles.header}>
         <h1>Finance Dashboard</h1>
