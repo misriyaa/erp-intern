@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   FiLayers,
@@ -14,46 +14,61 @@ import {
   FiTruck,
   FiBarChart2,
 } from "react-icons/fi";
+import apiClient from "@/services/apiClient";
 
 export default function TextileDashboard() {
-  const [batches] = useState([
-    {
-      id: "BATCH-2026-081",
-      material: "Organic Cotton Yarn #40s",
-      stage: "Dyeing & Washing",
-      targetQty: "1,500 Meters",
-      completedQty: "920 Meters",
-      status: "IN_PROGRESS",
-      progress: 61,
-    },
-    {
-      id: "BATCH-2026-082",
-      material: "Poly-Silk Blend Weave",
-      stage: "Weaving / Knitting",
-      targetQty: "3,000 Meters",
-      completedQty: "2,750 Meters",
-      status: "IN_PROGRESS",
-      progress: 91,
-    },
-    {
-      id: "BATCH-2026-083",
-      material: "Heavyweight Denim Twill 14oz",
-      stage: "Quality Inspection",
-      targetQty: "800 Meters",
-      completedQty: "800 Meters",
-      status: "QUALITY_CHECK",
-      progress: 100,
-    },
-    {
-      id: "BATCH-2026-084",
-      material: "Linen Soft-Touch Shirting",
-      stage: "Finished Stock",
-      targetQty: "2,100 Meters",
-      completedQty: "2,100 Meters",
-      status: "COMPLETED",
-      progress: 100,
-    },
-  ]);
+  const [stats, setStats] = useState({
+    rawMaterialStock: 14850,
+    activeBatchesCount: 4,
+    passRate: 94.2,
+    finishedFabricCount: 8,
+    millsCount: 3,
+    suppliersCount: 5,
+    salesCount: 12,
+  });
+
+  const [batches, setBatches] = useState([]);
+
+  useEffect(() => {
+    async function loadDynamicDashboard() {
+      try {
+        const [prodRes, branchRes, suppRes, salesRes] = await Promise.all([
+          apiClient.get("/products").then((r) => r.data).catch(() => []),
+          apiClient.get("/branches").then((r) => r.data).catch(() => []),
+          apiClient.get("/suppliers").then((r) => r.data).catch(() => []),
+          apiClient.get("/sales").then((r) => r.data).catch(() => []),
+        ]);
+
+        const allProds = prodRes.data || (Array.isArray(prodRes) ? prodRes : []);
+        const textileProds = allProds.filter(
+          (p) => p.sku?.startsWith("TEX-") || p.description?.includes("[TEXTILE]")
+        );
+
+        const storedRaw = JSON.parse(localStorage.getItem("textile_raw_materials") || "[]");
+        const totalRawKg = storedRaw.reduce((sum, item) => sum + (Number(item.stock) || 0), 0);
+
+        const storedBatches = JSON.parse(localStorage.getItem("textile_production_batches") || "[]");
+        setBatches(storedBatches);
+
+        const branchesList = branchRes.data || (Array.isArray(branchRes) ? branchRes : []);
+        const suppList = suppRes.data || (Array.isArray(suppRes) ? suppRes : []);
+        const salesList = salesRes.data || (Array.isArray(salesRes) ? salesRes : []);
+
+        setStats({
+          rawMaterialStock: totalRawKg,
+          activeBatchesCount: storedBatches.length,
+          passRate: 100,
+          finishedFabricCount: textileProds.length,
+          millsCount: branchesList.length,
+          suppliersCount: suppList.length,
+          salesCount: salesList.length,
+        });
+      } catch (err) {
+        console.error("Dashboard dynamic load error:", err);
+      }
+    }
+    loadDynamicDashboard();
+  }, []);
 
   return (
     <div style={{ padding: "24px", fontFamily: "Inter, sans-serif" }}>

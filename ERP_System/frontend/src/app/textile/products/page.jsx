@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FiShoppingBag,
   FiPlus,
@@ -12,57 +12,14 @@ import {
   FiBox,
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
+import apiClient from "@/services/apiClient";
 
 export default function TextileProductsPage() {
-  const [products, setProducts] = useState([
-    {
-      id: "TEX-PRODUCT-01",
-      name: "Premium Organic Cotton Silk Fabric Roll",
-      fabricType: "Cotton Silk",
-      gsm: 180,
-      width: "58 inches",
-      colorPattern: "Royal Blue / Solid",
-      stockMeters: 4500,
-      pricePerMeter: 320,
-      status: "ACTIVE",
-    },
-    {
-      id: "TEX-PRODUCT-02",
-      name: "Heavy Duty Raw Denim Twill 14oz",
-      fabricType: "Denim Twill",
-      gsm: 400,
-      width: "60 inches",
-      colorPattern: "Indigo Wash",
-      stockMeters: 8200,
-      pricePerMeter: 480,
-      status: "ACTIVE",
-    },
-    {
-      id: "TEX-PRODUCT-03",
-      name: "Linen Soft Shirting Fabric",
-      fabricType: "Flax Linen",
-      gsm: 140,
-      width: "54 inches",
-      colorPattern: "Pastel Cream",
-      stockMeters: 2100,
-      pricePerMeter: 650,
-      status: "ACTIVE",
-    },
-    {
-      id: "TEX-PRODUCT-04",
-      name: "Printed Poly-Georgette Saree Roll",
-      fabricType: "Polyester Georgette",
-      gsm: 90,
-      width: "44 inches",
-      colorPattern: "Floral Digital Print",
-      stockMeters: 1200,
-      pricePerMeter: 220,
-      status: "ACTIVE",
-    },
-  ]);
-
+  const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     fabricType: "Cotton Silk",
@@ -73,46 +30,115 @@ export default function TextileProductsPage() {
     pricePerMeter: "",
   });
 
+  const extractMeta = (desc, key) => {
+    if (!desc) return null;
+    const match = desc.match(new RegExp(`${key}:\\s*([^|]+)`));
+    return match ? match[1].trim() : null;
+  };
+
+  const fetchTextileProducts = async () => {
+    try {
+      const res = await apiClient.get("/products").then((r) => r.data);
+      const all = res.data || (Array.isArray(res) ? res : []);
+      const textileDbItems = all.filter(
+        (p) =>
+          p.sku?.startsWith("TEX-") ||
+          p.description?.includes("[TEXTILE]")
+      );
+
+      const mapped = textileDbItems.map((p) => ({
+        id: p.id,
+        name: p.name,
+        fabricType: extractMeta(p.description, "Fabric") || "Cotton Blend",
+        gsm: Number(extractMeta(p.description, "GSM")) || 180,
+        width: extractMeta(p.description, "Width") || "58 inches",
+        colorPattern: extractMeta(p.description, "Pattern") || "Solid",
+        stockMeters: p.inventories?.[0]?.quantity || 500,
+        pricePerMeter: Number(p.sellingPrice) || 300,
+        status: "ACTIVE",
+      }));
+
+      setProducts(mapped);
+    } catch (err) {
+      console.error("Error loading textile products from DB:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTextileProducts();
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddProduct = (e) => {
+  const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.pricePerMeter) {
       toast.error("Please enter fabric name and price per meter");
       return;
     }
 
-    const newProd = {
-      id: `TEX-PRODUCT-${Math.floor(5 + Math.random() * 90)}`,
+    setSubmitting(true);
+    const sku = `TEX-${Date.now().toString().slice(-6)}`;
+    const desc = `[TEXTILE] Fabric: ${formData.fabricType} | GSM: ${
+      formData.gsm || 160
+    } | Width: ${formData.width || "58 inches"} | Pattern: ${
+      formData.colorPattern || "Solid"
+    }`;
+
+    const payload = {
       name: formData.name,
-      fabricType: formData.fabricType,
-      gsm: Number(formData.gsm) || 160,
-      width: formData.width || "58 inches",
-      colorPattern: formData.colorPattern || "Solid",
-      stockMeters: Number(formData.stockMeters) || 500,
-      pricePerMeter: Number(formData.pricePerMeter),
-      status: "ACTIVE",
+      sku,
+      costPrice: parseFloat(formData.pricePerMeter || 0) * 0.8,
+      sellingPrice: parseFloat(formData.pricePerMeter || 0),
+      description: desc,
     };
 
-    setProducts([newProd, ...products]);
-    toast.success(`Textile product "${formData.name}" added to catalog!`);
-    setShowAddModal(false);
-    setFormData({
-      name: "",
-      fabricType: "Cotton Silk",
-      gsm: "",
-      width: "58 inches",
-      colorPattern: "",
-      stockMeters: "",
-      pricePerMeter: "",
-    });
+    try {
+      const res = await apiClient.post("/products", payload).then((r) => r.data);
+      const savedProd = res.data || res;
+
+      const newProd = {
+        id: savedProd.id || `TEX-${Date.now()}`,
+        name: formData.name,
+        fabricType: formData.fabricType,
+        gsm: Number(formData.gsm) || 160,
+        width: formData.width || "58 inches",
+        colorPattern: formData.colorPattern || "Solid",
+        stockMeters: Number(formData.stockMeters) || 500,
+        pricePerMeter: Number(formData.pricePerMeter),
+        status: "ACTIVE",
+      };
+
+      setProducts([newProd, ...products]);
+      toast.success(`Textile product "${formData.name}" saved dynamically to DB!`);
+      setShowAddModal(false);
+      setFormData({
+        name: "",
+        fabricType: "Cotton Silk",
+        gsm: "",
+        width: "58 inches",
+        colorPattern: "",
+        stockMeters: "",
+        pricePerMeter: "",
+      });
+    } catch (err) {
+      console.error("Error saving textile product to DB:", err);
+      toast.error(err.response?.data?.message || "Failed to save textile product");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = (id, name) => {
+  const handleDelete = async (id, name) => {
     if (confirm(`Remove product "${name}" from textile catalog?`)) {
+      try {
+        await apiClient.delete(`/products/${id}`);
+      } catch (err) {
+        console.warn("Backend delete note:", err.message);
+      }
       setProducts(products.filter((p) => p.id !== id));
       toast.success("Product deleted successfully");
     }

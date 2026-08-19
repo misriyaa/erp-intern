@@ -10,9 +10,11 @@ import {
 import WarehouseCard from "./components/WarehouseCard";
 import { useAlert } from "@/context/AlertContext";
 
+import { useCompany } from "@/context/CompanyContext";
 import "./warehouse.css";
 
 export default function WarehousePage() {
+  const { isGym, isTextile } = useCompany();
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -21,10 +23,20 @@ export default function WarehousePage() {
 
   const { showSuccess, showWarning, showError, showConfirm } = useAlert();
 
+  // Filter warehouses by active ERP context
+  const displayWarehouses = warehouses.filter((w) => {
+    const isTex = w.code?.startsWith("TEX-") || w.name?.toLowerCase().includes("mill") || w.name?.toLowerCase().includes("fabric") || w.name?.toLowerCase().includes("dye") || w.name?.toLowerCase().includes("spinning") || w.name?.toLowerCase().includes("textile") || w.address?.includes("[TEXTILE]");
+    const isGymWh = w.code?.startsWith("GYM-") || w.name?.toLowerCase().includes("fitness") || w.name?.toLowerCase().includes("gym") || w.address?.includes("[GYM]");
+    
+    if (isTextile) return isTex;
+    if (isGym) return isGymWh;
+    return !isTex && !isGymWh;
+  });
+
   // Stats computation
-  const totalWarehouses = warehouses.length;
-  const activeWarehouses = warehouses.filter((w) => w.status !== "INACTIVE").length;
-  const inactiveWarehouses = warehouses.filter((w) => w.status === "INACTIVE").length;
+  const totalWarehouses = displayWarehouses.length;
+  const activeWarehouses = displayWarehouses.filter((w) => w.status !== "INACTIVE").length;
+  const inactiveWarehouses = displayWarehouses.filter((w) => w.status === "INACTIVE").length;
 
   // Load warehouses
   const loadWarehouses = async () => {
@@ -123,7 +135,7 @@ export default function WarehousePage() {
         {/* Action Toolbar */}
         <div className="warehouse-toolbar">
           <Link href="/warehouse/add" className="btn-add-action">
-            Add Warehouse <span>+</span>
+            {isTextile ? "Add Mill Warehouse" : isGym ? "Add Gym Depot" : "Add Warehouse"} <span>+</span>
           </Link>
 
           <div className="toolbar-controls">
@@ -180,14 +192,14 @@ export default function WarehousePage() {
           <div className="warehouse-loading" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)", fontSize: "16px" }}>
             Loading warehouses...
           </div>
-        ) : warehouses.length === 0 ? (
+        ) : displayWarehouses.length === 0 ? (
           <div className="warehouse-empty" style={{ textAlign: "center", padding: "60px 20px", background: "#fff", borderRadius: "14px", border: "1px solid #e5e7eb", boxShadow: "0 2px 10px rgba(0, 0, 0, 0.05)" }}>
             <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-dark)", marginBottom: "8px" }}>No warehouses found</h2>
             <p style={{ color: "var(--text-muted)" }}>Add a warehouse or change your search.</p>
           </div>
         ) : (
           <div className="warehouse-cards-grid">
-            {warehouses.map((warehouse) => (
+            {displayWarehouses.map((warehouse) => (
               <WarehouseCard
                 key={warehouse.id}
                 warehouse={warehouse}

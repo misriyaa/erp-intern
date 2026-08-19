@@ -45,6 +45,7 @@ export const createProduct = async (data) => {
     description: data.description || "",
     costPrice: parseFloat(data.costPrice || 0),
     sellingPrice: parseFloat(data.sellingPrice || 0),
+    image: data.image || null,
     categoryId,
     unitId,
     ...(brandId ? { brandId } : {}),

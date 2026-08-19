@@ -84,9 +84,55 @@ export default function WarehouseStockPage() {
     loadData();
   }, [isGym, isTextile]);
 
+  const filteredProductsByIndustry = useMemo(() => {
+    return products.filter((p) => {
+      const isTex = p.sku?.startsWith("TEX-") || p.description?.includes("[TEXTILE]");
+      if (isTextile) return isTex;
+      if (isGym) return p.sku?.startsWith("GYM-") || p.description?.includes("[GYM]");
+      return !isTex && !p.sku?.startsWith("GYM-");
+    });
+  }, [products, isTextile, isGym]);
+
+  const filteredWarehousesByIndustry = useMemo(() => {
+    const filtered = warehouses.filter((w) => {
+      const isTex = w.code?.startsWith("TEX-") || w.name?.toLowerCase().includes("mill") || w.name?.toLowerCase().includes("fabric") || w.name?.toLowerCase().includes("dye") || w.name?.toLowerCase().includes("spinning") || w.name?.toLowerCase().includes("textile") || w.address?.includes("[TEXTILE]");
+      const isGym = w.code?.startsWith("GYM-") || w.name?.toLowerCase().includes("fitness") || w.name?.toLowerCase().includes("gym") || w.address?.includes("[GYM]");
+      
+      if (isTextile) return isTex;
+      if (isGym) return isGym;
+      return !isTex && !isGym;
+    });
+
+    if (filtered.length > 0) return filtered;
+
+    if (isTextile) {
+      return [
+        { id: "wh-tex-1", name: "Main Fabric & Yarn Mill Warehouse", code: "TEX-WH-01" },
+        { id: "wh-tex-2", name: "Spinning & Dyeing Chemical Depot", code: "TEX-WH-02" },
+      ];
+    } else if (isGym) {
+      return [
+        { id: "wh-gym-1", name: "Central Gym Gear Depot", code: "GYM-WH-01" },
+      ];
+    } else {
+      return [
+        { id: "wh-ret-1", name: "Central Retail Store Warehouse", code: "RET-WH-01" },
+      ];
+    }
+  }, [warehouses, isTextile, isGym]);
+
   // Map backend model shape to table-friendly shape
   const mappedStock = useMemo(() => {
-    return inventories.map((item) => ({
+    const filtered = inventories.filter((item) => {
+      const sku = item.product?.sku || "";
+      const desc = item.product?.description || "";
+      const isTex = sku.startsWith("TEX-") || desc.includes("[TEXTILE]");
+      if (isTextile) return isTex;
+      if (isGym) return sku.startsWith("GYM-") || desc.includes("[GYM]");
+      return !isTex && !sku.startsWith("GYM-");
+    });
+
+    return filtered.map((item) => ({
       id: item.id,
       sku: item.product?.sku || "N/A",
       product: item.product?.name || "Unknown Product",
@@ -94,14 +140,13 @@ export default function WarehouseStockPage() {
       warehouse: item.warehouse?.name || "Unknown Warehouse",
       quantity: item.quantity ?? 0,
       reorder: item.reorderLevel ?? item.minimumStock ?? 10,
-      // Original fields for edit form prefilling
       productId: item.productId,
       warehouseId: item.warehouseId,
       minimumStock: item.minimumStock,
       maximumStock: item.maximumStock,
       reorderLevel: item.reorderLevel,
     }));
-  }, [inventories]);
+  }, [inventories, isTextile, isGym]);
 
   // Apply filters and searches
   const filteredStock = useMemo(() => {
@@ -317,8 +362,8 @@ export default function WarehouseStockPage() {
         onClose={() => setModalOpen(false)}
         onSave={loadData}
         item={editingItem}
-        products={products}
-        warehouses={warehouses}
+        products={filteredProductsByIndustry}
+        warehouses={filteredWarehousesByIndustry}
       />
     </div>
   );

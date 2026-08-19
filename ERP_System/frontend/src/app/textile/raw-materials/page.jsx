@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FiLayers,
   FiPlus,
@@ -16,64 +16,7 @@ import {
 import { toast, Toaster } from "react-hot-toast";
 
 export default function RawMaterialsPage() {
-  const [materials, setMaterials] = useState([
-    {
-      id: "RM-101",
-      name: "Comb Cotton Yarn 40s",
-      category: "Yarn",
-      stock: 4500,
-      unit: "KG",
-      reorderLevel: 1000,
-      supplier: "Global Cotton Mills",
-      costPerUnit: 340,
-      status: "IN_STOCK",
-    },
-    {
-      id: "RM-102",
-      name: "Reactive Blue Dye #5B",
-      category: "Dyes & Chemicals",
-      stock: 320,
-      unit: "KG",
-      reorderLevel: 500,
-      supplier: "Apex Dyes & Chemicals",
-      costPerUnit: 850,
-      status: "LOW_STOCK",
-    },
-    {
-      id: "RM-103",
-      name: "Polyester Filament Yarn 150D",
-      category: "Yarn",
-      stock: 8200,
-      unit: "KG",
-      reorderLevel: 2000,
-      supplier: "Synthetics India Ltd",
-      costPerUnit: 180,
-      status: "IN_STOCK",
-    },
-    {
-      id: "RM-104",
-      name: "Organic Flax Fiber Roll",
-      category: "Raw Fiber",
-      stock: 1800,
-      unit: "KG",
-      reorderLevel: 800,
-      supplier: "Ecology Agro Fabrics",
-      costPerUnit: 520,
-      status: "IN_STOCK",
-    },
-    {
-      id: "RM-105",
-      name: "High-Strength Sewing Thread #60",
-      category: "Trims & Accessories",
-      stock: 150,
-      unit: "Spools",
-      reorderLevel: 300,
-      supplier: "Coats Threads Enterprise",
-      costPerUnit: 95,
-      status: "LOW_STOCK",
-    },
-  ]);
-
+  const [materials, setMaterials] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -87,6 +30,29 @@ export default function RawMaterialsPage() {
     supplier: "",
     costPerUnit: "",
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("textile_raw_materials");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const userOnly = parsed.filter(
+          (m) => !["RM-101", "RM-102", "RM-103", "RM-104", "RM-105"].includes(m.id)
+        );
+        setMaterials(userOnly);
+        localStorage.setItem("textile_raw_materials", JSON.stringify(userOnly));
+      } else {
+        setMaterials([]);
+      }
+    }
+  }, []);
+
+  const saveMaterials = (newMaterials) => {
+    setMaterials(newMaterials);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("textile_raw_materials", JSON.stringify(newMaterials));
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -112,8 +78,8 @@ export default function RawMaterialsPage() {
       status: Number(formData.stock) <= (Number(formData.reorderLevel) || 500) ? "LOW_STOCK" : "IN_STOCK",
     };
 
-    setMaterials([newMat, ...materials]);
-    toast.success(`Raw Material "${formData.name}" registered successfully!`);
+    saveMaterials([newMat, ...materials]);
+    toast.success(`Raw Material "${formData.name}" saved successfully!`);
     setShowAddModal(false);
     setFormData({
       name: "",
@@ -124,6 +90,12 @@ export default function RawMaterialsPage() {
       supplier: "",
       costPerUnit: "",
     });
+  };
+
+  const handleDeleteMaterial = (id, name) => {
+    const updated = materials.filter((m) => m.id !== id);
+    saveMaterials(updated);
+    toast.success(`Material "${name}" deleted.`);
   };
 
   const handleDelete = (id, name) => {

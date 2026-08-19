@@ -80,6 +80,7 @@ export default function LoginForm() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
+          <div className={styles.brandBadge}>CLOUD ERP PLATFORM</div>
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -89,7 +90,7 @@ export default function LoginForm() {
           ) : null}
           <h1>Welcome Back</h1>
 
-          <p>Sign in to your {settings?.companyName || "Retail ERP"} account.</p>
+          <p>Sign in to your {settings?.companyName || "ERP Suite"} account.</p>
         </div>
 
 

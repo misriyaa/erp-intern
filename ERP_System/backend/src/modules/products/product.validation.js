@@ -16,15 +16,22 @@ export const createProductValidation = [
     .withMessage("SKU must be between 2 and 50 characters"),
 
   body("categoryId")
-    .notEmpty()
-    .withMessage("Category is required")
-    .isUUID()
-    .withMessage("Invalid Category ID"),
+    .optional({ nullable: true })
+    .custom((val) => {
+      if (!val) return true;
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
+      if (isUuid) return true;
+      throw new Error("Invalid Category ID");
+    }),
 
   body("brandId")
     .optional({ nullable: true })
-    .isUUID()
-    .withMessage("Invalid Brand ID"),
+    .custom((val) => {
+      if (!val) return true;
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
+      if (isUuid) return true;
+      throw new Error("Invalid Brand ID");
+    }),
 
   body("costPrice")
     .notEmpty()
@@ -52,10 +59,13 @@ body("discountValue")
   .toFloat(),
 
  body("unitId")
-  .notEmpty()
-  .withMessage("Unit is required")
-  .isUUID()
-  .withMessage("Invalid Unit ID"),
+  .optional({ nullable: true })
+  .custom((val) => {
+    if (!val) return true;
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
+    if (isUuid) return true;
+    throw new Error("Invalid Unit ID");
+  }),
 
   body("image")
     .optional()

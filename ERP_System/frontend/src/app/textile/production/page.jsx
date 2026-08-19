@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FiCpu,
   FiPlus,
@@ -11,66 +11,21 @@ import {
   FiX,
   FiPlayCircle,
   FiChevronRight,
+  FiTrash2,
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
 
+const STAGES = [
+  "1. Yarn Spinning",
+  "2. Loom Weaving",
+  "3. Dyeing & Washing",
+  "4. Printing & Finish",
+  "5. Quality Inspection",
+  "6. Finished Stock",
+];
+
 export default function ProductionTrackingPage() {
-  const [batches, setBatches] = useState([
-    {
-      id: "PROD-801",
-      batchName: "Organic Cotton Yarn #40s Batch",
-      material: "Organic Cotton Yarn #40s",
-      targetMeters: 1500,
-      completedMeters: 920,
-      currentStageIndex: 2, // Dyeing & Washing
-      operator: "Ramesh Kumar",
-      startDate: "2026-08-16",
-      status: "IN_PROGRESS",
-    },
-    {
-      id: "PROD-802",
-      batchName: "Poly-Silk Blend Weave Batch",
-      material: "Poly-Silk Blend Weave",
-      targetMeters: 3000,
-      completedMeters: 2750,
-      currentStageIndex: 1, // Loom Weaving
-      operator: "Suresh Patil",
-      startDate: "2026-08-14",
-      status: "IN_PROGRESS",
-    },
-    {
-      id: "PROD-803",
-      batchName: "Denim Twill 14oz Heavy Batch",
-      material: "Denim Twill 14oz",
-      targetMeters: 800,
-      completedMeters: 800,
-      currentStageIndex: 4, // Quality Inspection
-      operator: "Anita Sharma",
-      startDate: "2026-08-18",
-      status: "QUALITY_HOLD",
-    },
-    {
-      id: "PROD-804",
-      batchName: "Linen Soft-Touch Shirting",
-      material: "Flax Linen Fiber",
-      targetMeters: 2100,
-      completedMeters: 2100,
-      currentStageIndex: 5, // Finished Stock
-      operator: "Vikram Singh",
-      startDate: "2026-08-10",
-      status: "COMPLETED",
-    },
-  ]);
-
-  const STAGES = [
-    "1. Yarn Spinning",
-    "2. Loom Weaving",
-    "3. Dyeing & Washing",
-    "4. Printing & Finish",
-    "5. Quality Inspection",
-    "6. Finished Stock",
-  ];
-
+  const [batches, setBatches] = useState([]);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -79,6 +34,29 @@ export default function ProductionTrackingPage() {
     targetMeters: "",
     operator: "",
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("textile_production_batches");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const userOnly = parsed.filter(
+          (b) => !["PROD-801", "PROD-802", "PROD-803", "PROD-804"].includes(b.id)
+        );
+        setBatches(userOnly);
+        localStorage.setItem("textile_production_batches", JSON.stringify(userOnly));
+      } else {
+        setBatches([]);
+      }
+    }
+  }, []);
+
+  const saveBatches = (newBatches) => {
+    setBatches(newBatches);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("textile_production_batches", JSON.stringify(newBatches));
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -104,29 +82,34 @@ export default function ProductionTrackingPage() {
       status: "IN_PROGRESS",
     };
 
-    setBatches([newBatch, ...batches]);
+    saveBatches([newBatch, ...batches]);
     toast.success(`Production Batch "${formData.batchName}" scheduled!`);
     setShowAddModal(false);
     setFormData({ batchName: "", material: "", targetMeters: "", operator: "" });
   };
 
   const handleAdvanceStage = (id) => {
-    setBatches(
-      batches.map((b) => {
-        if (b.id === id) {
-          const nextIndex = Math.min(b.currentStageIndex + 1, STAGES.length - 1);
-          const isFinished = nextIndex === STAGES.length - 1;
-          toast.success(`Batch ${b.id} advanced to "${STAGES[nextIndex]}"`);
-          return {
-            ...b,
-            currentStageIndex: nextIndex,
-            completedMeters: isFinished ? b.targetMeters : b.completedMeters,
-            status: isFinished ? "COMPLETED" : nextIndex === 4 ? "QUALITY_HOLD" : "IN_PROGRESS",
-          };
-        }
-        return b;
-      })
-    );
+    const updated = batches.map((b) => {
+      if (b.id === id) {
+        const nextIndex = Math.min(b.currentStageIndex + 1, STAGES.length - 1);
+        const isFinished = nextIndex === STAGES.length - 1;
+        toast.success(`Batch ${b.id} advanced to "${STAGES[nextIndex]}"`);
+        return {
+          ...b,
+          currentStageIndex: nextIndex,
+          completedMeters: isFinished ? b.targetMeters : Math.round(b.targetMeters * ((nextIndex + 1) / STAGES.length)),
+          status: isFinished ? "COMPLETED" : "IN_PROGRESS",
+        };
+      }
+      return b;
+    });
+    saveBatches(updated);
+  };
+
+  const handleDeleteBatch = (id) => {
+    const updated = batches.filter((b) => b.id !== id);
+    saveBatches(updated);
+    toast.success("Production Batch deleted.");
   };
 
   const filtered = batches.filter(

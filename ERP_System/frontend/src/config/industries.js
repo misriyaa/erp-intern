@@ -22,6 +22,7 @@ import {
   FiLayers,
   FiCpu,
   FiCheckCircle,
+  FiHome,
 } from "react-icons/fi";
 
 export const INDUSTRY_CODES = {
@@ -127,6 +128,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "RAW_MATERIALS", label: "Raw Materials", href: "/textile/raw-materials", icon: FiLayers, industry: "TEXTILE" },
   { moduleCode: "PRODUCTION", label: "Production Tracking", href: "/textile/production", icon: FiCpu, industry: "TEXTILE" },
   { moduleCode: "INVENTORY", label: "Inventory Stock", href: "/warehouse/stock", icon: FiPackage, industry: "TEXTILE" },
+  { moduleCode: "WAREHOUSES", label: "Mill Warehouses", href: "/warehouse", icon: FiHome, industry: "TEXTILE" },
   { moduleCode: "QUALITY_CONTROL", label: "Quality Control", href: "/textile/quality-control", icon: FiCheckCircle, industry: "TEXTILE" },
   { moduleCode: "BRANCHES", label: "Mills & Manufacturing Units", href: "/admin/branches", icon: FiMapPin, industry: "TEXTILE" },
   { moduleCode: "SUPPLIERS", label: "Yarn & Dye Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "TEXTILE" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FiCheckCircle,
   FiPlus,
@@ -9,52 +9,12 @@ import {
   FiAward,
   FiX,
   FiCheck,
+  FiTrash2,
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
 
 export default function QualityControlPage() {
-  const [inspections, setInspections] = useState([
-    {
-      id: "QC-901",
-      batchId: "BATCH-2026-083",
-      fabricName: "Heavyweight Denim Twill 14oz",
-      inspectedMeters: 800,
-      passedMeters: 780,
-      defectMeters: 20,
-      defectType: "Weave Distortion",
-      grade: "Grade A",
-      inspector: "Sunil Kumar",
-      date: "2026-08-18",
-      status: "PASSED",
-    },
-    {
-      id: "QC-902",
-      batchId: "BATCH-2026-081",
-      fabricName: "Organic Cotton Yarn #40s",
-      inspectedMeters: 500,
-      passedMeters: 450,
-      defectMeters: 50,
-      defectType: "Color Bleed & Stain",
-      grade: "Grade B",
-      inspector: "Anita Sharma",
-      date: "2026-08-17",
-      status: "PASSED_WITH_DEFECTS",
-    },
-    {
-      id: "QC-903",
-      batchId: "BATCH-2026-079",
-      fabricName: "Poly-Silk Sheer Weave",
-      inspectedMeters: 600,
-      passedMeters: 350,
-      defectMeters: 250,
-      defectType: "Yarn Slub & Holes",
-      grade: "Reject",
-      inspector: "Sunil Kumar",
-      date: "2026-08-15",
-      status: "REJECTED",
-    },
-  ]);
-
+  const [inspections, setInspections] = useState([]);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -67,6 +27,29 @@ export default function QualityControlPage() {
     grade: "Grade A",
     inspector: "",
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("textile_qc_inspections");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const userOnly = parsed.filter(
+          (q) => !["QC-901", "QC-902", "QC-903"].includes(q.id)
+        );
+        setInspections(userOnly);
+        localStorage.setItem("textile_qc_inspections", JSON.stringify(userOnly));
+      } else {
+        setInspections([]);
+      }
+    }
+  }, []);
+
+  const saveInspections = (newInspections) => {
+    setInspections(newInspections);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("textile_qc_inspections", JSON.stringify(newInspections));
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -94,7 +77,7 @@ export default function QualityControlPage() {
       status: formData.grade === "Reject" ? "REJECTED" : formData.grade === "Grade B" ? "PASSED_WITH_DEFECTS" : "PASSED",
     };
 
-    setInspections([newQc, ...inspections]);
+    saveInspections([newQc, ...inspections]);
     toast.success(`QC Inspection logged for batch ${formData.batchId}!`);
     setShowAddModal(false);
     setFormData({
@@ -107,6 +90,12 @@ export default function QualityControlPage() {
       grade: "Grade A",
       inspector: "",
     });
+  };
+
+  const handleDeleteInspection = (id) => {
+    const updated = inspections.filter((i) => i.id !== id);
+    saveInspections(updated);
+    toast.success("QC Inspection record deleted.");
   };
 
   const filtered = inspections.filter(

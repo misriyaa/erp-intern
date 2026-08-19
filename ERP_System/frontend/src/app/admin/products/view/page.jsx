@@ -70,7 +70,13 @@ export default function ProductsPage() {
       const res = await apiClient.get("/products");
       const fetched = res.data?.data || (Array.isArray(res.data) ? res.data : []);
 
-      setProductsData(fetched);
+      const retailOnly = fetched.filter(
+        (p) =>
+          !p.sku?.startsWith("TEX-") &&
+          !p.description?.includes("[TEXTILE]")
+      );
+
+      setProductsData(retailOnly);
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {

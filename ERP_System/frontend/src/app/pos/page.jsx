@@ -53,7 +53,13 @@ export default function POSPage() {
         ]);
 
         if (prodRes.success && prodRes.data) {
-          const mapped = prodRes.data.map((p) => {
+          const retailOnly = prodRes.data.filter(
+            (p) =>
+              !p.sku?.startsWith("TEX-") &&
+              !p.description?.includes("[TEXTILE]")
+          );
+
+          const mapped = retailOnly.map((p) => {
             const stockQty = (p.inventories && p.inventories.length > 0)
               ? p.inventories.reduce((sum, inv) => sum + (inv.quantity || 0), 0)
               : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : 100);
