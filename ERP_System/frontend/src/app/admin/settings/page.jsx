@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   FiBriefcase,
   FiGlobe,
@@ -14,8 +15,16 @@ import {
   FiAlertCircle,
   FiTrash2,
   FiImage,
+  FiBox,
+  FiTag,
+  FiLayout,
+  FiExternalLink,
+  FiPlus,
+  FiLayers,
+  FiPrinter,
 } from "react-icons/fi";
 import { getSettings, updateSettings, resetSettings } from "@/services/settingsService";
+import { getLandingPage, updateLandingPage } from "@/services/landingAdmin.service";
 import { useSettings } from "@/context/SettingsContext";
 import styles from "./settings.module.css";
 
@@ -32,6 +41,43 @@ export default function SettingsPage() {
   const [toast, setToast] = useState({ type: null, message: "" });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+
+  // Landing Page Settings State
+  const [landingLoading, setLandingLoading] = useState(false);
+  const [landingSaving, setLandingSaving] = useState(false);
+  const [landingForm, setLandingForm] = useState({
+    logoText: "",
+    logoHighlight: "",
+    loginText: "",
+    heroTag: "",
+    heroTitle: "",
+    heroDescription: "",
+    heroButtonText: "",
+    dashboardTitle: "",
+    dashboardSubtitle: "",
+    aboutTag: "",
+    aboutTitle: "",
+    aboutDescription: "",
+    footerText: "",
+  });
+
+  const [landingFiles, setLandingFiles] = useState({
+    heroImage: null,
+    heroBackgroundImage: null,
+    aboutImage1: null,
+    aboutImage2: null,
+    aboutImage3: null,
+    aboutImage4: null,
+  });
+
+  const [landingPreview, setLandingPreview] = useState({
+    heroImage: "",
+    heroBackgroundImage: "",
+    aboutImage1: "",
+    aboutImage2: "",
+    aboutImage3: "",
+    aboutImage4: "",
+  });
 
   const [formData, setFormData] = useState({
     // Business Info
@@ -76,7 +122,81 @@ export default function SettingsPage() {
   // Fetch Settings on Mount
   useEffect(() => {
     fetchSettingsData();
+    loadLandingData();
   }, []);
+
+  const loadLandingData = async () => {
+    try {
+      setLandingLoading(true);
+      const data = await getLandingPage();
+      if (data) {
+        setLandingForm({
+          logoText: data.logoText || "",
+          logoHighlight: data.logoHighlight || "",
+          loginText: data.loginText || "",
+          heroTag: data.heroTag || "",
+          heroTitle: data.heroTitle || "",
+          heroDescription: data.heroDescription || "",
+          heroButtonText: data.heroButtonText || "",
+          dashboardTitle: data.dashboardTitle || "",
+          dashboardSubtitle: data.dashboardSubtitle || "",
+          aboutTag: data.aboutTag || "",
+          aboutTitle: data.aboutTitle || "",
+          aboutDescription: data.aboutDescription || "",
+          footerText: data.footerText || "",
+        });
+        setLandingPreview({
+          heroImage: data.heroImage ? `${API_URL}/uploads/landingpageimage/${data.heroImage}` : "",
+          heroBackgroundImage: data.heroBackgroundImage ? `${API_URL}/uploads/landingpageimage/${data.heroBackgroundImage}` : "",
+          aboutImage1: data.aboutImage1 ? `${API_URL}/uploads/landingpageimage/${data.aboutImage1}` : "",
+          aboutImage2: data.aboutImage2 ? `${API_URL}/uploads/landingpageimage/${data.aboutImage2}` : "",
+          aboutImage3: data.aboutImage3 ? `${API_URL}/uploads/landingpageimage/${data.aboutImage3}` : "",
+          aboutImage4: data.aboutImage4 ? `${API_URL}/uploads/landingpageimage/${data.aboutImage4}` : "",
+        });
+      }
+    } catch (err) {
+      console.error("Load landing data error:", err);
+    } finally {
+      setLandingLoading(false);
+    }
+  };
+
+  const handleLandingChange = (e) => {
+    const { name, value } = e.target;
+    setLandingForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLandingImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const name = e.target.name;
+    setLandingFiles((prev) => ({ ...prev, [name]: file }));
+    setLandingPreview((prev) => ({ ...prev, [name]: URL.createObjectURL(file) }));
+  };
+
+  const handleLandingSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLandingSaving(true);
+      const payload = new FormData();
+      Object.keys(landingForm).forEach((key) => {
+        payload.append(key, landingForm[key]);
+      });
+      Object.keys(landingFiles).forEach((key) => {
+        if (landingFiles[key]) {
+          payload.append(key, landingFiles[key]);
+        }
+      });
+      await updateLandingPage(payload);
+      showToast("success", "Landing page settings updated successfully!");
+      await loadLandingData();
+    } catch (err) {
+      console.error("Update landing error:", err);
+      showToast("error", err.message || "Failed to update landing page settings.");
+    } finally {
+      setLandingSaving(false);
+    }
+  };
 
   const fetchSettingsData = async () => {
     try {
@@ -292,6 +412,33 @@ export default function SettingsPage() {
           >
             <FiShoppingCart className={styles.tabIcon} />
             <span>Inventory & POS</span>
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === "warehouse" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("warehouse")}
+          >
+            <FiBox className={styles.tabIcon} />
+            <span>Warehouse & Stock</span>
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === "barcode" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("barcode")}
+          >
+            <FiTag className={styles.tabIcon} />
+            <span>Barcode Printing</span>
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === "landing" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("landing")}
+          >
+            <FiLayout className={styles.tabIcon} />
+            <span>Landing Page Settings</span>
           </button>
 
           <button
@@ -704,7 +851,329 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Tab 5: Security & Preferences */}
+            {/* Tab 5: Warehouse & Stock */}
+            {activeTab === "warehouse" && (
+              <div>
+                <div className={styles.sectionHeader}>
+                  <h2>Warehouse & Multi-Location Stock Configuration</h2>
+                  <p>Manage warehouses, stock transfers, low stock thresholds, and location tracking.</p>
+                </div>
+
+                <div className={styles.formCard}>
+                  <div className={styles.toggleRow} style={{ marginBottom: "20px" }}>
+                    <div className={styles.toggleText}>
+                      <h4>Enable Multi-Warehouse Tracking</h4>
+                      <p>Track inventory quantities separately across multiple physical warehouses and store branches.</p>
+                    </div>
+                    <label className={styles.switch}>
+                      <input
+                        type="checkbox"
+                        name="enableMultiBranch"
+                        checked={formData.enableMultiBranch}
+                        onChange={handleInputChange}
+                      />
+                      <span className={styles.slider}></span>
+                    </label>
+                  </div>
+
+                  <div className={`${styles.formGrid} ${styles.formGrid2}`}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Global Low Stock Threshold</label>
+                      <input
+                        type="number"
+                        min="1"
+                        name="lowStockThreshold"
+                        value={formData.lowStockThreshold}
+                        onChange={handleInputChange}
+                        className={styles.input}
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Stock Alert Notifications</label>
+                      <select
+                        name="enableStockAlerts"
+                        value={formData.enableStockAlerts ? "true" : "false"}
+                        onChange={(e) =>
+                          handleInputChange({
+                            target: { name: "enableStockAlerts", value: e.target.value === "true", type: "checkbox", checked: e.target.value === "true" },
+                          })
+                        }
+                        className={styles.select}
+                      >
+                        <option value="true">Enabled (Alert on Dashboard)</option>
+                        <option value="false">Disabled</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <h3 style={{ fontSize: "16px", fontWeight: "700", margin: "24px 0 12px 0", color: "#0f172a" }}>
+                    Warehouse Quick Actions & Management
+                  </h3>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+                    <Link href="/warehouse" style={{ textDecoration: "none" }}>
+                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
+                        <FiBox style={{ fontSize: "24px", color: "#4f46e5", marginBottom: "8px" }} />
+                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>All Warehouses</h4>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>View and manage warehouse locations</p>
+                      </div>
+                    </Link>
+
+                    <Link href="/warehouse/add" style={{ textDecoration: "none" }}>
+                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
+                        <FiPlus style={{ fontSize: "24px", color: "#10b981", marginBottom: "8px" }} />
+                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>Add Warehouse</h4>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>Create a new warehouse location</p>
+                      </div>
+                    </Link>
+
+                    <Link href="/warehouse/stock" style={{ textDecoration: "none" }}>
+                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
+                        <FiLayers style={{ fontSize: "24px", color: "#f59e0b", marginBottom: "8px" }} />
+                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>Warehouse Stock</h4>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>Inspect stock levels per warehouse</p>
+                      </div>
+                    </Link>
+
+                    <Link href="/warehouse/transfer" style={{ textDecoration: "none" }}>
+                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
+                        <FiExternalLink style={{ fontSize: "24px", color: "#ec4899", marginBottom: "8px" }} />
+                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>Stock Transfer</h4>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>Move stock between locations</p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 6: Barcode Printing */}
+            {activeTab === "barcode" && (
+              <div>
+                <div className={styles.sectionHeader}>
+                  <h2>Barcode Generation & Printing Configuration</h2>
+                  <p>Configure default barcode dimensions, paper sizing, and open the barcode generator tool.</p>
+                </div>
+
+                <div className={styles.formCard}>
+                  <div style={{ padding: "20px", borderRadius: "12px", background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+                    <div>
+                      <h3 style={{ margin: 0, color: "#1e3a8a", fontSize: "17px", fontWeight: "700" }}>Barcode Printer & Generator Tool</h3>
+                      <p style={{ margin: "4px 0 0 0", color: "#1e40af", fontSize: "13px" }}>Select products, pick paper grid formats, and print customized product price tags and barcodes.</p>
+                    </div>
+                    <Link href="/admin/pos/barcode-print" style={{ textDecoration: "none" }}>
+                      <button type="button" style={{ padding: "10px 20px", background: "#2563eb", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                        <FiPrinter /> Open Barcode Printer
+                      </button>
+                    </Link>
+                  </div>
+
+                  <div className={`${styles.formGrid} ${styles.formGrid2}`}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Default Receipt & Label Paper Size</label>
+                      <select
+                        name="receiptPaperSize"
+                        value={formData.receiptPaperSize}
+                        onChange={handleInputChange}
+                        className={styles.select}
+                      >
+                        <option value="80mm">80mm Thermal Receipt Paper</option>
+                        <option value="58mm">58mm Small Thermal Paper</option>
+                        <option value="grid40">A4 Sheet (40 Labels per Page)</option>
+                        <option value="grid24">A4 Sheet (24 Labels per Page)</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Barcode Type / Encoding Standard</label>
+                      <select className={styles.select} defaultValue="CODE128">
+                        <option value="CODE128">CODE128 (Standard Product Barcode)</option>
+                        <option value="EAN13">EAN-13 (International Commercial)</option>
+                        <option value="UPC">UPC-A (Retail Universal)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 7: Landing Page Settings */}
+            {activeTab === "landing" && (
+              <div>
+                <div className={styles.sectionHeader}>
+                  <h2>Landing Page Content & Branding</h2>
+                  <p>Customize hero text, tags, navbar titles, section headings, about section, and landing images.</p>
+                </div>
+
+                <div className={styles.formCard}>
+                  {landingLoading ? (
+                    <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>Loading Landing Page settings...</div>
+                  ) : (
+                    <div>
+                      {/* Navbar Settings */}
+                      <h3 style={{ fontSize: "16px", fontWeight: "700", marginBottom: "16px", color: "#0f172a" }}>Navbar Configuration</h3>
+                      <div className={`${styles.formGrid} ${styles.formGrid2}`}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Logo Text</label>
+                          <input
+                            type="text"
+                            name="logoText"
+                            value={landingForm.logoText}
+                            onChange={handleLandingChange}
+                            className={styles.input}
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Logo Highlight Word</label>
+                          <input
+                            type="text"
+                            name="logoHighlight"
+                            value={landingForm.logoHighlight}
+                            onChange={handleLandingChange}
+                            className={styles.input}
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Login Button Label</label>
+                          <input
+                            type="text"
+                            name="loginText"
+                            value={landingForm.loginText}
+                            onChange={handleLandingChange}
+                            className={styles.input}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hero Section Settings */}
+                      <h3 style={{ fontSize: "16px", fontWeight: "700", margin: "24px 0 16px 0", color: "#0f172a" }}>Hero Banner Section</h3>
+                      <div className={styles.formGroupFull}>
+                        <label className={styles.label}>Hero Badge / Tagline</label>
+                        <input
+                          type="text"
+                          name="heroTag"
+                          value={landingForm.heroTag}
+                          onChange={handleLandingChange}
+                          className={styles.input}
+                        />
+                      </div>
+
+                      <div className={styles.formGroupFull}>
+                        <label className={styles.label}>Hero Main Title</label>
+                        <input
+                          type="text"
+                          name="heroTitle"
+                          value={landingForm.heroTitle}
+                          onChange={handleLandingChange}
+                          className={styles.input}
+                        />
+                      </div>
+
+                      <div className={styles.formGroupFull}>
+                        <label className={styles.label}>Hero Description Paragraph</label>
+                        <textarea
+                          name="heroDescription"
+                          rows="4"
+                          value={landingForm.heroDescription}
+                          onChange={handleLandingChange}
+                          className={styles.textarea}
+                        />
+                      </div>
+
+                      <div className={`${styles.formGrid} ${styles.formGrid2}`}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Hero Button Text</label>
+                          <input
+                            type="text"
+                            name="heroButtonText"
+                            value={landingForm.heroButtonText}
+                            onChange={handleLandingChange}
+                            className={styles.input}
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Dashboard Showcase Title</label>
+                          <input
+                            type="text"
+                            name="dashboardTitle"
+                            value={landingForm.dashboardTitle}
+                            onChange={handleLandingChange}
+                            className={styles.input}
+                          />
+                        </div>
+                      </div>
+
+                      <div className={styles.formGroupFull}>
+                        <label className={styles.label}>Hero Image Upload</label>
+                        <input
+                          type="file"
+                          name="heroImage"
+                          accept="image/*"
+                          onChange={handleLandingImageChange}
+                          className={styles.input}
+                        />
+                        {landingPreview.heroImage && (
+                          <div style={{ marginTop: "8px" }}>
+                            <img src={landingPreview.heroImage} alt="Hero Preview" style={{ maxHeight: "120px", borderRadius: "8px", border: "1px solid #cbd5e1" }} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* About Section Settings */}
+                      <h3 style={{ fontSize: "16px", fontWeight: "700", margin: "24px 0 16px 0", color: "#0f172a" }}>About & Features Section</h3>
+                      <div className={styles.formGroupFull}>
+                        <label className={styles.label}>About Section Title</label>
+                        <input
+                          type="text"
+                          name="aboutTitle"
+                          value={landingForm.aboutTitle}
+                          onChange={handleLandingChange}
+                          className={styles.input}
+                        />
+                      </div>
+
+                      <div className={styles.formGroupFull}>
+                        <label className={styles.label}>About Description</label>
+                        <textarea
+                          name="aboutDescription"
+                          rows="4"
+                          value={landingForm.aboutDescription}
+                          onChange={handleLandingChange}
+                          className={styles.textarea}
+                        />
+                      </div>
+
+                      {/* Footer */}
+                      <h3 style={{ fontSize: "16px", fontWeight: "700", margin: "24px 0 16px 0", color: "#0f172a" }}>Footer Note</h3>
+                      <div className={styles.formGroupFull}>
+                        <label className={styles.label}>Footer Text</label>
+                        <input
+                          type="text"
+                          name="footerText"
+                          value={landingForm.footerText}
+                          onChange={handleLandingChange}
+                          className={styles.input}
+                        />
+                      </div>
+
+                      <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end" }}>
+                        <button
+                          type="button"
+                          onClick={handleLandingSubmit}
+                          disabled={landingSaving}
+                          className={styles.btnSave}
+                        >
+                          <FiSave /> {landingSaving ? "Saving Landing Page..." : "Save Landing Page Settings"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tab 8: Security & Preferences */}
             {activeTab === "security" && (
               <div>
                 <div className={styles.sectionHeader}>

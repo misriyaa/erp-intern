@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Barcode from "react-barcode";
 import { toast, Toaster } from "react-hot-toast";
 import { useSettings } from "@/context/SettingsContext";
-import axios from "axios";
+import apiClient from "@/services/apiClient";
 import {
   FiPrinter,
   FiSearch,
@@ -134,9 +134,10 @@ export default function BarcodePrintPage() {
       "";
 
     const barcode =
-      barcodeFromMap ||
-      productBarcode ||
-      "";
+      getBarcodeValue(barcodeFromMap) ||
+      getBarcodeValue(productBarcode) ||
+      getBarcodeValue(product?.barcodes?.[0]) ||
+      String(id || "");
 
     const category =
       product?.category?.name ||
@@ -194,13 +195,8 @@ export default function BarcodePrintPage() {
 
       const [productsResponse, barcodesResponse] =
         await Promise.all([
-          axios.get(`${API}/api/products`, {
-            // withCredentials: true,
-          }),
-
-          axios.get(`${API}/api/barcodes`, {
-            // withCredentials: true,
-          }),
+          apiClient.get("/products"),
+          apiClient.get("/barcodes").catch(() => ({ data: { data: [] } })),
         ]);
 
       console.log(
