@@ -58,7 +58,7 @@ export function SettingsProvider({ children }) {
         }));
       }
     } catch (error) {
-      console.error("Failed to load settings in SettingsProvider:", error);
+      console.warn("Failed to load settings in SettingsProvider:", error?.message || error);
     } finally {
       setLoading(false);
     }
