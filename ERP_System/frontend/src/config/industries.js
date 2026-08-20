@@ -23,6 +23,7 @@ import {
   FiCpu,
   FiCheckCircle,
   FiHome,
+  FiFileText,
 } from "react-icons/fi";
 
 export const INDUSTRY_CODES = {
@@ -147,6 +148,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "SUPPLIERS", label: "Goods Vendors & Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RETAIL" },
   { moduleCode: "PURCHASES", label: "Purchases", href: "/purchases", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "SALES", label: "Sales Orders", href: "/sales", icon: FiShoppingCart, industry: "RETAIL" },
+  { moduleCode: "SALES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
   { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL" },
 
   // Shared Core Operations

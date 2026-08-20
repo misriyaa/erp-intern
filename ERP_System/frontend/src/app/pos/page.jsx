@@ -11,6 +11,7 @@ import API_URL from "@/config/api";
 import Swal from "sweetalert2";
 import apiClient from "@/services/apiClient";
 import { useAlert } from "@/context/AlertContext";
+import PrintInvoice from "@/app/invoices/components/PrintInvoice";
 
 export default function POSPage() {
   const [products, setProducts] = useState([]);
@@ -483,6 +484,44 @@ export default function POSPage() {
     clearCart();
   };
 
+  const handlePrintReceipt = () => {
+    if (cart.length === 0) {
+      Swal.fire({
+        title: "Cart Empty!",
+        text: "Please add products to cart before printing a receipt.",
+        icon: "warning",
+        confirmButtonColor: "#2563eb",
+      });
+      return;
+    }
+
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const taxAmount = (subtotal - Number(discountValue)) * (activeTaxRate / 100);
+    const totalAmount = subtotal;
+    const netAmount = subtotal + taxAmount - Number(discountValue);
+
+    const selectedCustObj = customers.find((c) => c.id === customer);
+    const customerName = selectedCustObj ? selectedCustObj.name : "Walk-in Customer";
+
+    const completedRecord = {
+      id: `active-sale-${Date.now()}`,
+      orderNumber: `SO-ACTIVE-${Date.now()}`,
+      customerName,
+      totalAmount,
+      taxAmount,
+      discountAmount: Number(discountValue),
+      netAmount,
+      paymentMethod: selectedPayment,
+      date: new Date().toLocaleString(),
+      cart: [...cart],
+    };
+
+    setSelectedReceipt(completedRecord);
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
+
   const handleRestoreDraft = (draft) => {
     setCart(draft.cart || []);
     setCustomer(draft.customer || "");
@@ -510,7 +549,8 @@ export default function POSPage() {
   };
 
   return (
-    <div className="pos-app-container">
+    <>
+      <div className="pos-app-container no-print">
       <div className="pos-left-section">
         <PosToolbar
           query={query}
@@ -668,6 +708,7 @@ export default function POSPage() {
           onCompleteSale={handleCompleteSale}
           onHoldSale={handleHoldSale}
           onSaveDraft={handleSaveDraft}
+          onPrintReceipt={handlePrintReceipt}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           heldDrafts={localHeldDrafts}
@@ -677,7 +718,7 @@ export default function POSPage() {
       </div>
 
       {selectedReceipt && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} className="no-print">
           <div style={{ background: "#fff", padding: "24px", borderRadius: "12px", maxWidth: "420px", width: "90%", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
             <h3 style={{ textAlign: "center", fontSize: "18px", fontWeight: "700", marginBottom: "4px" }}>RECEIPT INVOICE</h3>
             <p style={{ textAlign: "center", color: "#64748b", fontSize: "12px", marginBottom: "16px" }}>{selectedReceipt.orderNumber} - {selectedReceipt.date}</p>
@@ -685,13 +726,13 @@ export default function POSPage() {
               {selectedReceipt.cart?.map((item, idx) => (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "6px" }}>
                   <span>{item.name} x {item.qty}</span>
-                  <span style={{ fontWeight: "600" }}>${(item.price * item.qty).toFixed(2)}</span>
+                  <span style={{ fontWeight: "600" }}>₹{(item.price * item.qty).toFixed(2)}</span>
                 </div>
               ))}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px", fontWeight: "700", margin: "12px 0", color: "#059669" }}>
               <span>Total Paid:</span>
-              <span>${Number(selectedReceipt.netAmount || selectedReceipt.totalAmount || 0).toFixed(2)}</span>
+              <span>₹{Number(selectedReceipt.netAmount || selectedReceipt.totalAmount || 0).toFixed(2)}</span>
             </div>
             <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
               <button type="button" onClick={() => window.print()} style={{ flex: 1, padding: "10px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}>Print Receipt</button>
@@ -700,6 +741,29 @@ export default function POSPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      {selectedReceipt && (
+        <PrintInvoice
+          invoice={{
+            invoiceNo: selectedReceipt.orderNumber,
+            customer: selectedReceipt.customerName,
+            cashier: "Admin",
+            date: selectedReceipt.date,
+            paymentMethod: selectedReceipt.paymentMethod,
+            subTotal: selectedReceipt.totalAmount,
+            discount: selectedReceipt.discountAmount || 0,
+            tax: selectedReceipt.taxAmount || 0,
+            total: selectedReceipt.netAmount,
+            items: selectedReceipt.cart?.map(item => ({
+              productName: item.name,
+              quantity: item.qty,
+              unitPrice: item.price,
+              totalPrice: item.qty * item.price,
+            })) || [],
+          }}
+        />
+      )}
+    </>
   );
 }
