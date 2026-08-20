@@ -185,7 +185,7 @@ export default function OrderPanel({
                       </div>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      ${Number(item.price).toFixed(2)}
+                      ₹{Number(item.price).toFixed(2)}
                     </td>
                     <td>
                       <div className="pos-qty-controls">
@@ -204,9 +204,9 @@ export default function OrderPanel({
                         </button>
                       </div>
                     </td>
-                    <td style={{ textAlign: "right" }}>$0.00</td>
+                    <td style={{ textAlign: "right" }}>₹0.00</td>
                     <td style={{ textAlign: "right", fontWeight: 600 }}>
-                      ${itemTotal.toFixed(2)}
+                      ₹{itemTotal.toFixed(2)}
                     </td>
                     <td style={{ textAlign: "center" }}>
                       <button
@@ -244,13 +244,13 @@ export default function OrderPanel({
           <div className="pos-summary-list">
             <div className="pos-summary-row">
               <span>Subtotal</span>
-              <span className="pos-summary-val">${subtotal.toFixed(2)}</span>
+              <span className="pos-summary-val">₹{subtotal.toFixed(2)}</span>
             </div>
 
             <div className="pos-summary-row">
               <span>Discount</span>
               <div className="pos-discount-input-box">
-                <span className="pos-currency-symbol">$</span>
+                <span className="pos-currency-symbol">₹</span>
                 <input
                   type="number"
                   className="pos-summary-input"
@@ -262,24 +262,24 @@ export default function OrderPanel({
 
             <div className="pos-summary-row">
               <span>Tax (VAT {effectiveTaxRate}%)</span>
-              <span className="pos-summary-val">${taxAmount.toFixed(2)}</span>
+              <span className="pos-summary-val">₹{taxAmount.toFixed(2)}</span>
             </div>
 
             <div className="pos-summary-row">
               <span>Shipping</span>
-              <span className="pos-summary-val">${Number(shipping).toFixed(2)}</span>
+              <span className="pos-summary-val">₹{Number(shipping).toFixed(2)}</span>
             </div>
 
             <div className="pos-summary-row">
               <span>Other Charges</span>
-              <span className="pos-summary-val">${Number(otherCharges).toFixed(2)}</span>
+              <span className="pos-summary-val">₹{Number(otherCharges).toFixed(2)}</span>
             </div>
 
             <div className="pos-summary-divider" />
 
             <div className="pos-summary-row grand-total">
               <span>Grand Total</span>
-              <span className="pos-grand-total-val">${grandTotal.toFixed(2)}</span>
+              <span className="pos-grand-total-val">₹{grandTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -320,7 +320,7 @@ export default function OrderPanel({
           <div className="pos-change-row">
             <span className="pos-label-text">Change</span>
             <div className="pos-change-pill">
-              ${changeAmount.toFixed(2)}
+              ₹{changeAmount.toFixed(2)}
             </div>
           </div>
         </div>

@@ -54,7 +54,7 @@ export default function ProductGrid({ products, addToCart, onAddToCart }) {
               SKU: {product.sku || product.code || "N/A"}
             </div>
             <div className="pos-product-price">
-              ${Number(product.price).toFixed(2)}
+              ₹{Number(product.price).toFixed(2)}
             </div>
           </div>
 
