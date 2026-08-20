@@ -31,7 +31,7 @@ export async function getLandingPage() {
     const response = await axios.get(`${API_URL}/api/landing`);
     return response.data?.data || defaultLandingData;
   } catch (error) {
-    console.error("Landing API Error:", error);
+    console.warn("Landing API unavailable, using default data:", error?.message || error);
     return defaultLandingData;
   }
 }

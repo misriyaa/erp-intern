@@ -10,7 +10,7 @@ export async function getSettings() {
     const response = await axios.get(`${API_URL}/api/settings`);
     return response.data.data;
   } catch (error) {
-    console.warn("Settings API unavailable, using defaults:", error.message);
+    console.warn("Settings API unavailable, using defaults:", error?.message || error);
     return null;
   }
 }

@@ -80,6 +80,18 @@ export default function AddRetailProductPage() {
 
   const fileInputRef = useRef(null);
 
+  const generateSKUAndCode = () => {
+    const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const timestamp = Date.now().toString().slice(-4);
+    const code = `PRD-${randomStr}${timestamp}`;
+    const sku = `SKU-${randomStr}-${timestamp}`;
+    setProduct((prev) => ({
+      ...prev,
+      code,
+      sku,
+    }));
+  };
+
   useEffect(() => {
     fetchFormData();
   }, []);
