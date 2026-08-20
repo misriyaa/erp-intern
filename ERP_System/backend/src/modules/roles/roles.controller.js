@@ -8,7 +8,8 @@ import {
 
 const getRoles = async (req, res) => {
   try {
-    const result = await fetchAllRoles();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const result = await fetchAllRoles(companyId);
     return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({
@@ -33,7 +34,11 @@ const getRole = async (req, res) => {
 
 const createRole = async (req, res) => {
   try {
-    const result = await addRole(req.body);
+    const companyId = req.user?.companyId;
+    const result = await addRole({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
     return res.status(201).json(result);
   } catch (error) {
     return res.status(400).json({

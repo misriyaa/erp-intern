@@ -29,8 +29,8 @@ export const createWarehouse = async (data) => {
   return mapWarehouseResponse(warehouse);
 };
 
-export const getAllWarehouses = async () => {
-  const warehouses = await warehouseRepository.getAllWarehouses();
+export const getAllWarehouses = async (companyId) => {
+  const warehouses = await warehouseRepository.getAllWarehouses(companyId);
   return warehouses.map(mapWarehouseResponse);
 };
 

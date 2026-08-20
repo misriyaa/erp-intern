@@ -59,6 +59,8 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
             industryName: user.company?.industry?.name || "Retail",
             enabledModules: companyModules,
           };
+          req.companyId = req.user.companyId;
+          req.tenantId = req.user.companyId;
         }
       }
     }
@@ -66,5 +68,16 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
     // Non-blocking catch to ensure requests aren't broken if token is expired or malformed
   }
 
+  next();
+};
+
+export const requireTenant = (req, res, next) => {
+  const companyId = req.companyId || req.user?.companyId;
+  if (!companyId) {
+    return res.status(403).json({
+      success: false,
+      message: "Tenant context required. Access denied.",
+    });
+  }
   next();
 };

@@ -8,7 +8,8 @@ import {
 
 const getDesignations = async (req, res) => {
   try {
-    const result = await fetchAllDesignations();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const result = await fetchAllDesignations(companyId);
     return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({
@@ -33,7 +34,11 @@ const getDesignation = async (req, res) => {
 
 const createDesignation = async (req, res) => {
   try {
-    const result = await addDesignation(req.body);
+    const companyId = req.user?.companyId;
+    const result = await addDesignation({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
     return res.status(201).json(result);
   } catch (error) {
     return res.status(400).json({

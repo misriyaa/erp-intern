@@ -34,8 +34,10 @@ import {
   updateRole,
   deleteRole,
 } from "@/services/roleService";
+import { useCompany } from "@/context/CompanyContext";
 
 export default function DesignationsPage() {
+  const { isTextile } = useCompany();
   const [activeTab, setActiveTab] = useState("designations"); // "designations" | "roles"
 
   // Data states
@@ -105,6 +107,10 @@ export default function DesignationsPage() {
   // Filtered Designations
   const filteredDesignations = useMemo(() => {
     let result = designations.filter((item) => {
+      const itemIsTextile = item.isTextile === true || item.category === "TEXTILE";
+      if (isTextile && !itemIsTextile) return false;
+      if (!isTextile && itemIsTextile) return false;
+
       const value = search.toLowerCase();
       const nameMatch = item.designation?.toLowerCase().includes(value);
       const codeMatch = item.code?.toLowerCase().includes(value);
@@ -127,11 +133,20 @@ export default function DesignationsPage() {
     });
 
     return result;
-  }, [designations, search, filterStatus, sortAsc]);
+  }, [designations, search, filterStatus, sortAsc, isTextile]);
 
   // Filtered Roles
   const filteredRoles = useMemo(() => {
     let result = roles.filter((r) => {
+      const nameUpper = (r.name || "").toUpperCase();
+      const isSystemRole = nameUpper === "ADMIN" || nameUpper === "SUPER_ADMIN";
+      const itemIsTextile = r.isTextile === true || r.category === "TEXTILE";
+
+      if (!isSystemRole) {
+        if (isTextile && !itemIsTextile) return false;
+        if (!isTextile && itemIsTextile) return false;
+      }
+
       const value = search.toLowerCase();
       return r.name?.toLowerCase().includes(value);
     });
@@ -143,7 +158,7 @@ export default function DesignationsPage() {
     });
 
     return result;
-  }, [roles, search, sortAsc]);
+  }, [roles, search, sortAsc, isTextile]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -163,9 +178,15 @@ export default function DesignationsPage() {
       return;
     }
 
+    const payload = {
+      ...designationForm,
+      isTextile: isTextile,
+      category: isTextile ? "TEXTILE" : "RETAIL",
+    };
+
     try {
       if (editingItem) {
-        const res = await updateDesignation(editingItem.id, designationForm);
+        const res = await updateDesignation(editingItem.id, payload);
         if (res.success) {
           toast.success("Designation updated successfully");
           setDesignations((prev) =>
@@ -173,7 +194,7 @@ export default function DesignationsPage() {
           );
         }
       } else {
-        const res = await createDesignation(designationForm);
+        const res = await createDesignation(payload);
         if (res.success) {
           toast.success("Designation created successfully");
           setDesignations((prev) => [res.data, ...prev]);
@@ -197,15 +218,21 @@ export default function DesignationsPage() {
       return;
     }
 
+    const payload = {
+      ...roleForm,
+      isTextile: isTextile,
+      category: isTextile ? "TEXTILE" : "RETAIL",
+    };
+
     try {
       if (editingItem) {
-        const res = await updateRole(editingItem.id, roleForm);
+        const res = await updateRole(editingItem.id, payload);
         if (res.success) {
           toast.success("Role updated successfully");
           setRoles((prev) => prev.map((r) => (r.id === editingItem.id ? res.data : r)));
         }
       } else {
-        const res = await createRole(roleForm);
+        const res = await createRole(payload);
         if (res.success) {
           toast.success("Role created successfully");
           setRoles((prev) => [res.data, ...prev]);

@@ -27,7 +27,11 @@ const addBranch = async (req, res) => {
       });
     }
 
-    const branch = await addBranchService(value);
+    const companyId = req.user?.companyId;
+    const branch = await addBranchService({
+      ...value,
+      companyId: companyId || value.companyId,
+    });
 
     return res.status(201).json({
       success: true,
@@ -45,7 +49,8 @@ const addBranch = async (req, res) => {
 // Get all branches
 const getBranches = async (req, res) => {
   try {
-    const branches = await getAllBranchesService();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const branches = await getAllBranchesService(companyId);
 
     return res.status(200).json({
       success: true,

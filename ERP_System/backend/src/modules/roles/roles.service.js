@@ -8,8 +8,8 @@ import {
   unassignUsersFromRole,
 } from "./roles.repository.js";
 
-const fetchAllRoles = async () => {
-  const roles = await getAllRoles();
+const fetchAllRoles = async (companyId) => {
+  const roles = await getAllRoles(companyId);
   return {
     success: true,
     data: roles,
@@ -39,7 +39,12 @@ const addRole = async (roleData) => {
     throw new Error("Role name already exists");
   }
 
-  const role = await createRole({ name });
+  const role = await createRole({
+    name,
+    isTextile: roleData.isTextile === true || roleData.category === "TEXTILE",
+    category: roleData.category || (roleData.isTextile ? "TEXTILE" : "RETAIL"),
+    companyId: roleData.companyId || null,
+  });
 
   return {
     success: true,

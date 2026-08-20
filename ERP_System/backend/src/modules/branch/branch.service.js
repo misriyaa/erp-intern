@@ -19,8 +19,8 @@ const addBranchService = async (data) => {
 };
 
 // Get all branches
-const getAllBranchesService = async () => {
-  return await getAllBranches();
+const getAllBranchesService = async (companyId) => {
+  return await getAllBranches(companyId);
 };
 
 // Get one branch

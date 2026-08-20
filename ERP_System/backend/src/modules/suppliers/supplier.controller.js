@@ -2,7 +2,11 @@ import * as supplierService from "./supplier.service.js";
 
 export const createSupplier = async (req, res) => {
   try {
-    const supplier = await supplierService.createSupplier(req.body);
+    const companyId = req.user?.companyId;
+    const supplier = await supplierService.createSupplier({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
 
     return res.status(201).json({
       success: true,
@@ -19,7 +23,8 @@ export const createSupplier = async (req, res) => {
 
 export const getAllSuppliers = async (req, res) => {
   try {
-    const suppliers = await supplierService.getAllSuppliers();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const suppliers = await supplierService.getAllSuppliers(companyId);
 
     return res.status(200).json({
       success: true,

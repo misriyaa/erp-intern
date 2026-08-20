@@ -2,7 +2,11 @@ import * as unitService from "./unit.service.js";
 
 export const createUnit = async (req, res) => {
   try {
-    const unit = await unitService.createUnit(req.body);
+    const companyId = req.user?.companyId;
+    const unit = await unitService.createUnit({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
 
     res.status(201).json({
       success: true,
@@ -19,7 +23,8 @@ export const createUnit = async (req, res) => {
 
 export const getAllUnits = async (req, res) => {
   try {
-    const units = await unitService.getAllUnits();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const units = await unitService.getAllUnits(companyId);
 
     res.status(200).json({
       success: true,

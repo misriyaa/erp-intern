@@ -14,8 +14,8 @@ export const createCategory = async (data) => {
 };
 
 
-export const getAllCategories = async () => {
-  return await categoryRepository.getAllCategories();
+export const getAllCategories = async (companyId) => {
+  return await categoryRepository.getAllCategories(companyId);
 };
 
 export const getCategoryById = async (id) => {

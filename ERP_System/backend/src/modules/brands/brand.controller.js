@@ -2,7 +2,11 @@ import * as brandService from "./brand.service.js";
 
 export const createBrand = async (req, res) => {
   try {
-    const brand = await brandService.createBrand(req.body);
+    const companyId = req.user?.companyId;
+    const brand = await brandService.createBrand({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
 
     return res.status(201).json({
       success: true,
@@ -19,7 +23,8 @@ export const createBrand = async (req, res) => {
 
 export const getAllBrands = async (req, res) => {
   try {
-    const brands = await brandService.getAllBrands();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const brands = await brandService.getAllBrands(companyId);
 
     return res.status(200).json({
       success: true,

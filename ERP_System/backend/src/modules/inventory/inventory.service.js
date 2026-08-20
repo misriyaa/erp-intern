@@ -32,8 +32,8 @@ export const createInventory = async (data) => {
   return await inventoryRepository.createInventory(data);
 };
 
-export const getAllInventories = async () => {
-  return await inventoryRepository.getAllInventories();
+export const getAllInventories = async (companyId) => {
+  return await inventoryRepository.getAllInventories(companyId);
 };
 
 export const getInventoryById = async (id) => {

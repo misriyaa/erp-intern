@@ -6,8 +6,10 @@ export const createWarehouse = async (data) => {
   });
 };
 
-export const getAllWarehouses = async () => {
+export const getAllWarehouses = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.warehouse.findMany({
+    where,
     orderBy: {
       createdAt: "desc",
     },
@@ -26,7 +28,7 @@ export const getWarehouseById = async (id) => {
 };
 
 export const getWarehouseByCode = async (code) => {
-  return await prisma.warehouse.findUnique({
+  return await prisma.warehouse.findFirst({
     where: {
       code,
     },

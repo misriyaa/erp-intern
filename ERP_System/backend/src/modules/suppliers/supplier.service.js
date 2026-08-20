@@ -14,8 +14,8 @@ export const createSupplier = async (data) => {
   return await supplierRepository.createSupplier(data);
 };
 
-export const getAllSuppliers = async () => {
-  return await supplierRepository.getAllSuppliers();
+export const getAllSuppliers = async (companyId) => {
+  return await supplierRepository.getAllSuppliers(companyId);
 };
 
 export const getSupplierById = async (id) => {

@@ -23,8 +23,8 @@ class CustomerService {
     return repository.create(data);
   }
 
-  async getCustomers() {
-    return repository.findAll();
+  async getCustomers(companyId) {
+    return repository.findAll(companyId);
   }
 
   async getCustomer(id) {

@@ -2,7 +2,11 @@ import * as categoryService from "./category.service.js";
 
 export const createCategory = async (req, res) => {
   try {
-    const category = await categoryService.createCategory(req.body);
+    const companyId = req.user?.companyId;
+    const category = await categoryService.createCategory({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
 
     return res.status(201).json({
       success: true,
@@ -19,7 +23,8 @@ export const createCategory = async (req, res) => {
 
 export const getAllCategories = async (req, res) => {
   try {
-    const categories = await categoryService.getAllCategories();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const categories = await categoryService.getAllCategories(companyId);
 
     return res.status(200).json({
       success: true,

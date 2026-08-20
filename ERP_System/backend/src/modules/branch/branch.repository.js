@@ -8,8 +8,10 @@ const createBranch = async (data) => {
 };
 
 // Get all branches
-const getAllBranches = async () => {
+const getAllBranches = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.branch.findMany({
+    where,
     orderBy: {
       createdAt: "desc",
     },
@@ -27,7 +29,7 @@ const getBranchById = async (id) => {
 
 // Find branch by code
 const findBranchByCode = async (code) => {
-  return await prisma.branch.findUnique({
+  return await prisma.branch.findFirst({
     where: {
       code,
     },
