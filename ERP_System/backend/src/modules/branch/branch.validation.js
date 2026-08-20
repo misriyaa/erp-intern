@@ -59,6 +59,8 @@ const branchSchema = Joi.object({
     }),
 
   isActive: Joi.boolean().default(true),
+  type: Joi.string().trim().allow("", null),
+  isTextile: Joi.boolean().default(false),
 });
 
 const updateBranchSchema = Joi.object({
@@ -114,6 +116,8 @@ const updateBranchSchema = Joi.object({
     }),
 
   isActive: Joi.boolean(),
+  type: Joi.string().trim().allow("", null),
+  isTextile: Joi.boolean(),
 }).min(1);
 
 export {

@@ -9,13 +9,14 @@ import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import { getRoles } from "@/services/roleService";
 import { getBranches } from "@/services/branchService";
+import apiClient from "@/services/apiClient";
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
 
 export default function EmployeePage() {
   const router = useRouter();
-  const { isGym, isTextile } = useCompany();
+  const { company, industryCode, isGym, isTextile } = useCompany();
   const { settings, logoUrl } = useSettings();
   const { showSuccess, showError, showConfirm } = useAlert();
 
@@ -134,13 +135,41 @@ export default function EmployeePage() {
     try {
       setLoading(true);
 
-      const response = await axios.get(
-        `http://localhost:5000/api/employees?companyId=${company?.id || ""}&type=${industryCode}`
+      const response = await apiClient.get(
+        `/employees?companyId=${company?.id || ""}&type=${industryCode || ""}`
       );
 
-      const list = response.data?.data || [];
-      if (list.length > 0) {
-        setEmployees(list);
+      const rawList = response.data?.data || [];
+
+      const filteredList = rawList.filter((emp) => {
+        const isTex =
+          emp.type === "TEXTILE" ||
+          emp.employeeId?.startsWith("EMP-TEX") ||
+          emp.role?.toLowerCase().includes("loom") ||
+          emp.role?.toLowerCase().includes("weaving") ||
+          emp.role?.toLowerCase().includes("spinning") ||
+          emp.role?.toLowerCase().includes("dyeing") ||
+          emp.role?.toLowerCase().includes("textile") ||
+          emp.role?.toLowerCase().includes("mill") ||
+          emp.branch?.name?.toLowerCase().includes("mill") ||
+          emp.branch?.name?.toLowerCase().includes("weaving") ||
+          emp.branch?.name?.toLowerCase().includes("spinning") ||
+          emp.branch?.name?.toLowerCase().includes("dyeing");
+
+        const isGymEmp =
+          emp.type === "GYM" ||
+          emp.employeeId?.startsWith("EMP-GYM") ||
+          emp.role?.toLowerCase().includes("trainer") ||
+          emp.role?.toLowerCase().includes("nutrition") ||
+          emp.role?.toLowerCase().includes("fitness");
+
+        if (isTextile) return isTex;
+        if (isGym) return isGymEmp;
+        return !isTex && !isGymEmp;
+      });
+
+      if (filteredList.length > 0) {
+        setEmployees(filteredList);
       } else {
         // Industry-isolated employee roster fallback
         if (isTextile) {

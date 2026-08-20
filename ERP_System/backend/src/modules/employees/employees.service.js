@@ -145,6 +145,32 @@ const addEmployee = async (
   const passwordHash = await bcrypt.hash(password, 12);
 
 
+  let assignedBranchId = null;
+  if (branchId) {
+    const dbBranch = await prisma.branch.findFirst({
+      where: {
+        OR: [
+          { id: branchId },
+          { code: branchId },
+          { name: { equals: branchId, mode: "insensitive" } }
+        ]
+      }
+    });
+
+    if (dbBranch) {
+      assignedBranchId = dbBranch.id;
+    } else {
+      const newBranch = await prisma.branch.create({
+        data: {
+          name: branchId.startsWith("b-") ? "Main Store Branch" : branchId,
+          code: `BR-${Date.now().toString().slice(-4)}`,
+          isActive: true,
+        }
+      });
+      assignedBranchId = newBranch.id;
+    }
+  }
+
   // Create employee
   const employee = await createEmployee({
     fullName: cleanFullName,
@@ -164,7 +190,10 @@ const addEmployee = async (
     roleId: employeeRole.id,
 
     // Required branch assignment
-    branchId,
+    branchId: assignedBranchId,
+
+    companyId: req?.body?.companyId || req?.user?.companyId || null,
+    type: req?.body?.type || req?.user?.type || "RETAIL",
   });
 
 

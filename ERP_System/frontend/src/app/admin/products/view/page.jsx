@@ -70,11 +70,14 @@ export default function ProductsPage() {
       const res = await apiClient.get("/products");
       const fetched = res.data?.data || (Array.isArray(res.data) ? res.data : []);
 
-      const retailOnly = fetched.filter(
-        (p) =>
-          !p.sku?.startsWith("TEX-") &&
-          !p.description?.includes("[TEXTILE]")
-      );
+      const retailOnly = fetched.filter((p) => {
+        const isTex =
+          p.sku?.startsWith("TEX-") ||
+          p.sku?.startsWith("FAB-") ||
+          p.description?.includes("[TEXTILE]") ||
+          (p.isTextile === true && (p.fabricComposition || p.gsm || p.rollWidth));
+        return !isTex;
+      });
 
       setProductsData(retailOnly);
     } catch (error) {
