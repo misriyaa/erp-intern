@@ -17,8 +17,8 @@ export const createUnit = async (data) => {
   return await unitRepository.createUnit(data);
 };
 
-export const getAllUnits = async () => {
-  return await unitRepository.getAllUnits();
+export const getAllUnits = async (companyId) => {
+  return await unitRepository.getAllUnits(companyId);
 };
 
 export const getUnitById = async (id) => {

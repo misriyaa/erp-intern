@@ -6,8 +6,10 @@ export const createUnit = async (data) => {
   });
 };
 
-export const getAllUnits = async () => {
+export const getAllUnits = async (companyId) => {
+  const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
   return await prisma.unit.findMany({
+    where,
     orderBy: {
       createdAt: "desc",
     },
@@ -23,7 +25,7 @@ export const getUnitById = async (id) => {
 };
 
 export const getUnitByCode = async (code) => {
-  return await prisma.unit.findUnique({
+  return await prisma.unit.findFirst({
     where: {
       code: code,
     },
@@ -31,7 +33,7 @@ export const getUnitByCode = async (code) => {
 };
 
 export const getUnitByName = async (name) => {
-  return await prisma.unit.findUnique({
+  return await prisma.unit.findFirst({
     where: {
       name: name,
     },

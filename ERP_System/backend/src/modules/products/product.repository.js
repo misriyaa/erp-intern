@@ -48,8 +48,10 @@ export const createProduct = async (data) => {
   });
 };
 
-export const getAllProducts = async () => {
+export const getAllProducts = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.product.findMany({
+    where,
     include: commonInclude,
     orderBy: {
       createdAt: "desc",
@@ -67,7 +69,7 @@ export const getProductById = async (id) => {
 };
 
 export const getProductBySku = async (sku) => {
-  return await prisma.product.findUnique({
+  return await prisma.product.findFirst({
     where: {
       sku,
     },

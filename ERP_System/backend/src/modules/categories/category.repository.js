@@ -6,8 +6,10 @@ export const createCategory = async (data) => {
   });
 };
 
-export const getAllCategories = async () => {
+export const getAllCategories = async (companyId) => {
+  const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
   return await prisma.category.findMany({
+    where,
     orderBy: {
       createdAt: "desc",
     },
@@ -23,7 +25,7 @@ export const getCategoryById = async (id) => {
 };
 
 export const getCategoryByCode = async (code) => {
-  return await prisma.category.findUnique({
+  return await prisma.category.findFirst({
     where: {
       code,
     },

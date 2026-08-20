@@ -3,7 +3,7 @@ import prisma from "../../config/prisma.js";
 /**
  * Fetch sales data within a date range
  */
-export const getSalesData = async (startDate, endDate, customerId) => {
+export const getSalesData = async (startDate, endDate, customerId, companyId) => {
   const where = {
     orderDate: {
       gte: new Date(startDate),
@@ -12,6 +12,7 @@ export const getSalesData = async (startDate, endDate, customerId) => {
     status: {
       not: "CANCELLED",
     },
+    ...(companyId ? { companyId } : {}),
   };
 
   if (customerId) {
@@ -48,7 +49,7 @@ export const getCustomersByIds = async (customerIds) => {
 /**
  * Fetch purchase data within a date range
  */
-export const getPurchaseData = async (startDate, endDate, supplierId) => {
+export const getPurchaseData = async (startDate, endDate, supplierId, companyId) => {
   const where = {
     purchaseDate: {
       gte: new Date(startDate),
@@ -57,6 +58,7 @@ export const getPurchaseData = async (startDate, endDate, supplierId) => {
     status: {
       not: "CANCELLED",
     },
+    ...(companyId ? { companyId } : {}),
   };
 
   if (supplierId) {
@@ -88,11 +90,11 @@ export const getPurchaseData = async (startDate, endDate, supplierId) => {
 /**
  * Fetch inventory data, optionally filtered by warehouse
  */
-export const getInventoryData = async (warehouseId) => {
-  const where = {};
-  if (warehouseId) {
-    where.warehouseId = warehouseId;
-  }
+export const getInventoryData = async (warehouseId, companyId) => {
+  const where = {
+    ...(warehouseId ? { warehouseId } : {}),
+    ...(companyId ? { product: { companyId } } : {}),
+  };
 
   return await prisma.inventory.findMany({
     where,
@@ -118,8 +120,10 @@ export const getInventoryData = async (warehouseId) => {
 /**
  * Fetch all customers to list in filters
  */
-export const getAllCustomers = async () => {
+export const getAllCustomers = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.customer.findMany({
+    where,
     select: {
       id: true,
       name: true,
@@ -133,8 +137,10 @@ export const getAllCustomers = async () => {
 /**
  * Fetch all suppliers to list in filters
  */
-export const getAllSuppliers = async () => {
+export const getAllSuppliers = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.supplier.findMany({
+    where,
     select: {
       id: true,
       companyName: true,
@@ -148,8 +154,10 @@ export const getAllSuppliers = async () => {
 /**
  * Fetch all warehouses to list in filters
  */
-export const getAllWarehouses = async () => {
+export const getAllWarehouses = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.warehouse.findMany({
+    where,
     select: {
       id: true,
       name: true,

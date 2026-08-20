@@ -8,13 +8,19 @@ datasource db {
 }
 
 model Role {
-  id   String @id @default(uuid())
-  name String @unique
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isTextile Boolean  @default(false)
+  category  String?  @default("RETAIL")
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   users User[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 // BUSINESS TYPE
@@ -37,12 +43,14 @@ model BusinessType {
 // DEPARTMENT
 
 model Department {
-  id        String  @id @default(uuid())
-  name      String  @unique @db.VarChar(150)
-  code      String  @unique @db.VarChar(50)
-  head      String? @db.VarChar(150)
-  employees Int     @default(0)
-  status    Status  @default(ACTIVE)
+  id        String   @id @default(uuid())
+  name      String   @unique @db.VarChar(150)
+  code      String   @unique @db.VarChar(50)
+  head      String?  @db.VarChar(150)
+  employees Int      @default(0)
+  status    Status   @default(ACTIVE)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   designations Designation[]
 
@@ -51,17 +59,22 @@ model Department {
 
   @@index([name])
   @@index([code])
+  @@index([companyId])
   @@map("departments")
 }
 
 // DESIGNATION
 
 model Designation {
-  id          String @id @default(uuid())
-  code        String @unique @db.VarChar(50)
-  designation String @db.VarChar(150)
-  department  String @db.VarChar(150)
-  status      Status @default(ACTIVE)
+  id          String   @id @default(uuid())
+  code        String   @unique @db.VarChar(50)
+  designation String   @db.VarChar(150)
+  department  String   @db.VarChar(150)
+  status      Status   @default(ACTIVE)
+  isTextile   Boolean  @default(false)
+  category    String?  @default("RETAIL")
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -70,6 +83,7 @@ model Designation {
 
   @@index([designation])
   @@index([department])
+  @@index([companyId])
   @@map("designations")
 }
 
@@ -92,6 +106,28 @@ model Company {
   industry   Industry        @relation(fields: [industryId], references: [id])
   users      User[]
   modules    CompanyModule[]
+
+  branches           Branch[]
+  products           Product[]
+  categories         Category[]
+  brands             Brand[]
+  units              Unit[]
+  suppliers          Supplier[]
+  warehouses         Warehouse[]
+  customers          Customer[]
+  salesOrders        SalesOrder[]
+  invoices           Invoice[]
+  payments           Payment[]
+  purchases          Purchase[]
+  stockMovements     StockMovement[]
+  stockTransfers     StockTransfer[]
+  returns            Return[]
+  discounts          Discount[]
+  auditLogs          AuditLog[]
+  systemSettings     SystemSettings[]
+  roles              Role[]
+  designations       Designation[]
+  departments        Department[]
 
   gymMembers         GymMember[]
   gymPlans           GymMembershipPlan[]
@@ -387,6 +423,9 @@ model Customer {
   id       String  @id @default(uuid()) @db.Uuid
   branchId String? @map("branch_id") @db.Uuid
 
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   name    String
   phone   String  @unique
   email   String? @unique
@@ -402,6 +441,7 @@ model Customer {
 
   payments Payment[]
 
+  @@index([companyId])
   @@map("customers")
 }
 
@@ -449,9 +489,12 @@ enum MovementType {
 model Category {
   id String @id @default(uuid())
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   name String @db.VarChar(100)
 
-  code String @unique @db.VarChar(20)
+  code String @db.VarChar(20)
 
   description String?
 
@@ -467,6 +510,7 @@ model Category {
 
   @@index([name])
   @@index([code])
+  @@index([companyId])
   @@map("categories")
 }
 
@@ -480,7 +524,10 @@ enum BrandStatus {
 model Brand {
   id String @id @default(uuid())
 
-  name String @unique @db.VarChar(100)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name String @db.VarChar(100)
 
   description String? @db.Text
 
@@ -492,6 +539,7 @@ model Brand {
 
   updatedAt DateTime @updatedAt
 
+  @@index([companyId])
   @@map("brands")
 }
 
@@ -500,9 +548,12 @@ model Brand {
 model Unit {
   id String @id @default(uuid())
 
-  name String @unique @db.VarChar(50)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  code String @unique @db.VarChar(20)
+  name String @db.VarChar(50)
+
+  code String @db.VarChar(20)
 
   status Status @default(ACTIVE)
 
@@ -513,15 +564,19 @@ model Unit {
   updatedAt DateTime @updatedAt
 
   @@index([name])
+  @@index([companyId])
   @@map("units")
 }
 
 model Product {
   id String @id @default(uuid())
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   name String @db.VarChar(150)
 
-  sku String @unique @db.VarChar(50)
+  sku String @db.VarChar(50)
 
   barcode String? @db.VarChar(100)
 
@@ -626,6 +681,7 @@ model Product {
 
   updatedAt DateTime @updatedAt
 
+  @@index([companyId])
   @@index([categoryId])
   @@index([brandId])
   @@index([unitId])
@@ -640,7 +696,7 @@ model Barcode {
 
   productId String
 
-  barcode String @unique @db.VarChar(100)
+  barcode String @db.VarChar(100)
 
   type String @default("CODE128")
 
@@ -708,11 +764,14 @@ model ProductVariant {
 model Supplier {
   id String @id @default(uuid())
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   companyName String @db.VarChar(150)
 
   contactPerson String? @db.VarChar(100)
 
-  email String? @unique @db.VarChar(150)
+  email String? @db.VarChar(150)
 
   phone String @db.VarChar(20)
 
@@ -740,6 +799,7 @@ model Supplier {
 
   updatedAt DateTime @updatedAt
 
+  @@index([companyId])
   @@index([companyName])
   @@map("suppliers")
 }
@@ -749,9 +809,12 @@ model Supplier {
 model Warehouse {
   id String @id @default(uuid())
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   name String @db.VarChar(150)
 
-  code String @unique @db.VarChar(50)
+  code String @db.VarChar(50)
 
   address String?
 
@@ -785,6 +848,7 @@ model Warehouse {
 
   @@index([name])
   @@index([code])
+  @@index([companyId])
   @@map("warehouses")
 }
 
@@ -824,7 +888,10 @@ model Inventory {
 model Purchase {
   id String @id @default(uuid())
 
-  purchaseNo String @unique @db.VarChar(50)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  purchaseNo String @db.VarChar(50)
 
   supplierId String
 
@@ -848,6 +915,7 @@ model Purchase {
 
   updatedAt DateTime @updatedAt
 
+  @@index([companyId])
   @@index([supplierId])
   @@index([warehouseId])
   @@map("purchases")
@@ -880,6 +948,9 @@ model PurchaseItem {
 model StockMovement {
   id String @id @default(uuid())
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   productId String
 
   warehouseId String
@@ -900,6 +971,7 @@ model StockMovement {
 
   createdAt DateTime @default(now())
 
+  @@index([companyId])
   @@index([productId])
   @@index([warehouseId])
   @@map("stock_movements")
@@ -910,7 +982,10 @@ model StockMovement {
 model StockTransfer {
   id String @id @default(uuid())
 
-  transferNo String @unique @db.VarChar(50)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  transferNo String @db.VarChar(50)
 
   fromWarehouseId String
   toWarehouseId   String
@@ -935,6 +1010,7 @@ model StockTransfer {
 
   updatedAt DateTime @updatedAt
 
+  @@index([companyId])
   @@index([fromWarehouseId])
   @@index([toWarehouseId])
   @@map("stock_transfers")
@@ -961,10 +1037,13 @@ model StockTransferItem {
 model SalesOrder {
   id String @id @default(uuid()) @db.Uuid
 
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   branchId   String  @map("branch_id") @db.Uuid
   customerId String? @map("customer_id") @db.Uuid
 
-  orderNumber String @unique @map("order_number")
+  orderNumber String @map("order_number")
 
   status SalesOrderStatus @default(DRAFT)
 
@@ -982,6 +1061,7 @@ model SalesOrder {
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([companyId])
   @@map("sales_orders")
 }
 
@@ -1009,11 +1089,14 @@ enum PaymentStatus {
 model Invoice {
   id String @id @default(uuid()) @db.Uuid
 
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   branchId     String  @map("branch_id") @db.Uuid
   salesOrderId String? @map("sales_order_id") @db.Uuid
   customerId   String  @map("customer_id") @db.Uuid
 
-  invoiceNumber String @unique @map("invoice_number")
+  invoiceNumber String @map("invoice_number")
 
   invoiceDate DateTime  @map("invoice_date")
   dueDate     DateTime? @map("due_date")
@@ -1044,6 +1127,7 @@ model Invoice {
 
   payments Payment[]
 
+  @@index([companyId])
   @@map("invoices")
 }
 
@@ -1088,13 +1172,16 @@ enum PaymentMethod {
 model Payment {
   id String @id @default(uuid()) @db.Uuid
 
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   branchId        String  @map("branch_id") @db.Uuid
   customerId      String? @map("customer_id") @db.Uuid
   supplierId      String? @map("supplier_id") @db.Uuid
   invoiceId       String? @map("invoice_id") @db.Uuid
   purchaseOrderId String? @map("purchase_order_id") @db.Uuid
 
-  paymentNumber String   @unique @map("payment_number")
+  paymentNumber String   @map("payment_number")
   paymentDate   DateTime @map("payment_date")
 
   amount Decimal @db.Decimal(18, 2)
@@ -1114,6 +1201,7 @@ model Payment {
   customer Customer? @relation(fields: [customerId], references: [id])
   invoice  Invoice?  @relation(fields: [invoiceId], references: [id])
 
+  @@index([companyId])
   @@map("payments")
 }
 
@@ -1133,6 +1221,9 @@ enum ReturnType {
 model Return {
   id String @id @default(uuid()) @db.Uuid
 
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   branchId String @map("branch_id") @db.Uuid
 
   type ReturnType
@@ -1141,7 +1232,7 @@ model Return {
 
   referencePurchaseOrderId String? @map("reference_purchase_order_id") @db.Uuid
 
-  returnNumber String @unique @map("return_number")
+  returnNumber String @map("return_number")
 
   returnDate DateTime @map("return_date")
 
@@ -1155,6 +1246,7 @@ model Return {
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([companyId])
   @@map("returns")
 }
 
@@ -1180,11 +1272,14 @@ enum DiscountStatus {
 model Discount {
   id String @id @default(uuid()) @db.Uuid
 
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   branchId String @map("branch_id") @db.Uuid
 
   name String @db.VarChar(100)
 
-  code String @unique @db.VarChar(50)
+  code String @db.VarChar(50)
 
   type DiscountType
 
@@ -1206,6 +1301,7 @@ model Discount {
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([companyId])
   @@map("discounts")
 }
 
@@ -1287,6 +1383,8 @@ model Tax {
 
 model AuditLog {
   id        String   @id @default(uuid())
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   userId    String?  @map("user_id")
   userName  String?  @map("user_name")
   userEmail String?  @map("user_email")
@@ -1298,6 +1396,7 @@ model AuditLog {
   userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([companyId])
   @@index([userId])
   @@index([action])
   @@index([entity])
@@ -1311,6 +1410,9 @@ model AuditLog {
 
 model SystemSettings {
   id String @id @default(uuid())
+
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // Business Info
   companyName    String  @default("ERP Enterprise Ltd") @map("company_name")
@@ -1353,13 +1455,16 @@ model SystemSettings {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([companyId])
   @@map("system_settings")
 }
 
 model Branch {
   id        String   @id @default(uuid())
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name      String
-  code      String   @unique
+  code      String
   address   String?
   city      String?
   state     String?
@@ -1372,6 +1477,8 @@ model Branch {
   updatedAt DateTime @updatedAt
 
   users User[]
+
+  @@index([companyId])
 }
 
 

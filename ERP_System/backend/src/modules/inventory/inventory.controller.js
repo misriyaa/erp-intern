@@ -19,7 +19,8 @@ export const createInventory = async (req, res) => {
 
 export const getAllInventories = async (req, res) => {
   try {
-    const inventories = await inventoryService.getAllInventories();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const inventories = await inventoryService.getAllInventories(companyId);
 
     return res.status(200).json({
       success: true,

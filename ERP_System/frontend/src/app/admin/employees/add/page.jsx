@@ -94,6 +94,9 @@ export default function AddEmployeePage() {
     let dbRoles = [];
     let dbDesignations = [];
 
+    const isTex = Boolean(industryCode?.includes("TEXTILE"));
+    const isGymMode = Boolean(industryCode?.includes("GYM"));
+
     try {
       const [roleRes, desigRes] = await Promise.allSettled([
         getRoles(),
@@ -102,19 +105,26 @@ export default function AddEmployeePage() {
 
       if (roleRes.status === "fulfilled" && roleRes.value) {
         const val = roleRes.value;
-        dbRoles = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
+        const rawRoles = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
+        dbRoles = rawRoles.filter((r) => {
+          const nameUpper = (r.name || "").toUpperCase();
+          if (nameUpper === "ADMIN" || nameUpper === "SUPER_ADMIN") return true;
+          const rIsTex = r.isTextile === true || r.category === "TEXTILE";
+          return isTex ? rIsTex : !rIsTex;
+        });
       }
 
       if (desigRes.status === "fulfilled" && desigRes.value) {
         const val = desigRes.value;
-        dbDesignations = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
+        const rawDesigs = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
+        dbDesignations = rawDesigs.filter((d) => {
+          const dIsTex = d.isTextile === true || d.category === "TEXTILE";
+          return isTex ? dIsTex : !dIsTex;
+        });
       }
     } catch (err) {
       console.error("Failed to fetch roles/designations:", err);
     }
-
-    const isTex = Boolean(industryCode?.includes("TEXTILE"));
-    const isGymMode = Boolean(industryCode?.includes("GYM"));
 
     const defaultRoles = isTex
       ? ["Loom Weaving Specialist", "Quality Inspector", "Spinning Machine Master", "Dyeing Technician", "Textile Mill Supervisor", "Factory Manager"]

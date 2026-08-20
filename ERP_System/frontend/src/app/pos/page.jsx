@@ -370,7 +370,7 @@ export default function POSPage() {
 
         Swal.fire({
           title: "Sale Completed!",
-          text: `Invoice #${salePayload.orderNumber} created successfully! Total: $${netAmount.toFixed(2)}`,
+          text: `Invoice #${salePayload.orderNumber} created successfully! Total: ₹${netAmount.toFixed(2)}`,
           icon: "success",
           confirmButtonColor: "#2563eb",
         });
@@ -609,7 +609,7 @@ export default function POSPage() {
                         <td style={{ padding: "12px", color: "#64748b" }}>{sale.date}</td>
                         <td style={{ padding: "12px", color: "#334155" }}>{sale.customerName}</td>
                         <td style={{ padding: "12px" }}><span style={{ padding: "4px 8px", background: "#e0f2fe", color: "#0369a1", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>{sale.paymentMethod || "Cash"}</span></td>
-                        <td style={{ padding: "12px", fontWeight: "600", color: "#059669" }}>${Number(sale.netAmount || sale.totalAmount || 0).toFixed(2)}</td>
+                        <td style={{ padding: "12px", fontWeight: "600", color: "#059669" }}>₹{Number(sale.netAmount || sale.totalAmount || 0).toFixed(2)}</td>
                         <td style={{ padding: "12px", textAlign: "right" }}>
                           <button
                             type="button"
@@ -653,7 +653,7 @@ export default function POSPage() {
                         <td style={{ padding: "12px", color: "#64748b" }}>{draft.date}</td>
                         <td style={{ padding: "12px", color: "#334155" }}>{draft.customerName}</td>
                         <td style={{ padding: "12px", color: "#475569" }}>{draft.cart?.reduce((acc, i) => acc + i.qty, 0) || 0} Items</td>
-                        <td style={{ padding: "12px", fontWeight: "600", color: "#059669" }}>${Number(draft.netAmount || draft.totalAmount || 0).toFixed(2)}</td>
+                        <td style={{ padding: "12px", fontWeight: "600", color: "#059669" }}>₹{Number(draft.netAmount || draft.totalAmount || 0).toFixed(2)}</td>
                         <td style={{ padding: "12px", textAlign: "right" }}>
                           <button
                             type="button"

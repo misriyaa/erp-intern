@@ -5,6 +5,7 @@ import * as reportsService from "./reports.service.js";
  */
 export const getSalesReport = async (req, res, next) => {
   try {
+    const companyId = req.user?.companyId;
     const { startDate, endDate, groupBy, customerId } = req.query;
 
     // Default dates if not specified: last 30 days
@@ -24,7 +25,8 @@ export const getSalesReport = async (req, res, next) => {
       start,
       end,
       groupBy || "day",
-      customerId || null
+      customerId || null,
+      companyId
     );
 
     res.status(200).json({
@@ -41,6 +43,7 @@ export const getSalesReport = async (req, res, next) => {
  */
 export const getPurchaseReport = async (req, res, next) => {
   try {
+    const companyId = req.user?.companyId;
     const { startDate, endDate, groupBy, supplierId } = req.query;
 
     // Default dates if not specified: last 30 days
@@ -60,7 +63,8 @@ export const getPurchaseReport = async (req, res, next) => {
       start,
       end,
       groupBy || "day",
-      supplierId || null
+      supplierId || null,
+      companyId
     );
 
     res.status(200).json({
@@ -77,8 +81,9 @@ export const getPurchaseReport = async (req, res, next) => {
  */
 export const getInventoryReport = async (req, res, next) => {
   try {
+    const companyId = req.user?.companyId;
     const { warehouseId } = req.query;
-    const report = await reportsService.getInventoryReport(warehouseId || null);
+    const report = await reportsService.getInventoryReport(warehouseId || null, companyId);
 
     res.status(200).json({
       success: true,
@@ -94,7 +99,8 @@ export const getInventoryReport = async (req, res, next) => {
  */
 export const getReportFilters = async (req, res, next) => {
   try {
-    const filters = await reportsService.getReportFilters();
+    const companyId = req.user?.companyId;
+    const filters = await reportsService.getReportFilters(companyId);
 
     res.status(200).json({
       success: true,

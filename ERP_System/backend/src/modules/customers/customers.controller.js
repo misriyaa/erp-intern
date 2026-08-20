@@ -2,7 +2,11 @@ import customerService from "./customers.service.js";
 
 export const createCustomer = async (req, res) => {
   try {
-    const customer = await customerService.createCustomer(req.body);
+    const companyId = req.user?.companyId;
+    const customer = await customerService.createCustomer({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
     res.status(201).json({
       success: true,
       message: "Customer created successfully",
@@ -18,7 +22,8 @@ export const createCustomer = async (req, res) => {
 
 export const getCustomers = async (req, res) => {
   try {
-    const customers = await customerService.getCustomers();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const customers = await customerService.getCustomers(companyId);
     res.status(200).json({
       success: true,
       data: customers,

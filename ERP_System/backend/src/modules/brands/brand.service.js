@@ -11,8 +11,8 @@ export const createBrand = async (data) => {
   return await brandRepository.createBrand(data);
 };
 
-export const getAllBrands = async () => {
-  return await brandRepository.getAllBrands();
+export const getAllBrands = async (companyId) => {
+  return await brandRepository.getAllBrands(companyId);
 };
 
 export const getBrandById = async (id) => {

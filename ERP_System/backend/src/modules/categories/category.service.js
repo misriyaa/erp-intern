@@ -2,20 +2,31 @@ import * as categoryRepository from "./category.repository.js";
 
 
 export const createCategory = async (data) => {
-  const existingCategory = await categoryRepository.getCategoryByCode(
-    data.code
-  );
+  let categoryCode = (data.code || "").trim();
+  if (!categoryCode && data.name) {
+    categoryCode = data.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+  }
+  if (!categoryCode) {
+    categoryCode = `CAT-${Date.now().toString().slice(-6)}`;
+  }
+  // PostgreSQL categories.code is VarChar(20)
+  categoryCode = categoryCode.slice(0, 20);
 
+  const existingCategory = await categoryRepository.getCategoryByCode(categoryCode);
   if (existingCategory) {
-    throw new Error("Category code already exists.");
+    const suffix = Date.now().toString().slice(-4);
+    categoryCode = `${categoryCode.slice(0, 15)}-${suffix}`;
   }
 
-  return await categoryRepository.createCategory(data);
+  return await categoryRepository.createCategory({
+    ...data,
+    code: categoryCode,
+  });
 };
 
 
-export const getAllCategories = async () => {
-  return await categoryRepository.getAllCategories();
+export const getAllCategories = async (companyId) => {
+  return await categoryRepository.getAllCategories(companyId);
 };
 
 export const getCategoryById = async (id) => {

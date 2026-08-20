@@ -1,7 +1,9 @@
 import prisma from "../../config/prisma.js";
 
-const getAllRoles = async () => {
+const getAllRoles = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.role.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     include: {
       _count: {
@@ -37,6 +39,8 @@ const createRole = async (data) => {
   return await prisma.role.create({
     data: {
       name: data.name.trim(),
+      isTextile: data.isTextile === true || data.category === "TEXTILE",
+      category: data.category || (data.isTextile ? "TEXTILE" : "RETAIL"),
     },
     include: {
       _count: {

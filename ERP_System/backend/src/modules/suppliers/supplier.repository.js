@@ -6,8 +6,10 @@ export const createSupplier = async (data) => {
   });
 };
 
-export const getAllSuppliers = async () => {
+export const getAllSuppliers = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.supplier.findMany({
+    where,
     orderBy: {
       createdAt: "desc",
     },
@@ -30,7 +32,7 @@ export const getSupplierById = async (id) => {
 };
 
 export const getSupplierByEmail = async (email) => {
-  return await prisma.supplier.findUnique({
+  return await prisma.supplier.findFirst({
     where: {
       email,
     },

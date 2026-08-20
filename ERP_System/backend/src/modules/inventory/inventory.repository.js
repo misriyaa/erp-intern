@@ -14,8 +14,10 @@ export const createInventory = async (data) => {
   });
 };
 
-export const getAllInventories = async () => {
+export const getAllInventories = async (companyId) => {
+  const where = companyId ? { product: { companyId } } : {};
   return await prisma.inventory.findMany({
+    where,
     include: {
       product: {
         include: {

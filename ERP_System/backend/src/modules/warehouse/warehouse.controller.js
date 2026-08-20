@@ -2,7 +2,11 @@ import * as warehouseService from "./warehouse.service.js";
 
 export const createWarehouse = async (req, res) => {
   try {
-    const warehouse = await warehouseService.createWarehouse(req.body);
+    const companyId = req.user?.companyId;
+    const warehouse = await warehouseService.createWarehouse({
+      ...req.body,
+      companyId: companyId || req.body.companyId,
+    });
 
     return res.status(201).json({
       success: true,
@@ -19,7 +23,8 @@ export const createWarehouse = async (req, res) => {
 
 export const getAllWarehouses = async (req, res) => {
   try {
-    const warehouses = await warehouseService.getAllWarehouses();
+    const companyId = req.user?.companyId || req.query.companyId;
+    const warehouses = await warehouseService.getAllWarehouses(companyId);
 
     return res.status(200).json({
       success: true,

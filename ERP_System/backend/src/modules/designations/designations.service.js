@@ -7,8 +7,8 @@ import {
   deleteDesignation,
 } from "./designations.repository.js";
 
-const fetchAllDesignations = async () => {
-  const designations = await getAllDesignations();
+const fetchAllDesignations = async (companyId) => {
+  const designations = await getAllDesignations(companyId);
   return {
     success: true,
     data: designations,
@@ -53,6 +53,9 @@ const addDesignation = async (designationData) => {
     designation: designation.trim(),
     department: department.trim(),
     status: status || "ACTIVE",
+    isTextile: designationData.isTextile === true || designationData.category === "TEXTILE",
+    category: designationData.category || (designationData.isTextile ? "TEXTILE" : "RETAIL"),
+    companyId: designationData.companyId || null,
   });
 
   return {

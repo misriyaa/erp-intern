@@ -6,8 +6,10 @@ export const createBrand = async (data) => {
   });
 };
 
-export const getAllBrands = async () => {
+export const getAllBrands = async (companyId) => {
+  const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
   return await prisma.brand.findMany({
+    where,
     include: {
       products: true,
     },
@@ -29,7 +31,7 @@ export const getBrandById = async (id) => {
 };
 
 export const getBrandByName = async (name) => {
-  return await prisma.brand.findUnique({
+  return await prisma.brand.findFirst({
     where: {
       name,
     },

@@ -25,15 +25,15 @@ const getGroupKey = (dateStr, groupBy) => {
   }
   
   // default is "day"
-  return dateStr.toISOString().split("T")[0];
+  return date.toISOString().split("T")[0];
 };
 
 /**
  * Get Sales Report
  */
-export const getSalesReport = async (startDate, endDate, groupBy = "day", customerId) => {
+export const getSalesReport = async (startDate, endDate, groupBy = "day", customerId, companyId) => {
   // Fetch raw sales order records
-  const sales = await reportsRepository.getSalesData(startDate, endDate, customerId);
+  const sales = await reportsRepository.getSalesData(startDate, endDate, customerId, companyId);
   
   // Collect customer IDs and fetch names since relation is missing in prisma schema
   const customerIds = [...new Set(sales.map(s => s.customerId).filter(Boolean))];
@@ -58,7 +58,7 @@ export const getSalesReport = async (startDate, endDate, groupBy = "day", custom
     const discountAmount = Number(order.discountAmount || 0);
     const totalAmount = Number(order.totalAmount || 0);
 
-    totalSales += netAmount || totalAmount;
+    totalSales += totalAmount;
     totalTax += taxAmount;
     totalDiscount += discountAmount;
 
@@ -73,22 +73,23 @@ export const getSalesReport = async (startDate, endDate, groupBy = "day", custom
         discount: 0,
       };
     }
-    chartMap[groupKey].sales += netAmount || totalAmount;
+    chartMap[groupKey].sales += totalAmount;
     chartMap[groupKey].orders += 1;
     chartMap[groupKey].tax += taxAmount;
     chartMap[groupKey].discount += discountAmount;
 
     return {
       id: order.id,
-      orderNumber: order.orderNumber,
+      orderNo: order.orderNo,
       orderDate: order.orderDate,
       customerId: order.customerId,
-      customerName: customerMap[order.customerId] || "Walk-in Customer",
-      totalAmount: totalAmount,
-      taxAmount: taxAmount,
-      discountAmount: discountAmount,
-      netAmount: netAmount || totalAmount,
+      customerName: customerMap[order.customerId] || "Guest Customer",
+      netAmount,
+      taxAmount,
+      discountAmount,
+      totalAmount,
       status: order.status,
+      paymentStatus: order.paymentStatus,
     };
   });
 
@@ -113,8 +114,8 @@ export const getSalesReport = async (startDate, endDate, groupBy = "day", custom
 /**
  * Get Purchase Report
  */
-export const getPurchaseReport = async (startDate, endDate, groupBy = "day", supplierId) => {
-  const purchases = await reportsRepository.getPurchaseData(startDate, endDate, supplierId);
+export const getPurchaseReport = async (startDate, endDate, groupBy = "day", supplierId, companyId) => {
+  const purchases = await reportsRepository.getPurchaseData(startDate, endDate, supplierId, companyId);
 
   let totalPurchases = 0;
   const totalOrders = purchases.length;
@@ -167,8 +168,8 @@ export const getPurchaseReport = async (startDate, endDate, groupBy = "day", sup
 /**
  * Get Inventory Report
  */
-export const getInventoryReport = async (warehouseId) => {
-  const inventory = await reportsRepository.getInventoryData(warehouseId);
+export const getInventoryReport = async (warehouseId, companyId) => {
+  const inventory = await reportsRepository.getInventoryData(warehouseId, companyId);
 
   let totalItems = 0;
   let totalValuationCost = 0;
@@ -224,11 +225,11 @@ export const getInventoryReport = async (warehouseId) => {
 /**
  * Get Report Filtering options
  */
-export const getReportFilters = async () => {
+export const getReportFilters = async (companyId) => {
   const [customers, suppliers, warehouses] = await Promise.all([
-    reportsRepository.getAllCustomers(),
-    reportsRepository.getAllSuppliers(),
-    reportsRepository.getAllWarehouses(),
+    reportsRepository.getAllCustomers(companyId),
+    reportsRepository.getAllSuppliers(companyId),
+    reportsRepository.getAllWarehouses(companyId),
   ]);
 
   return {

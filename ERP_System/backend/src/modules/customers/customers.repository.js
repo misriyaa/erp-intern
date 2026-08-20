@@ -7,8 +7,10 @@ class CustomerRepository {
     });
   }
 
-  async findAll() {
+  async findAll(companyId) {
+    const where = companyId ? { companyId } : {};
     return prisma.customer.findMany({
+      where,
       orderBy: {
         createdAt: "desc",
       },
@@ -22,13 +24,13 @@ class CustomerRepository {
   }
 
   async findByPhone(phone) {
-    return prisma.customer.findUnique({
+    return prisma.customer.findFirst({
       where: { phone },
     });
   }
 
   async findByEmail(email) {
-    return prisma.customer.findUnique({
+    return prisma.customer.findFirst({
       where: { email },
     });
   }

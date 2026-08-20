@@ -1,7 +1,9 @@
 import prisma from "../../config/prisma.js";
 
-const getAllDesignations = async () => {
+const getAllDesignations = async (companyId) => {
+  const where = companyId ? { companyId } : {};
   return await prisma.designation.findMany({
+    where,
     orderBy: { createdAt: "desc" },
   });
 };

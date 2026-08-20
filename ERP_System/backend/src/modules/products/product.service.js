@@ -64,6 +64,7 @@ export const createProduct = async (data) => {
     taxRate: data.taxRate ? parseFloat(data.taxRate) : null,
     image: data.image || null,
     status: data.status || "ACTIVE",
+    companyId: data.companyId || null,
     categoryId,
     subcategory: data.subcategory || null,
     unitId,
