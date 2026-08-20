@@ -5,11 +5,10 @@ import {
   FiShoppingBag,
   FiPlus,
   FiSearch,
-  FiFilter,
   FiTrash2,
   FiX,
-  FiTag,
-  FiBox,
+  FiGrid,
+  FiLayers,
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
 import apiClient from "@/services/apiClient";
@@ -22,40 +21,43 @@ export default function TextileProductsPage() {
 
   const [formData, setFormData] = useState({
     name: "",
-    fabricType: "Cotton Silk",
-    gsm: "",
-    width: "58 inches",
-    colorPattern: "",
-    stockMeters: "",
-    pricePerMeter: "",
+    fabricComposition: "80% Cotton, 20% Polyester",
+    gsm: "180",
+    rollWidth: "58",
+    widthUnit: "Inches",
+    color: "Solid Navy",
+    pattern: "Plain / Solid",
+    weaveType: "Plain weave",
+    initialStock: "500",
+    sellingPrice: "350",
   });
-
-  const extractMeta = (desc, key) => {
-    if (!desc) return null;
-    const match = desc.match(new RegExp(`${key}:\\s*([^|]+)`));
-    return match ? match[1].trim() : null;
-  };
 
   const fetchTextileProducts = async () => {
     try {
       const res = await apiClient.get("/products").then((r) => r.data);
       const all = res.data || (Array.isArray(res) ? res : []);
-      const textileDbItems = all.filter(
-        (p) =>
-          p.sku?.startsWith("TEX-") ||
-          p.description?.includes("[TEXTILE]")
-      );
+
+      const textileDbItems = all.filter((p) => {
+        const isTexSku = p.sku?.startsWith("TEX-") || p.sku?.startsWith("FAB-");
+        const isTexDesc = p.description?.includes("[TEXTILE]");
+        const hasFabricAttr = Boolean(
+          p.fabricComposition || p.gsm || p.rollWidth || p.weaveType
+        );
+        return isTexSku || isTexDesc || (p.isTextile === true && hasFabricAttr);
+      });
 
       const mapped = textileDbItems.map((p) => ({
         id: p.id,
+        sku: p.sku,
         name: p.name,
-        fabricType: extractMeta(p.description, "Fabric") || "Cotton Blend",
-        gsm: Number(extractMeta(p.description, "GSM")) || 180,
-        width: extractMeta(p.description, "Width") || "58 inches",
-        colorPattern: extractMeta(p.description, "Pattern") || "Solid",
-        stockMeters: p.inventories?.[0]?.quantity || 500,
-        pricePerMeter: Number(p.sellingPrice) || 300,
-        status: "ACTIVE",
+        fabricComposition: p.fabricComposition || "Cotton Blend",
+        gsm: p.gsm || 180,
+        rollWidth: p.rollWidth ? `${p.rollWidth} ${p.widthUnit || "Inches"}` : "58 Inches",
+        colorPattern: `${p.color || ""} ${p.pattern || "Solid"}`.trim() || "Solid",
+        stockMeters: p.initialStock || p.inventories?.[0]?.quantity || 500,
+        pricePerMeter: Number(p.sellingPrice) || 350,
+        variantsCount: p.variants?.length || 0,
+        status: p.status || "ACTIVE",
       }));
 
       setProducts(mapped);
@@ -75,25 +77,30 @@ export default function TextileProductsPage() {
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.pricePerMeter) {
-      toast.error("Please enter fabric name and price per meter");
+    if (!formData.name || !formData.sellingPrice) {
+      toast.error("Please enter fabric name and selling price per meter");
       return;
     }
 
     setSubmitting(true);
-    const sku = `TEX-${Date.now().toString().slice(-6)}`;
-    const desc = `[TEXTILE] Fabric: ${formData.fabricType} | GSM: ${
-      formData.gsm || 160
-    } | Width: ${formData.width || "58 inches"} | Pattern: ${
-      formData.colorPattern || "Solid"
-    }`;
+    const sku = `FAB-TEX-${Date.now().toString().slice(-6)}`;
 
     const payload = {
       name: formData.name,
       sku,
-      costPrice: parseFloat(formData.pricePerMeter || 0) * 0.8,
-      sellingPrice: parseFloat(formData.pricePerMeter || 0),
-      description: desc,
+      isTextile: true,
+      fabricComposition: formData.fabricComposition,
+      gsm: parseFloat(formData.gsm || 180),
+      rollWidth: parseFloat(formData.rollWidth || 58),
+      widthUnit: formData.widthUnit || "Inches",
+      color: formData.color,
+      pattern: formData.pattern,
+      weaveType: formData.weaveType,
+      initialStock: parseFloat(formData.initialStock || 500),
+      stockUnit: "Meter",
+      costPrice: parseFloat(formData.sellingPrice || 0) * 0.75,
+      sellingPrice: parseFloat(formData.sellingPrice || 0),
+      description: `[TEXTILE] Fabric: ${formData.fabricComposition} | GSM: ${formData.gsm} | Width: ${formData.rollWidth} ${formData.widthUnit}`,
     };
 
     try {
@@ -102,27 +109,32 @@ export default function TextileProductsPage() {
 
       const newProd = {
         id: savedProd.id || `TEX-${Date.now()}`,
+        sku: savedProd.sku || sku,
         name: formData.name,
-        fabricType: formData.fabricType,
-        gsm: Number(formData.gsm) || 160,
-        width: formData.width || "58 inches",
-        colorPattern: formData.colorPattern || "Solid",
-        stockMeters: Number(formData.stockMeters) || 500,
-        pricePerMeter: Number(formData.pricePerMeter),
+        fabricComposition: formData.fabricComposition,
+        gsm: Number(formData.gsm) || 180,
+        rollWidth: `${formData.rollWidth} ${formData.widthUnit}`,
+        colorPattern: `${formData.color} ${formData.pattern}`,
+        stockMeters: Number(formData.initialStock) || 500,
+        pricePerMeter: Number(formData.sellingPrice),
+        variantsCount: 0,
         status: "ACTIVE",
       };
 
       setProducts([newProd, ...products]);
-      toast.success(`Textile product "${formData.name}" saved dynamically to DB!`);
+      toast.success(`Fabric product "${formData.name}" saved to database!`);
       setShowAddModal(false);
       setFormData({
         name: "",
-        fabricType: "Cotton Silk",
-        gsm: "",
-        width: "58 inches",
-        colorPattern: "",
-        stockMeters: "",
-        pricePerMeter: "",
+        fabricComposition: "80% Cotton, 20% Polyester",
+        gsm: "180",
+        rollWidth: "58",
+        widthUnit: "Inches",
+        color: "Solid Navy",
+        pattern: "Plain / Solid",
+        weaveType: "Plain weave",
+        initialStock: "500",
+        sellingPrice: "350",
       });
     } catch (err) {
       console.error("Error saving textile product to DB:", err);
@@ -140,15 +152,15 @@ export default function TextileProductsPage() {
         console.warn("Backend delete note:", err.message);
       }
       setProducts(products.filter((p) => p.id !== id));
-      toast.success("Product deleted successfully");
+      toast.success("Fabric product deleted successfully");
     }
   };
 
   const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.fabricType.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase())
+      p.fabricComposition.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -186,7 +198,7 @@ export default function TextileProductsPage() {
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => window.location.href = "/textile/products/add"}
           style={{
             display: "flex",
             alignItems: "center",
@@ -222,7 +234,7 @@ export default function TextileProductsPage() {
         <FiSearch style={{ color: "#64748b" }} />
         <input
           type="text"
-          placeholder="Search product code, fabric type, or pattern..."
+          placeholder="Search SKU, fabric composition, or color pattern..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ border: "none", outline: "none", background: "transparent", width: "100%", fontSize: "14px" }}
@@ -243,10 +255,11 @@ export default function TextileProductsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>Code</th>
+                <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>SKU</th>
                 <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>Product Name</th>
                 <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>Fabric Composition</th>
                 <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>GSM / Width</th>
+                <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>Variants</th>
                 <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>Stock Available</th>
                 <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>Selling Price</th>
                 <th style={{ padding: "14px 20px", fontWeight: "700", color: "#475569" }}>Action</th>
@@ -255,14 +268,23 @@ export default function TextileProductsPage() {
             <tbody>
               {filtered.map((p) => (
                 <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "16px 20px", fontWeight: "700", color: "#0d9488" }}>{p.id}</td>
+                  <td style={{ padding: "16px 20px", fontWeight: "700", color: "#0d9488" }}>{p.sku || p.id}</td>
                   <td style={{ padding: "16px 20px" }}>
                     <div style={{ fontWeight: "700", color: "#0f172a" }}>{p.name}</div>
                     <div style={{ fontSize: "12px", color: "#64748b" }}>{p.colorPattern}</div>
                   </td>
-                  <td style={{ padding: "16px 20px", color: "#334155" }}>{p.fabricType}</td>
+                  <td style={{ padding: "16px 20px", color: "#334155" }}>{p.fabricComposition}</td>
                   <td style={{ padding: "16px 20px", color: "#475569" }}>
-                    <strong>{p.gsm} GSM</strong> ({p.width})
+                    <strong>{p.gsm} GSM</strong> ({p.rollWidth})
+                  </td>
+                  <td style={{ padding: "16px 20px" }}>
+                    {p.variantsCount > 0 ? (
+                      <span style={{ background: "#e0e7ff", color: "#3730a3", padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "700" }}>
+                        <FiGrid style={{ marginRight: "4px" }} /> {p.variantsCount} Variants
+                      </span>
+                    ) : (
+                      <span style={{ color: "#94a3b8", fontSize: "12px" }}>Base item</span>
+                    )}
                   </td>
                   <td style={{ padding: "16px 20px", fontWeight: "700", color: "#0f172a" }}>
                     {p.stockMeters.toLocaleString()} Meters
@@ -270,11 +292,41 @@ export default function TextileProductsPage() {
                   <td style={{ padding: "16px 20px", fontWeight: "800", color: "#0d9488" }}>
                     ₹{p.pricePerMeter} <span style={{ fontSize: "12px", fontWeight: "500", color: "#64748b" }}>/ Meter</span>
                   </td>
-                  <td style={{ padding: "16px 20px" }}>
+                  <td style={{ padding: "16px 20px", display: "flex", gap: "6px", alignItems: "center" }}>
+                    <button
+                      onClick={() => window.location.href = `/admin/products/details/${p.id}`}
+                      style={{
+                        padding: "6px 10px",
+                        background: "#e0f2fe",
+                        color: "#0369a1",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => window.location.href = `/admin/products/edit/${p.id}`}
+                      style={{
+                        padding: "6px 10px",
+                        background: "#f1f5f9",
+                        color: "#334155",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() => handleDelete(p.id, p.name)}
                       style={{
-                        padding: "6px 12px",
+                        padding: "6px 10px",
                         background: "#fee2e2",
                         color: "#ef4444",
                         border: "none",
@@ -287,7 +339,7 @@ export default function TextileProductsPage() {
                         gap: "4px",
                       }}
                     >
-                      <FiTrash2 size={13} /> Delete
+                      <FiTrash2 size={13} />
                     </button>
                   </td>
                 </tr>
@@ -321,7 +373,7 @@ export default function TextileProductsPage() {
               borderRadius: "16px",
               padding: "24px",
               width: "100%",
-              maxWidth: "520px",
+              maxWidth: "540px",
               boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
             }}
           >
@@ -344,7 +396,7 @@ export default function TextileProductsPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="e.g. Jacquard Damask Table Linen Fabric"
+                  placeholder="e.g. Jacquard Damask Fabric"
                   required
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                 />
@@ -357,10 +409,10 @@ export default function TextileProductsPage() {
                   </label>
                   <input
                     type="text"
-                    name="fabricType"
-                    value={formData.fabricType}
+                    name="fabricComposition"
+                    value={formData.fabricComposition}
                     onChange={handleInputChange}
-                    placeholder="Cotton / Silk / Denim"
+                    placeholder="80% Cotton, 20% Silk"
                     style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                   />
                 </div>
@@ -384,25 +436,36 @@ export default function TextileProductsPage() {
                   <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
                     Roll Width
                   </label>
-                  <input
-                    type="text"
-                    name="width"
-                    value={formData.width}
-                    onChange={handleInputChange}
-                    placeholder="58 inches"
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
-                  />
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <input
+                      type="number"
+                      name="rollWidth"
+                      value={formData.rollWidth}
+                      onChange={handleInputChange}
+                      placeholder="58"
+                      style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
+                    />
+                    <select
+                      name="widthUnit"
+                      value={formData.widthUnit}
+                      onChange={handleInputChange}
+                      style={{ padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                    >
+                      <option value="Inches">Inches</option>
+                      <option value="CM">CM</option>
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
-                    Color / Pattern
+                    Color Name
                   </label>
                   <input
                     type="text"
-                    name="colorPattern"
-                    value={formData.colorPattern}
+                    name="color"
+                    value={formData.color}
                     onChange={handleInputChange}
-                    placeholder="Solid Navy Blue"
+                    placeholder="Royal Blue"
                     style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                   />
                 </div>
@@ -415,10 +478,10 @@ export default function TextileProductsPage() {
                   </label>
                   <input
                     type="number"
-                    name="stockMeters"
-                    value={formData.stockMeters}
+                    name="initialStock"
+                    value={formData.initialStock}
                     onChange={handleInputChange}
-                    placeholder="1000"
+                    placeholder="500"
                     style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                   />
                 </div>
@@ -428,8 +491,8 @@ export default function TextileProductsPage() {
                   </label>
                   <input
                     type="number"
-                    name="pricePerMeter"
-                    value={formData.pricePerMeter}
+                    name="sellingPrice"
+                    value={formData.sellingPrice}
                     onChange={handleInputChange}
                     placeholder="350"
                     required
@@ -448,6 +511,7 @@ export default function TextileProductsPage() {
                 </button>
                 <button
                   type="submit"
+                  disabled={submitting}
                   style={{
                     padding: "10px 18px",
                     borderRadius: "8px",
@@ -457,7 +521,7 @@ export default function TextileProductsPage() {
                     fontWeight: "700",
                   }}
                 >
-                  Save Product
+                  {submitting ? "Saving..." : "Save Fabric Product"}
                 </button>
               </div>
             </form>

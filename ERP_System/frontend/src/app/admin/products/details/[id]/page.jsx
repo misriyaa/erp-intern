@@ -2,16 +2,14 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
-import axios from 'axios';
 import apiClient from "@/services/apiClient";
-import { toast, Toaster } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { toast, Toaster } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import {
   FiArrowLeft,
   FiEdit,
   FiTrash2,
   FiPrinter,
-  FiDownload,
   FiPackage,
   FiBox,
   FiDollarSign,
@@ -20,14 +18,17 @@ import {
   FiLayers,
   FiCalendar,
   FiBarChart2,
+  FiGrid,
+  FiCheckCircle,
 } from "react-icons/fi";
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react";
 
 import styles from "../details.module.css";
 
 export default function ProductDetailsPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,26 +46,30 @@ export default function ProductDetailsPage({ params }) {
         toast.error("Product not found");
       }
     } catch (error) {
-      console.error('Failed to fetch product', error);
-      toast.error('Failed to load product details');
+      console.error("Failed to fetch product", error);
+      toast.error("Failed to load product details");
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-     return (
-       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-         <Loader2 className={styles.spinner} style={{ animation: 'spin 1s linear infinite', color: '#0d6efd' }} size={40} />
-       </div>
-     );
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <Loader2 style={{ animation: "spin 1s linear infinite", color: "#4f46e5" }} size={40} />
+      </div>
+    );
   }
 
   if (!product) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "100vh" }}>
         <h2>Product Not Found</h2>
-        <button className={styles.backButton} onClick={() => router.push('/admin/products/view')} style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button
+          className={styles.backButton}
+          onClick={() => router.push("/admin/products/view")}
+          style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "8px" }}
+        >
           <FiArrowLeft /> Back to Products
         </button>
       </div>
@@ -72,9 +77,9 @@ export default function ProductDetailsPage({ params }) {
   }
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
       maximumFractionDigits: 2,
     }).format(price || 0);
   };
@@ -84,25 +89,20 @@ export default function ProductDetailsPage({ params }) {
   const profit = sellingPrice - costPrice;
   const profitMargin = costPrice > 0 ? (profit / costPrice) * 100 : 100;
 
-  // Inventory logic
-  const currentStock = product.inventories?.reduce((acc, inv) => acc + (inv.quantity || 0), 0) || 0;
-  const maxStock = product.inventories?.[0]?.maximumStock || 100;
-  const minStock = product.inventories?.[0]?.minimumStock || 10;
-  
+  const currentStock = product.initialStock || product.inventories?.reduce((acc, inv) => acc + (inv.quantity || 0), 0) || 0;
+  const maxStock = product.maximumStock || 1000;
+  const minStock = product.minimumStock || 10;
   const stockPercentage = maxStock > 0 ? (currentStock / maxStock) * 100 : 0;
 
   const handleDelete = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this product?"
-    );
-
+    const confirmed = window.confirm("Are you sure you want to delete this fabric product?");
     if (confirmed) {
       try {
         await apiClient.delete(`/products/${id}`);
-        toast.success("Product deleted successfully");
+        toast.success("Fabric Product deleted successfully");
         router.push("/admin/products/view");
       } catch (err) {
-        toast.error("Failed to delete product");
+        toast.error("Failed to delete fabric product");
       }
     }
   };
@@ -113,8 +113,8 @@ export default function ProductDetailsPage({ params }) {
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
-    return `http://localhost:5000${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    if (imagePath.startsWith("http")) return imagePath;
+    return `http://localhost:5000${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
   };
 
   const imageUrl = getImageUrl(product.image);
@@ -131,49 +131,38 @@ export default function ProductDetailsPage({ params }) {
 
           <div>
             <div className={styles.breadcrumb}>
-              Products <span>/</span> Product Details
+              Products <span>/</span> Fabric Details
             </div>
 
-            <h1>Product Details</h1>
-            <p>View complete information about this product.</p>
+            <h1>{product.name}</h1>
+            <p>Full textile specifications, inventory metrics, supplier details, and dynamic variants.</p>
           </div>
         </div>
 
         <div className={styles.headerActions}>
-          <button
-            className={styles.secondaryButton}
-            onClick={handlePrint}
-          >
-            <FiPrinter />
-            Print
+          <button className={styles.secondaryButton} onClick={handlePrint}>
+            <FiPrinter /> Print
           </button>
 
-          <Link
-            href={`/admin/products/edit/${product.id}`}
-            className={styles.editButton}
-          >
-            <FiEdit />
-            Edit Product
+          <Link href={`/admin/products/edit/${product.id}`} className={styles.editButton}>
+            <FiEdit /> Edit Fabric
           </Link>
 
-          <button
-            className={styles.deleteButton}
-            onClick={handleDelete}
-          >
+          <button className={styles.deleteButton} onClick={handleDelete}>
             <FiTrash2 />
           </button>
         </div>
       </div>
 
-      {/* Product Overview */}
+      {/* Product Overview Card */}
       <div className={styles.productCard}>
         <div className={styles.productImageWrapper}>
           <div className={styles.productImage}>
-             {imageUrl ? (
-               <img src={imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
-             ) : (
-               <FiPackage />
-             )}
+            {imageUrl ? (
+              <img src={imageUrl} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
+            ) : (
+              <FiPackage />
+            )}
           </div>
         </div>
 
@@ -181,25 +170,23 @@ export default function ProductDetailsPage({ params }) {
           <div className={styles.titleRow}>
             <div>
               <h2>{product.name}</h2>
-
               <div className={styles.productMeta}>
                 <span>SKU: {product.sku}</span>
-                {product.barcodes && product.barcodes.length > 0 && (
-                   <span>Barcode: {product.barcodes[0].barcode}</span>
-                )}
+                {product.barcode && <span>Barcode: {product.barcode}</span>}
+                {product.subcategory && <span>Subcategory: {product.subcategory}</span>}
               </div>
             </div>
 
             <span className={styles.activeBadge}>
               <span></span>
-              {product.status || 'ACTIVE'}
+              {product.status || "ACTIVE"}
             </span>
           </div>
 
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span>Category</span>
-              <strong>{product.category?.name || "N/A"}</strong>
+              <strong>{product.category?.name || "Textile"}</strong>
             </div>
 
             <div className={styles.infoItem}>
@@ -208,27 +195,26 @@ export default function ProductDetailsPage({ params }) {
             </div>
 
             <div className={styles.infoItem}>
-              <span>Unit</span>
-              <strong>{product.unit?.name || "N/A"}</strong>
+              <span>Stock Unit</span>
+              <strong>{product.stockUnit || product.unit?.name || "Meter"}</strong>
             </div>
-            
+
             <div className={styles.infoItem}>
-              <span>Code</span>
-              <strong>{product.code || "N/A"}</strong>
+              <span>Fabric Composition</span>
+              <strong>{product.fabricComposition || "Cotton Blend"}</strong>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Statistics */}
+      {/* Stats KPI Cards */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <div className={`${styles.statIcon} ${styles.blue}`}>
             <FiDollarSign />
           </div>
-
           <div>
-            <span>Purchase Price</span>
+            <span>Cost Price</span>
             <h3>{formatPrice(costPrice)}</h3>
           </div>
         </div>
@@ -237,7 +223,6 @@ export default function ProductDetailsPage({ params }) {
           <div className={`${styles.statIcon} ${styles.green}`}>
             <FiTag />
           </div>
-
           <div>
             <span>Selling Price</span>
             <h3>{formatPrice(sellingPrice)}</h3>
@@ -248,10 +233,9 @@ export default function ProductDetailsPage({ params }) {
           <div className={`${styles.statIcon} ${styles.orange}`}>
             <FiBox />
           </div>
-
           <div>
-            <span>Current Stock</span>
-            <h3>{currentStock} Units</h3>
+            <span>Total Available Stock</span>
+            <h3>{currentStock} {product.stockUnit || "Meters"}</h3>
           </div>
         </div>
 
@@ -259,7 +243,6 @@ export default function ProductDetailsPage({ params }) {
           <div className={`${styles.statIcon} ${styles.purple}`}>
             <FiBarChart2 />
           </div>
-
           <div>
             <span>Profit Margin</span>
             <h3>{profitMargin.toFixed(1)}%</h3>
@@ -267,164 +250,134 @@ export default function ProductDetailsPage({ params }) {
         </div>
       </div>
 
+      {/* Content Layout */}
       <div className={styles.contentGrid}>
         {/* Left Column */}
         <div className={styles.leftColumn}>
-          {/* Pricing */}
-          <section className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div className={styles.cardTitle}>
-                <div className={styles.titleIcon}>
-                  <FiDollarSign />
-                </div>
-
-                <div>
-                  <h3>Pricing Information</h3>
-                  <p>Product pricing and profit details</p>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.pricingGrid}>
-              <div>
-                <span>Purchase Price</span>
-                <strong>{formatPrice(costPrice)}</strong>
-              </div>
-
-              <div>
-                <span>Selling Price</span>
-                <strong>{formatPrice(sellingPrice)}</strong>
-              </div>
-
-              <div>
-                <span>Discount</span>
-                <strong>
-                  {product.discountValue 
-                    ? `${product.discountType === 'FIXED' ? '$' : ''}${product.discountValue}${product.discountType === 'PERCENT' ? '%' : ''}` 
-                    : 'N/A'
-                  }
-                </strong>
-              </div>
-
-              <div>
-                <span>Tax</span>
-                <strong>{product.tax || '0'}%</strong>
-              </div>
-
-              <div>
-                <span>Profit per Unit</span>
-                <strong className={styles.profit}>
-                  {formatPrice(profit)}
-                </strong>
-              </div>
-
-              <div>
-                <span>Profit Margin</span>
-                <strong className={styles.profit}>
-                  {profitMargin.toFixed(1)}%
-                </strong>
-              </div>
-            </div>
-          </section>
-
-          {/* Product Information */}
+          {/* FABRIC SPECIFICATIONS CARD */}
           <section className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.cardTitle}>
                 <div className={styles.titleIcon}>
                   <FiLayers />
                 </div>
-
                 <div>
-                  <h3>Product Information</h3>
-                  <p>General information about this product</p>
+                  <h3>Fabric Specifications</h3>
+                  <p>Textile characteristics & technical specs</p>
                 </div>
               </div>
-            </div>
-
-            <div className={styles.description}>
-              <span>Description</span>
-              <p>{product.description || "No description provided."}</p>
             </div>
 
             <div className={styles.detailsGrid}>
               <div>
-                <span>Product Name</span>
-                <strong>{product.name}</strong>
+                <span>Fabric Blend</span>
+                <strong>{product.fabricComposition || "N/A"}</strong>
               </div>
-
               <div>
-                <span>SKU</span>
-                <strong>{product.sku}</strong>
+                <span>GSM (g/m²)</span>
+                <strong>{product.gsm ? `${product.gsm} GSM` : "N/A"}</strong>
               </div>
-
               <div>
-                <span>Barcode</span>
-                <strong>{product.barcodes?.[0]?.barcode || "N/A"}</strong>
+                <span>Roll Width</span>
+                <strong>{product.rollWidth ? `${product.rollWidth} ${product.widthUnit || "Inches"}` : "N/A"}</strong>
               </div>
-
               <div>
-                <span>Category</span>
-                <strong>{product.category?.name || "N/A"}</strong>
+                <span>Color</span>
+                <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  {product.colorCode && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "14px",
+                        height: "14px",
+                        borderRadius: "50%",
+                        backgroundColor: product.colorCode,
+                        border: "1px solid #ccc",
+                      }}
+                    />
+                  )}
+                  {product.color || "N/A"}
+                </strong>
               </div>
-
               <div>
-                <span>Brand</span>
-                <strong>{product.brand?.name || "N/A"}</strong>
+                <span>Pattern / Design</span>
+                <strong>{product.pattern || "Plain"}</strong>
               </div>
-
               <div>
-                <span>Unit</span>
-                <strong>{product.unit?.name || "N/A"}</strong>
+                <span>Weave Type</span>
+                <strong>{product.weaveType || "Plain weave"}</strong>
+              </div>
+              <div>
+                <span>Texture / Finish</span>
+                <strong>{product.textureFinish || "Soft"}</strong>
+              </div>
+              <div>
+                <span>Number of Rolls</span>
+                <strong>{product.numberOfRolls ? `${product.numberOfRolls} Rolls` : "N/A"}</strong>
               </div>
             </div>
           </section>
 
-          {/* Warehouse */}
-          {product.inventories && product.inventories.length > 0 && (
+          {/* DYNAMIC VARIANTS MATRIX CARD */}
+          {product.variants && product.variants.length > 0 && (
             <section className={styles.card}>
               <div className={styles.cardHeader}>
                 <div className={styles.cardTitle}>
                   <div className={styles.titleIcon}>
-                    <FiBox />
+                    <FiGrid />
                   </div>
-
                   <div>
-                    <h3>Warehouse Stock</h3>
-                    <p>Stock available across warehouses</p>
+                    <h3>Product Variants ({product.variants.length})</h3>
+                    <p>Color, width, gsm & stock breakdown per variant</p>
                   </div>
                 </div>
               </div>
 
-              <div className={styles.tableWrapper}>
+              <div className={styles.tableWrapper} style={{ overflowX: "auto" }}>
                 <table>
                   <thead>
                     <tr>
-                      <th>Warehouse</th>
-                      <th>Quantity</th>
-                      <th>Min Stock</th>
-                      <th>Max Stock</th>
+                      <th>Variant SKU</th>
+                      <th>Color</th>
+                      <th>GSM / Width</th>
+                      <th>Pattern</th>
+                      <th>Stock</th>
+                      <th>Rolls</th>
+                      <th>Price</th>
                     </tr>
                   </thead>
-
                   <tbody>
-                    {product.inventories.map((inv, index) => (
-                      <tr key={index}>
+                    {product.variants.map((v) => (
+                      <tr key={v.id}>
                         <td>
-                          <div className={styles.warehouseName}>
-                            <FiBox />
-                            {inv.warehouse?.name || "Unknown"}
+                          <strong>{v.sku || "N/A"}</strong>
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            {v.colorCode && (
+                              <span
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  borderRadius: "50%",
+                                  backgroundColor: v.colorCode,
+                                  border: "1px solid #ddd",
+                                }}
+                              />
+                            )}
+                            {v.color || "Default"}
                           </div>
                         </td>
-
                         <td>
-                          <strong>{inv.quantity}</strong>
+                          {v.gsm ? `${v.gsm} GSM` : ""} {v.rollWidth ? `(${v.rollWidth} ${v.widthUnit || "in"})` : ""}
                         </td>
-
-                        <td>{inv.minimumStock}</td>
-
+                        <td>{v.pattern || "Solid"}</td>
                         <td>
-                          <strong>{inv.maximumStock}</strong>
+                          <strong>{v.stock} {product.stockUnit || "m"}</strong>
+                        </td>
+                        <td>{v.numberOfRolls || "—"}</td>
+                        <td style={{ fontWeight: "700", color: "#10b981" }}>
+                          {v.sellingPrice ? formatPrice(v.sellingPrice) : formatPrice(sellingPrice)}
                         </td>
                       </tr>
                     ))}
@@ -433,106 +386,147 @@ export default function ProductDetailsPage({ params }) {
               </div>
             </section>
           )}
-        </div>
 
-        {/* Right Column */}
-        <div className={styles.rightColumn}>
-          {/* Stock Card */}
+          {/* PRICING DETAILS */}
           <section className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.cardTitle}>
                 <div className={styles.titleIcon}>
-                  <FiPackage />
+                  <FiDollarSign />
                 </div>
-
                 <div>
-                  <h3>Inventory</h3>
-                  <p>Current stock information</p>
+                  <h3>Multi-Tier Pricing & Tax</h3>
+                  <p>Pricing levels and tax configurations</p>
                 </div>
               </div>
             </div>
 
-            <div className={styles.stockMain}>
-              <div className={styles.stockNumber}>
-                {currentStock}
-                <span>Units</span>
+            <div className={styles.pricingGrid}>
+              <div>
+                <span>Cost Price</span>
+                <strong>{formatPrice(costPrice)}</strong>
               </div>
+              <div>
+                <span>Selling Price</span>
+                <strong>{formatPrice(sellingPrice)}</strong>
+              </div>
+              <div>
+                <span>Wholesale Price</span>
+                <strong>{product.wholesalePrice ? formatPrice(product.wholesalePrice) : "N/A"}</strong>
+              </div>
+              <div>
+                <span>Retail Price</span>
+                <strong>{product.retailPrice ? formatPrice(product.retailPrice) : "N/A"}</strong>
+              </div>
+              <div>
+                <span>Discount</span>
+                <strong>
+                  {product.discountValue
+                    ? `${product.discountType === "FIXED" ? "₹" : ""}${product.discountValue}${product.discountType === "PERCENT" ? "%" : ""}`
+                    : "N/A"}
+                </strong>
+              </div>
+              <div>
+                <span>Tax Rate</span>
+                <strong>{product.taxRate ? `${product.taxRate}%` : "18%"}</strong>
+              </div>
+            </div>
+          </section>
+        </div>
 
-              <span className={styles.stockStatus}>
-                {currentStock > 0 ? "In Stock" : "Out of Stock"}
-              </span>
+        {/* Right Column */}
+        <div className={styles.rightColumn}>
+          {/* INVENTORY LOCATION CARD */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.cardTitle}>
+                <div className={styles.titleIcon}>
+                  <FiBox />
+                </div>
+                <div>
+                  <h3>Warehouse & Storage Location</h3>
+                  <p>Physical bin and shelf mapping</p>
+                </div>
+              </div>
             </div>
 
-            <div className={styles.progressContainer}>
-              <div className={styles.progressHeader}>
-                <span>Stock Level</span>
-                <strong>{Math.round(stockPercentage)}%</strong>
-              </div>
-
-              <div className={styles.progressBar}>
-                <div
-                  className={styles.progress}
-                  style={{
-                    width: `${Math.min(stockPercentage, 100)}%`,
-                    backgroundColor: stockPercentage < 20 ? '#ef4444' : stockPercentage < 50 ? '#f59e0b' : '#10b981'
-                  }}
-                ></div>
-              </div>
-            </div>
-
-            <div className={styles.stockDetails}>
+            <div className={styles.detailsGrid} style={{ gridTemplateColumns: "1fr" }}>
               <div>
-                <span>Available</span>
-                <strong>{currentStock}</strong>
+                <span>Store / Warehouse Location</span>
+                <strong>{product.warehouseLocation || "Main Central Warehouse"}</strong>
               </div>
-
               <div>
-                <span>Reserved</span>
-                <strong>0</strong>
+                <span>Rack / Shelf / Bin Location</span>
+                <strong>{product.rackLocation || "Rack A-12"}</strong>
               </div>
-
               <div>
-                <span>Minimum</span>
-                <strong>{minStock}</strong>
+                <span>Reorder Level</span>
+                <strong>{product.reorderLevel || 20} {product.stockUnit || "Meters"}</strong>
               </div>
-
               <div>
-                <span>Maximum</span>
-                <strong>{maxStock}</strong>
+                <span>Min / Max Stock Threshold</span>
+                <strong>{minStock} min / {maxStock} max</strong>
               </div>
             </div>
           </section>
 
-          {/* Dates */}
+          {/* SUPPLIER CARD */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.cardTitle}>
+                <div className={styles.titleIcon}>
+                  <FiTruck />
+                </div>
+                <div>
+                  <h3>Supplier Details</h3>
+                  <p>Vendor details and purchase lead time</p>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.detailsGrid} style={{ gridTemplateColumns: "1fr" }}>
+              <div>
+                <span>Default Supplier</span>
+                <strong>{product.supplier?.companyName || "N/A"}</strong>
+              </div>
+              <div>
+                <span>Supplier Product Code</span>
+                <strong>{product.supplierProductCode || "N/A"}</strong>
+              </div>
+              <div>
+                <span>Lead Time</span>
+                <strong>{product.leadTime ? `${product.leadTime} Days` : "N/A"}</strong>
+              </div>
+            </div>
+          </section>
+
+          {/* TIMELINE */}
           <section className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.cardTitle}>
                 <div className={styles.titleIcon}>
                   <FiCalendar />
                 </div>
-
                 <div>
-                  <h3>Product Timeline</h3>
-                  <p>Product creation information</p>
+                  <h3>Record Audit</h3>
+                  <p>System timestamps</p>
                 </div>
               </div>
             </div>
 
             <div className={styles.timeline}>
               <div>
-                <span>Created</span>
+                <span>Created Date</span>
                 <strong>{new Date(product.createdAt).toLocaleDateString()}</strong>
               </div>
-
               <div>
-                <span>Last Updated</span>
+                <span>Last Modified</span>
                 <strong>{new Date(product.updatedAt).toLocaleDateString()}</strong>
               </div>
             </div>
           </section>
         </div>
       </div>
-
     </div>
   );
 }

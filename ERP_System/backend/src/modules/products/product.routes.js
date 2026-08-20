@@ -17,6 +17,11 @@ router.post(
     if (req.file) {
       req.body.image = "/uploads/" + req.file.filename;
     }
+    if (typeof req.body.variants === "string") {
+      try {
+        req.body.variants = JSON.parse(req.body.variants);
+      } catch (e) {}
+    }
     next();
   },
   createProductValidation,
@@ -42,6 +47,11 @@ router.put(
   (req, res, next) => {
     if (req.file) {
       req.body.image = "/uploads/" + req.file.filename;
+    }
+    if (typeof req.body.variants === "string") {
+      try {
+        req.body.variants = JSON.parse(req.body.variants);
+      } catch (e) {}
     }
     next();
   },

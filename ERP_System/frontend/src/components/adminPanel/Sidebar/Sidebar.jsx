@@ -110,7 +110,7 @@ export default function Sidebar({ isOpen, onClose }) {
           const active = isActivePath(item.href);
           return (
             <Link
-              key={item.href}
+              key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
               href={item.href}
               className={active ? styles.active : ""}
               onClick={handleLinkClick}

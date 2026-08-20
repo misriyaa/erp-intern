@@ -51,6 +51,15 @@ export const createSupplierValidation = [
     .optional()
     .isIn(["ACTIVE", "INACTIVE"])
     .withMessage("Status must be ACTIVE or INACTIVE"),
+
+  body("category")
+    .optional()
+    .trim(),
+
+  body("isTextile")
+    .optional()
+    .isBoolean()
+    .toBoolean(),
 ];
 
 export const updateSupplierValidation = [
