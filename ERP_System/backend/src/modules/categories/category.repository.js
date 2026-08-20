@@ -7,7 +7,7 @@ export const createCategory = async (data) => {
 };
 
 export const getAllCategories = async (companyId) => {
-  const where = companyId ? { companyId } : {};
+  const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
   return await prisma.category.findMany({
     where,
     orderBy: {

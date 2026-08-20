@@ -7,7 +7,7 @@ export const createUnit = async (data) => {
 };
 
 export const getAllUnits = async (companyId) => {
-  const where = companyId ? { companyId } : {};
+  const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
   return await prisma.unit.findMany({
     where,
     orderBy: {

@@ -9,11 +9,10 @@ export const createCategoryValidation = [
     .withMessage("Category name must be between 2 and 100 characters"),
 
   body("code")
+    .optional()
     .trim()
-    .notEmpty()
-    .withMessage("Category code is required")
-    .isLength({ min: 2, max: 20 })
-    .withMessage("Category code must be between 2 and 20 characters"),
+    .isLength({ min: 1, max: 20 })
+    .withMessage("Category code must be between 1 and 20 characters"),
 
   body("description")
     .optional()

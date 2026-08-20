@@ -144,21 +144,25 @@ export default function AddTextileProductPage() {
         apiClient.get("/suppliers"),
       ]);
 
-      if (catRes.status === "fulfilled" && catRes.value.data?.data) {
-        setCategories(catRes.value.data.data);
+      if (catRes.status === "fulfilled") {
+        const catList = catRes.value.data?.data || catRes.value.data || [];
+        setCategories(Array.isArray(catList) ? catList : []);
       }
-      if (brandRes.status === "fulfilled" && brandRes.value.data?.data) {
-        setBrands(brandRes.value.data.data);
+      if (brandRes.status === "fulfilled") {
+        const brandList = brandRes.value.data?.data || brandRes.value.data || [];
+        setBrands(Array.isArray(brandList) ? brandList : []);
       }
-      if (unitRes.status === "fulfilled" && unitRes.value.data?.data?.length > 0) {
-        setUnits(unitRes.value.data.data);
+      if (unitRes.status === "fulfilled") {
+        const unitList = unitRes.value.data?.data || unitRes.value.data || [];
+        setUnits(Array.isArray(unitList) && unitList.length > 0 ? unitList : DEFAULT_UNITS);
       } else {
         setUnits(DEFAULT_UNITS);
       }
-      if (suppRes.status === "fulfilled" && suppRes.value.data?.data) {
-        const rawSupp = suppRes.value.data.data;
-        const textSupp = rawSupp.filter((s) => s.isTextile === true || s.category === "TEXTILE" || s.companyName?.toLowerCase().includes("cotton") || s.companyName?.toLowerCase().includes("dye") || s.companyName?.toLowerCase().includes("mill") || s.companyName?.toLowerCase().includes("yarn"));
-        setSuppliers(textSupp.length > 0 ? textSupp : rawSupp);
+      if (suppRes.status === "fulfilled") {
+        const rawSupp = suppRes.value.data?.data || suppRes.value.data || [];
+        const suppArray = Array.isArray(rawSupp) ? rawSupp : [];
+        const textSupp = suppArray.filter((s) => s.isTextile === true || s.category === "TEXTILE" || s.companyName?.toLowerCase().includes("cotton") || s.companyName?.toLowerCase().includes("dye") || s.companyName?.toLowerCase().includes("mill") || s.companyName?.toLowerCase().includes("yarn"));
+        setSuppliers(textSupp.length > 0 ? textSupp : suppArray);
       }
     } catch (error) {
       console.error("Error fetching form data:", error);

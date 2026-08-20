@@ -159,9 +159,10 @@ export default function CategoriesPage() {
 
     setIsSubmitting(true);
     try {
+      const rawCode = form.slug.trim() || form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
       const payload = {
         name: form.name.trim(),
-        code: form.slug.trim() || form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        code: rawCode.slice(0, 20),
         status: form.status.toUpperCase(),
       };
 

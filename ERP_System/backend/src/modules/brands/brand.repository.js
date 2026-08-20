@@ -7,7 +7,7 @@ export const createBrand = async (data) => {
 };
 
 export const getAllBrands = async (companyId) => {
-  const where = companyId ? { companyId } : {};
+  const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
   return await prisma.brand.findMany({
     where,
     include: {
