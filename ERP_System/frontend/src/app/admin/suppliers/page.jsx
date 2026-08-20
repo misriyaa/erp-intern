@@ -76,24 +76,38 @@ export default function SuppliersPage() {
       const response = await getSuppliers();
       const list = response?.data || (Array.isArray(response) ? response : []);
       if (list.length > 0) {
-        setSuppliers(list);
+        const filteredList = list.filter((s) => {
+          const isTex =
+            s.isTextile === true ||
+            s.category === "TEXTILE" ||
+            s.companyName?.toLowerCase().includes("cotton") ||
+            s.companyName?.toLowerCase().includes("dye") ||
+            s.companyName?.toLowerCase().includes("mill") ||
+            s.companyName?.toLowerCase().includes("fiber") ||
+            s.companyName?.toLowerCase().includes("yarn") ||
+            s.companyName?.toLowerCase().includes("textile") ||
+            s.companyName?.toLowerCase().includes("synthetics");
+          if (isTextile) return isTex;
+          if (isGym) return s.category === "GYM" || s.companyName?.toLowerCase().includes("fitness") || s.companyName?.toLowerCase().includes("nutrition");
+          return !isTex && s.category !== "GYM";
+        });
+        setSuppliers(filteredList);
       } else {
         if (isTextile) {
           setSuppliers([
-            { id: "sup-tex-1", companyName: "Global Cotton Mills Ltd", contactPerson: "Vikram Rathore", email: "sales@globalcotton.com", phone: "+91 98765 88001", city: "Surat", country: "India", status: "ACTIVE" },
-            { id: "sup-tex-2", companyName: "Apex Dyes & Chemicals", contactPerson: "Meera Nair", email: "orders@apexdyes.com", phone: "+91 98765 88002", city: "Ahmedabad", country: "India", status: "ACTIVE" },
-            { id: "sup-tex-3", companyName: "Synthetics India Fiber", contactPerson: "Karan Johar", email: "info@syntheticsindia.com", phone: "+91 98765 88003", city: "Coimbatore", country: "India", status: "ACTIVE" },
+            { id: "sup-tex-1", companyName: "Global Cotton Mills Ltd", contactPerson: "Vikram Rathore", email: "sales@globalcotton.com", phone: "+91 98765 88001", city: "Surat", country: "India", status: "ACTIVE", isTextile: true, category: "TEXTILE" },
+            { id: "sup-tex-2", companyName: "Apex Dyes & Chemicals", contactPerson: "Meera Nair", email: "orders@apexdyes.com", phone: "+91 98765 88002", city: "Ahmedabad", country: "India", status: "ACTIVE", isTextile: true, category: "TEXTILE" },
+            { id: "sup-tex-3", companyName: "Synthetics India Fiber", contactPerson: "Karan Johar", email: "info@syntheticsindia.com", phone: "+91 98765 88003", city: "Coimbatore", country: "India", status: "ACTIVE", isTextile: true, category: "TEXTILE" },
           ]);
         } else if (isGym) {
           setSuppliers([
-            { id: "sup-gym-1", companyName: "Rogue Fitness Machinery", contactPerson: "Alex Mercer", email: "support@roguefitness.com", phone: "+1 800 555 0199", city: "Columbus", country: "USA", status: "ACTIVE" },
-            { id: "sup-gym-2", companyName: "Optimum Nutrition Supplies", contactPerson: "Sarah Jenkins", email: "b2b@optimumdist.com", phone: "+1 800 555 0244", city: "Chicago", country: "USA", status: "ACTIVE" },
-            { id: "sup-gym-3", companyName: "Matrix Fitness Systems", contactPerson: "Robert Chang", email: "orders@matrixfitness.com", phone: "+1 800 555 0388", city: "Cottage Grove", country: "USA", status: "ACTIVE" },
+            { id: "sup-gym-1", companyName: "Rogue Fitness Machinery", contactPerson: "Alex Mercer", email: "support@roguefitness.com", phone: "+1 800 555 0199", city: "Columbus", country: "USA", status: "ACTIVE", isTextile: false, category: "GYM" },
+            { id: "sup-gym-2", companyName: "Optimum Nutrition Supplies", contactPerson: "Sarah Jenkins", email: "b2b@optimumdist.com", phone: "+1 800 555 0244", city: "Chicago", country: "USA", status: "ACTIVE", isTextile: false, category: "GYM" },
           ]);
         } else {
           setSuppliers([
-            { id: "sup-ret-1", companyName: "Unilever Consumer Goods Ltd", contactPerson: "Sanjay Singhania", email: "dist@unilever.com", phone: "+91 98765 99001", city: "Mumbai", country: "India", status: "ACTIVE" },
-            { id: "sup-ret-2", companyName: "Nestlé Wholesale Distributors", contactPerson: "Rohan Kapoor", email: "orders@nestletrade.com", phone: "+91 98765 99002", city: "Gurgaon", country: "India", status: "ACTIVE" },
+            { id: "sup-ret-1", companyName: "Unilever Consumer Goods Ltd", contactPerson: "Sanjay Singhania", email: "dist@unilever.com", phone: "+91 98765 99001", city: "Mumbai", country: "India", status: "ACTIVE", isTextile: false, category: "RETAIL" },
+            { id: "sup-ret-2", companyName: "Nestlé Wholesale Distributors", contactPerson: "Rohan Kapoor", email: "orders@nestletrade.com", phone: "+91 98765 99002", city: "Gurgaon", country: "India", status: "ACTIVE", isTextile: false, category: "RETAIL" },
           ]);
         }
       }
@@ -156,6 +170,8 @@ export default function SuppliersPage() {
         country: form.country.trim() || undefined,
         taxNumber: form.taxNumber.trim() || undefined,
         status: form.status,
+        isTextile: Boolean(isTextile),
+        category: isTextile ? "TEXTILE" : isGym ? "GYM" : "RETAIL",
       };
 
       if (editingId) {

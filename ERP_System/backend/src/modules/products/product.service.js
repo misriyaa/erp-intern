@@ -31,10 +31,21 @@ export const createProduct = async (data) => {
     if (defaultUnit) unitId = defaultUnit.id;
   }
 
-  let brandId = data.brandId;
+  let brandId = data.brandId || null;
   if (brandId) {
     const brand = await brandRepository.getBrandById(brandId).catch(() => null);
     if (!brand) brandId = null;
+  }
+
+  let supplierId = data.supplierId || null;
+
+  let variants = data.variants;
+  if (typeof variants === "string") {
+    try {
+      variants = JSON.parse(variants);
+    } catch (e) {
+      variants = [];
+    }
   }
 
   const sku = data.sku || `SKU-${Date.now().toString().slice(-6)}`;
@@ -42,23 +53,65 @@ export const createProduct = async (data) => {
   const cleanData = {
     name: data.name,
     sku,
+    barcode: data.barcode || null,
     description: data.description || "",
     costPrice: parseFloat(data.costPrice || 0),
     sellingPrice: parseFloat(data.sellingPrice || 0),
+    wholesalePrice: data.wholesalePrice ? parseFloat(data.wholesalePrice) : null,
+    retailPrice: data.retailPrice ? parseFloat(data.retailPrice) : null,
+    discountType: data.discountType || null,
+    discountValue: data.discountValue ? parseFloat(data.discountValue) : null,
+    taxRate: data.taxRate ? parseFloat(data.taxRate) : null,
     image: data.image || null,
+    status: data.status || "ACTIVE",
     categoryId,
+    subcategory: data.subcategory || null,
     unitId,
     ...(brandId ? { brandId } : {}),
+    ...(supplierId ? { supplierId } : {}),
+
+    // Fabric Specs
+    isTextile: data.isTextile !== undefined ? Boolean(data.isTextile) : Boolean(data.fabricComposition || data.gsm || (data.sku && (data.sku.startsWith("TEX-") || data.sku.startsWith("FAB-")))),
+    fabricComposition: data.fabricComposition || null,
+    gsm: data.gsm ? parseFloat(data.gsm) : null,
+    rollWidth: data.rollWidth ? parseFloat(data.rollWidth) : null,
+    widthUnit: data.widthUnit || "Inches",
+    color: data.color || null,
+    colorCode: data.colorCode || null,
+    pattern: data.pattern || null,
+    weaveType: data.weaveType || null,
+    textureFinish: data.textureFinish || null,
+
+    // Inventory Details
+    stockUnit: data.stockUnit || null,
+    initialStock: data.initialStock ? parseFloat(data.initialStock) : 0,
+    openingStockDate: data.openingStockDate ? new Date(data.openingStockDate) : null,
+    reorderLevel: data.reorderLevel ? parseInt(data.reorderLevel) : 0,
+    minimumStock: data.minimumStock ? parseInt(data.minimumStock) : 0,
+    maximumStock: data.maximumStock ? parseInt(data.maximumStock) : null,
+    warehouseLocation: data.warehouseLocation || null,
+    rackLocation: data.rackLocation || null,
+    numberOfRolls: data.numberOfRolls ? parseInt(data.numberOfRolls) : 0,
+
+    // Supplier Details
+    supplierProductCode: data.supplierProductCode || null,
+    leadTime: data.leadTime ? parseInt(data.leadTime) : null,
+    hasVariants: Boolean(data.hasVariants || (Array.isArray(variants) && variants.length > 0)),
+    variants: Array.isArray(variants) ? variants : [],
   };
 
   const product = await productRepository.createProduct(cleanData);
 
-  try {
-    const barcode = await barcodeService.createBarcodeForProduct(product.id);
-    return { ...product, barcode };
-  } catch (err) {
-    return product;
+  if (data.barcode || !product.barcodes || product.barcodes.length === 0) {
+    try {
+      const barcodeVal = data.barcode || product.sku;
+      await barcodeService.createBarcodeForProduct(product.id, barcodeVal);
+    } catch (err) {
+      // Barcode generation soft fallback
+    }
   }
+
+  return await productRepository.getProductById(product.id);
 };
 
 export const getAllProducts = async (companyId) => {
@@ -87,20 +140,14 @@ export const updateProduct = async (id, data) => {
   }
 
   if (data.categoryId) {
-    const category = await categoryRepository.getCategoryById(
-      data.categoryId
-    );
-
+    const category = await categoryRepository.getCategoryById(data.categoryId);
     if (!category) {
       throw new Error("Category not found.");
     }
   }
 
   if (data.brandId) {
-    const brand = await brandRepository.getBrandById(
-      data.brandId
-    );
-
+    const brand = await brandRepository.getBrandById(data.brandId);
     if (!brand) {
       throw new Error("Brand not found.");
     }
@@ -114,15 +161,71 @@ export const updateProduct = async (id, data) => {
   }
 
   if (data.sku && data.sku !== product.sku) {
-    const existingProduct = await productRepository.getProductBySku(
-      data.sku
-    );
+    const existingProduct = await productRepository.getProductBySku(data.sku);
     if (existingProduct) {
       throw new Error("SKU already exists.");
     }
   }
 
-  return await productRepository.updateProduct(id, data);
+  let variants = data.variants;
+  if (typeof variants === "string") {
+    try {
+      variants = JSON.parse(variants);
+    } catch (e) {
+      variants = undefined;
+    }
+  }
+
+  const cleanUpdate = {
+    ...(data.name && { name: data.name }),
+    ...(data.sku && { sku: data.sku }),
+    ...(data.barcode !== undefined && { barcode: data.barcode }),
+    ...(data.description !== undefined && { description: data.description }),
+    ...(data.costPrice !== undefined && { costPrice: parseFloat(data.costPrice) }),
+    ...(data.sellingPrice !== undefined && { sellingPrice: parseFloat(data.sellingPrice) }),
+    ...(data.wholesalePrice !== undefined && { wholesalePrice: data.wholesalePrice ? parseFloat(data.wholesalePrice) : null }),
+    ...(data.retailPrice !== undefined && { retailPrice: data.retailPrice ? parseFloat(data.retailPrice) : null }),
+    ...(data.discountType !== undefined && { discountType: data.discountType }),
+    ...(data.discountValue !== undefined && { discountValue: data.discountValue ? parseFloat(data.discountValue) : null }),
+    ...(data.taxRate !== undefined && { taxRate: data.taxRate ? parseFloat(data.taxRate) : null }),
+    ...(data.image !== undefined && { image: data.image }),
+    ...(data.status && { status: data.status }),
+    ...(data.categoryId && { categoryId: data.categoryId }),
+    ...(data.subcategory !== undefined && { subcategory: data.subcategory }),
+    ...(data.unitId && { unitId: data.unitId }),
+    ...(data.brandId !== undefined && { brandId: data.brandId || null }),
+    ...(data.supplierId !== undefined && { supplierId: data.supplierId || null }),
+
+    // Fabric Specs
+    ...(data.fabricComposition !== undefined && { fabricComposition: data.fabricComposition }),
+    ...(data.gsm !== undefined && { gsm: data.gsm ? parseFloat(data.gsm) : null }),
+    ...(data.rollWidth !== undefined && { rollWidth: data.rollWidth ? parseFloat(data.rollWidth) : null }),
+    ...(data.widthUnit !== undefined && { widthUnit: data.widthUnit }),
+    ...(data.color !== undefined && { color: data.color }),
+    ...(data.colorCode !== undefined && { colorCode: data.colorCode }),
+    ...(data.pattern !== undefined && { pattern: data.pattern }),
+    ...(data.weaveType !== undefined && { weaveType: data.weaveType }),
+    ...(data.textureFinish !== undefined && { textureFinish: data.textureFinish }),
+
+    // Inventory Details
+    ...(data.stockUnit !== undefined && { stockUnit: data.stockUnit }),
+    ...(data.initialStock !== undefined && { initialStock: data.initialStock ? parseFloat(data.initialStock) : 0 }),
+    ...(data.openingStockDate !== undefined && { openingStockDate: data.openingStockDate ? new Date(data.openingStockDate) : null }),
+    ...(data.reorderLevel !== undefined && { reorderLevel: data.reorderLevel ? parseInt(data.reorderLevel) : 0 }),
+    ...(data.minimumStock !== undefined && { minimumStock: data.minimumStock ? parseInt(data.minimumStock) : 0 }),
+    ...(data.maximumStock !== undefined && { maximumStock: data.maximumStock ? parseInt(data.maximumStock) : null }),
+    ...(data.warehouseLocation !== undefined && { warehouseLocation: data.warehouseLocation }),
+    ...(data.rackLocation !== undefined && { rackLocation: data.rackLocation }),
+    ...(data.numberOfRolls !== undefined && { numberOfRolls: data.numberOfRolls ? parseInt(data.numberOfRolls) : 0 }),
+
+    // Supplier Details
+    ...(data.supplierProductCode !== undefined && { supplierProductCode: data.supplierProductCode }),
+    ...(data.leadTime !== undefined && { leadTime: data.leadTime ? parseInt(data.leadTime) : null }),
+    ...(data.hasVariants !== undefined && { hasVariants: Boolean(data.hasVariants) }),
+    ...(variants !== undefined && { variants: Array.isArray(variants) ? variants : [] }),
+  };
+
+  return await productRepository.updateProduct(id, cleanUpdate);
 };
 
 export const deleteProduct = async (id) => {

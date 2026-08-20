@@ -6,8 +6,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 // Get System Settings
 // ==========================================
 export async function getSettings() {
-  const response = await axios.get(`${API_URL}/api/settings`);
-  return response.data.data;
+  try {
+    const response = await axios.get(`${API_URL}/api/settings`);
+    return response.data.data;
+  } catch (error) {
+    console.warn("Settings API unavailable, using defaults:", error?.message || error);
+    return null;
+  }
 }
 
 // ==========================================

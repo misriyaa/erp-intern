@@ -7,10 +7,13 @@ import apiClient from "@/services/apiClient";
 import { toast, Toaster } from "react-hot-toast";
 import styles from "./addEmployees.module.css";
 import { getRoles } from "@/services/roleService";
+import { getDesignations } from "@/services/designationService";
 import { getBranches } from "@/services/branchService";
+import { useCompany } from "@/context/CompanyContext";
 
 export default function AddEmployeePage() {
   const router = useRouter();
+  const { company, industryCode } = useCompany();
 
   const [roles, setRoles] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -74,31 +77,116 @@ export default function AddEmployeePage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const generateEmployeeId = () => {
+    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    setFormData((prev) => ({
+      ...prev,
+      employeeId: `EMP-${randomNum}`,
+    }));
+  };
+
   useEffect(() => {
     fetchRoles();
     fetchBranches();
-  }, []);
+  }, [industryCode]);
 
   const fetchRoles = async () => {
+    let dbRoles = [];
+    let dbDesignations = [];
+
     try {
-      const res = await getRoles();
-      if (res.success && Array.isArray(res.data)) {
-        setRoles(res.data);
+      const [roleRes, desigRes] = await Promise.allSettled([
+        getRoles(),
+        getDesignations(),
+      ]);
+
+      if (roleRes.status === "fulfilled" && roleRes.value) {
+        const val = roleRes.value;
+        dbRoles = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
+      }
+
+      if (desigRes.status === "fulfilled" && desigRes.value) {
+        const val = desigRes.value;
+        dbDesignations = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
       }
     } catch (err) {
-      console.error("Failed to fetch roles:", err);
+      console.error("Failed to fetch roles/designations:", err);
     }
+
+    const isTex = Boolean(industryCode?.includes("TEXTILE"));
+    const isGymMode = Boolean(industryCode?.includes("GYM"));
+
+    const defaultRoles = isTex
+      ? ["Loom Weaving Specialist", "Quality Inspector", "Spinning Machine Master", "Dyeing Technician", "Textile Mill Supervisor", "Factory Manager"]
+      : isGymMode
+      ? ["Senior Personal Trainer", "Sports Nutritionist", "Desk & Check-in Specialist", "Fitness Manager"]
+      : ["Store Operations Manager", "Senior POS Cashier", "Inventory & Stock Clerk", "Sales Executive", "Retail Supervisor"];
+
+    const combined = [];
+
+    // 1. Added DB Roles
+    dbRoles.forEach((r) => {
+      const name = typeof r === "object" ? r.name : r;
+      if (name && !combined.some((item) => item.name?.toLowerCase() === name.toLowerCase())) {
+        combined.push({ id: r.id || name, name });
+      }
+    });
+
+    // 2. Added DB Designations
+    dbDesignations.forEach((d) => {
+      const name = typeof d === "object" ? (d.designation || d.name) : d;
+      if (name && !combined.some((item) => item.name?.toLowerCase() === name.toLowerCase())) {
+        combined.push({ id: d.id || name, name });
+      }
+    });
+
+    // 3. Only fallback if no DB roles or designations exist at all
+    if (combined.length === 0) {
+      defaultRoles.forEach((name) => {
+        if (!combined.some((item) => item.name?.toLowerCase() === name.toLowerCase())) {
+          combined.push({ id: name, name });
+        }
+      });
+    }
+
+    setRoles(combined);
   };
 
   const fetchBranches = async () => {
+    let dbBranches = [];
     try {
       const res = await getBranches();
-      if (res.success && Array.isArray(res.data)) {
-        setBranches(res.data);
-      }
+      dbBranches = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : (res?.data?.data || []);
     } catch (err) {
       console.error("Failed to fetch branches:", err);
     }
+
+    const isTex = Boolean(industryCode?.includes("TEXTILE"));
+    const isGymMode = Boolean(industryCode?.includes("GYM"));
+
+    const defaultBranches = isTex
+      ? [
+          { id: "b-tex-1", name: "Weaving Mill #1", code: "MILL-01" },
+          { id: "b-tex-2", name: "Dyeing & Finishing Unit", code: "MILL-02" },
+          { id: "b-tex-3", name: "Spinning Plant A", code: "MILL-03" },
+        ]
+      : isGymMode
+      ? [
+          { id: "b-gym-1", name: "Downtown Fitness Club", code: "GYM-01" },
+          { id: "b-gym-2", name: "Uptown Health Hub", code: "GYM-02" },
+        ]
+      : [
+          { id: "b-ret-1", name: "Central Supermarket Outlet", code: "RET-01" },
+          { id: "b-ret-2", name: "Westside Retail Depot", code: "RET-02" },
+        ];
+
+    const combined = [...dbBranches];
+
+    if (combined.length === 0) {
+      defaultBranches.forEach((b) => combined.push(b));
+    }
+
+    setBranches(combined);
   };
 
 
@@ -132,7 +220,11 @@ export default function AddEmployeePage() {
     try {
       const response = await apiClient.post(
         "/employees",
-        formData
+        {
+          ...formData,
+          companyId: company?.id,
+          type: industryCode,
+        }
       );
 
       console.log("Employee created:", response.data);

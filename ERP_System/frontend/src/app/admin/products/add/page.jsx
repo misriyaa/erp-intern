@@ -1,14 +1,19 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import axios from 'axios';
-import { toast, Toaster } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { toast, Toaster } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import {
   FiUpload,
   FiSave,
   FiPackage,
   FiX,
+  FiDollarSign,
+  FiArchive,
+  FiTruck,
+  FiShoppingBag,
+  FiCheckCircle,
+  FiTag,
 } from "react-icons/fi";
 
 import styles from "./addProducts.module.css";
@@ -16,702 +21,751 @@ import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
 
 const DEFAULT_UNITS = [
-  { id: "pcs", name: "Pieces", code: "pcs" },
-  { id: "kg", name: "Kilogram", code: "kg" },
-  { id: "g", name: "Gram", code: "g" },
-  { id: "l", name: "Litre", code: "L" },
+  { id: "pcs", name: "Piece / Pcs", code: "pcs" },
   { id: "box", name: "Box", code: "box" },
-  { id: "dozen", name: "Dozen", code: "dz" },
-  { id: "meter", name: "Meter", code: "m" },
-  { id: "pack", name: "Pack", code: "pk" },
+  { id: "pack", name: "Pack", code: "pack" },
+  { id: "kg", name: "Kilogram (KG)", code: "kg" },
+  { id: "liter", name: "Liter (L)", code: "liter" },
+  { id: "set", name: "Set", code: "set" },
+  { id: "unit", name: "Unit", code: "unit" },
 ];
 
 const initialProduct = {
   name: "",
-  code: "",
   sku: "",
-  // barcode: "",
+  barcode: "",
   categoryId: "",
+  subcategory: "",
   brandId: "",
   baseUnitId: "",
   description: "",
+  status: "ACTIVE",
+  isTextile: false,
+
+  stockUnit: "Piece / Pcs",
+  initialStock: "",
+  openingStockDate: new Date().toISOString().split("T")[0],
+  reorderLevel: "10",
+  minimumStock: "5",
+  maximumStock: "500",
+  warehouseLocation: "Main Store Warehouse",
+  rackLocation: "Shelf A-1",
+
   costPrice: "",
   sellingPrice: "",
-  tax: "",
+  wholesalePrice: "",
+  retailPrice: "",
   discountValue: "",
   discountType: "PERCENT",
-  stock: "",
-  lowStock: "",
-  warehouse: "",
-  status: "ACTIVE",
+  taxRate: "18",
+
+  supplierId: "",
+  supplierProductCode: "",
 };
 
-export default function AddProductPage() {
+export default function AddRetailProductPage() {
   const router = useRouter();
-  const { showWarning, showSuccess, showError } = useAlert();
+  const { showWarning } = useAlert();
+
   const [product, setProduct] = useState(initialProduct);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [units, setUnits] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [activeStep, setActiveStep] = useState(1);
 
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   const fileInputRef = useRef(null);
 
+  const generateSKUAndCode = () => {
+    const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const timestamp = Date.now().toString().slice(-4);
+    const code = `PRD-${randomStr}${timestamp}`;
+    const sku = `SKU-${randomStr}-${timestamp}`;
+    setProduct((prev) => ({
+      ...prev,
+      code,
+      sku,
+    }));
+  };
+
   useEffect(() => {
-    fetchCategories();
-    fetchBrands();
-    fetchUnits();
+    fetchFormData();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchFormData = async () => {
     try {
-      const res = await apiClient.get('/categories');
-      if (res.data && res.data.data) {
-        setCategories(res.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
+      const [catRes, brandRes, unitRes, suppRes] = await Promise.allSettled([
+        apiClient.get("/categories"),
+        apiClient.get("/brands"),
+        apiClient.get("/units"),
+        apiClient.get("/suppliers"),
+      ]);
 
-  const fetchBrands = async () => {
-    try {
-      const res = await apiClient.get('/brands');
-      if (res.data && res.data.data) {
-        setBrands(res.data.data);
+      if (catRes.status === "fulfilled" && catRes.value.data?.data) {
+        setCategories(catRes.value.data.data);
       }
-    } catch (error) {
-      console.error('Error fetching brands:', error);
-    }
-  };
-
-  const fetchUnits = async () => {
-    try {
-      const res = await apiClient.get('/units');
-      if (res.data && res.data.data && res.data.data.length > 0) {
-        setUnits(res.data.data);
+      if (brandRes.status === "fulfilled" && brandRes.value.data?.data) {
+        setBrands(brandRes.value.data.data);
+      }
+      if (unitRes.status === "fulfilled" && unitRes.value.data?.data?.length > 0) {
+        setUnits(unitRes.value.data.data);
       } else {
         setUnits(DEFAULT_UNITS);
       }
+      if (suppRes.status === "fulfilled" && suppRes.value.data?.data) {
+        const rawSupp = suppRes.value.data.data;
+        const retailSupp = rawSupp.filter((s) => s.isTextile !== true && s.category !== "TEXTILE");
+        setSuppliers(retailSupp.length > 0 ? retailSupp : rawSupp);
+      }
     } catch (error) {
-      console.error('Error fetching units:', error);
+      console.error("Error fetching form data:", error);
       setUnits(DEFAULT_UNITS);
     }
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-
+    const { name, value, type, checked } = e.target;
     setProduct((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  /* =========================
-     IMAGE UPLOAD
-  ========================= */
-
   const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    // Image type validation
-    const allowedTypes = [
-      "image/png",
-      "image/jpeg",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      showWarning("Invalid form data", "Please upload only PNG or JPG images.");
-      e.target.value = "";
-      return;
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
-
-    // 5MB validation
-    if (file.size > 5 * 1024 * 1024) {
-      showWarning("Invalid form data", "Image size must be less than 5MB.");
-      e.target.value = "";
-      return;
-    }
-
-    // Remove previous preview URL
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-
-    setImage(file);
-    setImagePreview(previewUrl);
   };
 
-  /* =========================
-     REMOVE IMAGE
-  ========================= */
-
-  const handleRemoveImage = () => {
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-
+  const removeImage = () => {
     setImage(null);
     setImagePreview(null);
-
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  /* =========================
-     SUBMIT
-  ========================= */
+  const validateForm = () => {
+    if (!product.name.trim()) {
+      showWarning("Validation Required", "Please enter a product name.");
+      return false;
+    }
+    if (!product.sellingPrice || Number(product.sellingPrice) <= 0) {
+      showWarning("Validation Required", "Please specify a valid selling price.");
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setSubmitting(true);
-    
-    // We will ignore stock, lowStock, and warehouse for now 
-    // since the API expects product model fields.
-    const formData = new FormData();
-    formData.append("name", product.name);
-    formData.append("sku", product.sku);
-    formData.append("categoryId", product.categoryId);
-    if (product.brandId) formData.append("brandId", product.brandId);
-    formData.append("costPrice", parseFloat(product.costPrice || 0));
-    formData.append("sellingPrice", parseFloat(product.sellingPrice || 0));
-    if (product.baseUnitId) formData.append("unitId", product.baseUnitId);
-    if (product.description) formData.append("description", product.description);
-    if (product.status) formData.append("status", product.status);
-
-    if (product.discountValue) {
-      formData.append("discountValue", parseFloat(product.discountValue));
-      formData.append("discountType", product.discountType);
-    }
-
-    if (image) {
-      formData.append("image", image);
-    }
+    const skuCode = product.sku.trim() || `RET-${Date.now().toString().slice(-6)}`;
 
     try {
-      const res = await apiClient.post('/products', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const formData = new FormData();
+      formData.append("name", product.name.trim());
+      formData.append("sku", skuCode);
+      formData.append("barcode", product.barcode.trim());
+      formData.append("description", product.description.trim());
+      formData.append("isTextile", "false");
+      formData.append("hasVariants", "false");
+      formData.append("status", product.status);
+
+      if (product.categoryId) formData.append("categoryId", product.categoryId);
+      if (product.subcategoryId) formData.append("subcategoryId", product.subcategoryId);
+      if (product.brandId) formData.append("brandId", product.brandId);
+      if (product.baseUnitId) formData.append("baseUnitId", product.baseUnitId);
+
+      formData.append("stockUnit", product.stockUnit);
+      formData.append("initialStock", product.initialStock || "0");
+      formData.append("openingStockDate", product.openingStockDate);
+      formData.append("reorderLevel", product.reorderLevel || "10");
+      formData.append("minimumStock", product.minimumStock || "5");
+      formData.append("maximumStock", product.maximumStock || "500");
+      formData.append("warehouseLocation", product.warehouseLocation);
+      formData.append("rackLocation", product.rackLocation);
+
+      formData.append("costPrice", product.costPrice || "0");
+      formData.append("sellingPrice", product.sellingPrice || "0");
+      formData.append("wholesalePrice", product.wholesalePrice || "0");
+      formData.append("retailPrice", product.retailPrice || "0");
+      formData.append("discountValue", product.discountValue || "0");
+      formData.append("discountType", product.discountType);
+      formData.append("taxRate", product.taxRate || "0");
+
+      if (product.supplierId) formData.append("supplierId", product.supplierId);
+      formData.append("supplierProductCode", product.supplierProductCode);
+
+      if (image) {
+        formData.append("image", image);
+      }
+
+      await apiClient.post("/products", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success('Product added successfully!');
+
+      toast.success(`Retail Product "${product.name}" created successfully!`);
       setTimeout(() => {
-        router.push('/admin/products/view');
-      }, 1500);
+        router.push("/admin/products/view");
+      }, 800);
     } catch (error) {
-      console.error(error);
-      const msg = error.response?.data?.message || 'Failed to create product';
-      toast.error(msg);
+      console.error("Error creating retail product:", error);
+      const errMsg = error.response?.data?.message || "Failed to create retail product.";
+      toast.error(errMsg);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const scrollToSection = (stepNum, sectionId) => {
+    setActiveStep(stepNum);
+    const elem = document.getElementById(sectionId);
+    if (elem) {
+      elem.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
-    <div className={styles.layout}>
+    <div className={styles.container}>
       <Toaster position="top-right" />
-      <div className={styles.main}>
-        <div className={styles.container}>
 
-          {/* =========================
-              PAGE HEADER
-          ========================= */}
+      {/* HERO HEADER BANNER */}
+      <div className={styles.heroBanner}>
+        <div>
+          <span className={styles.badgePill}>
+            <FiShoppingBag size={13} /> Commercial Retail ERP
+          </span>
+          <h1 className={styles.heroTitle}>Add Retail Product</h1>
+          <p className={styles.heroSubtitle}>
+            Register packaged goods, electronics, or retail stock. Clean, simple, and ready for instant POS barcode scanning.
+          </p>
+        </div>
 
-          <div className={styles.header}>
-            <div className={styles.headerLeft}>
-              <div>
-                <h1>Add Product</h1>
-                <p>
-                  Create a new product for inventory
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              form="add-product-form"
-              className={styles.saveBtn}
-              disabled={submitting}
-            >
-              <FiSave />
-              {submitting ? 'Saving...' : 'Save Product'}
-            </button>
-          </div>
-
-          {/* =========================
-              FORM
-          ========================= */}
-
-          <form
-            id="add-product-form"
-            className={styles.form}
-            onSubmit={handleSubmit}
+        <div className={styles.heroActions}>
+          <button
+            type="button"
+            className={styles.cancelBtn}
+            onClick={() => router.push("/admin/products/view")}
           >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.saveBtn}
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            <FiSave size={16} />
+            {submitting ? "Saving Product..." : "Save Product"}
+          </button>
+        </div>
+      </div>
 
-            {/* =========================
-                LEFT SECTION
-            ========================= */}
+      {/* VISUAL STEPPER NAVIGATION */}
+      <div className={styles.stepperNav}>
+        <div
+          className={`${styles.stepItem} ${activeStep === 1 ? styles.activeStep : ""}`}
+          onClick={() => scrollToSection(1, "sec-basic-info")}
+        >
+          <div className={styles.stepNumber}>1</div>
+          <span className={styles.stepTitle}>Basic Info</span>
+        </div>
 
-            <div className={styles.left}>
+        <div
+          className={`${styles.stepItem} ${activeStep === 2 ? styles.activeStep : ""}`}
+          onClick={() => scrollToSection(2, "sec-inventory")}
+        >
+          <div className={styles.stepNumber}>2</div>
+          <span className={styles.stepTitle}>Inventory Details</span>
+        </div>
 
-              {/* Product Information */}
+        <div
+          className={`${styles.stepItem} ${activeStep === 3 ? styles.activeStep : ""}`}
+          onClick={() => scrollToSection(3, "sec-pricing")}
+        >
+          <div className={styles.stepNumber}>3</div>
+          <span className={styles.stepTitle}>Pricing & Taxes</span>
+        </div>
 
-              <div className={styles.card}>
-                <h2>
+        <div
+          className={`${styles.stepItem} ${activeStep === 4 ? styles.activeStep : ""}`}
+          onClick={() => scrollToSection(4, "sec-supplier")}
+        >
+          <div className={styles.stepNumber}>4</div>
+          <span className={styles.stepTitle}>Supplier & Photo</span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className={styles.formLayout}>
+        {/* LEFT COLUMN */}
+        <div className={styles.mainColumn}>
+          {/* SECTION 1: Basic Information */}
+          <div id="sec-basic-info" className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.headerLeft}>
+                <div className={styles.cardIconBox}>
                   <FiPackage />
-                  Product Information
-                </h2>
-
-                <div className={styles.grid}>
-
-                  {/* Product Name */}
-
-                  <div>
-                    <label htmlFor="name">
-                      Product Name
-                    </label>
-
-                    <input
-                      id="name"
-                      name="name"
-                      value={product.name}
-                      onChange={handleChange}
-                      placeholder="Apple iPhone 15"
-                      required
-                    />
-                  </div>
-
-                  {/* Product Code */}
-
-                  <div>
-                    <label htmlFor="code">
-                      Product Code
-                    </label>
-
-                    <input
-                      id="code"
-                      name="code"
-                      value={product.code}
-                      onChange={handleChange}
-                      placeholder="PRD001"
-                    />
-                  </div>
-
-                  {/* SKU */}
-
-                  <div>
-                    <label htmlFor="sku">
-                      SKU
-                    </label>
-
-                    <input
-                      id="sku"
-                      name="sku"
-                      value={product.sku}
-                      onChange={handleChange}
-                      placeholder="SKU-1001"
-                      required
-                    />
-                  </div>
-
-                  {/* Barcode */}
-
-                  {/* <div>
-                    <label htmlFor="barcode">
-                      Barcode
-                    </label>
-
-                    <input
-                      id="barcode"
-                      name="barcode"
-                      value={product.barcode}
-                      onChange={handleChange}
-                      placeholder="123456789"
-                    />
-                  </div> */}
-
-                  {/* Category */}
-
-                  <div>
-                    <label htmlFor="categoryId">
-                      Category
-                    </label>
-
-                    <select
-                      id="categoryId"
-                      name="categoryId"
-                      value={product.categoryId}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">
-                        Choose Category
-                      </option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Brand */}
-
-                  <div>
-                    <label htmlFor="brandId">
-                      Brand
-                    </label>
-
-                    <select
-                      id="brandId"
-                      name="brandId"
-                      value={product.brandId}
-                      onChange={handleChange}
-                    >
-                      <option value="">
-                        Select Brand
-                      </option>
-                      {brands.map((brand) => (
-                        <option key={brand.id} value={brand.id}>
-                          {brand.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Unit */}
-
-                  <div>
-                    <label htmlFor="baseUnitId">
-                      Unit
-                    </label>
-
-                    <select
-                      id="baseUnitId"
-                      name="baseUnitId"
-                      value={product.baseUnitId}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Choose Unit</option>
-                      {units.map((unit) => (
-                        <option key={unit.id} value={unit.id}>
-                          {unit.name} ({unit.code || unit.shortName || unit.name})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Status */}
-
-                  <div>
-                    <label htmlFor="status">
-                      Status
-                    </label>
-
-                    <select
-                      id="status"
-                      name="status"
-                      value={product.status}
-                      onChange={handleChange}
-                    >
-                      <option value="ACTIVE">
-                        Active
-                      </option>
-
-                      <option value="INACTIVE">
-                        Inactive
-                      </option>
-                    </select>
-                  </div>
-
                 </div>
-
-                {/* Description */}
-
-                <label htmlFor="description">
-                  Description
+                <h2>1. Basic Information</h2>
+              </div>
+              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>General Fields</span>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.formGroup}>
+                <label>
+                  Product Name <span className={styles.required}>*</span>
                 </label>
-
-                <textarea
-                  id="description"
-                  rows={5}
-                  name="description"
-                  value={product.description}
+                <input
+                  type="text"
+                  name="name"
+                  value={product.name}
                   onChange={handleChange}
-                  placeholder="Write product description..."
+                  placeholder="e.g. Wireless Bluetooth Headphones"
+                  required
                 />
               </div>
 
-              {/* =========================
-                  PRICING
-              ========================= */}
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Product Code / SKU</label>
+                  <input
+                    type="text"
+                    name="sku"
+                    value={product.sku}
+                    onChange={handleChange}
+                    placeholder="Auto-generated (e.g. RET-849201)"
+                  />
+                </div>
 
-              <div className={styles.card}>
-                <h2>Pricing</h2>
-
-                <div className={styles.grid}>
-
-                  <div>
-                    <label htmlFor="costPrice">
-                      Purchase Price (Cost)
-                    </label>
-
-                    <input
-                      id="costPrice"
-                      name="costPrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={product.costPrice}
-                      onChange={handleChange}
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="sellingPrice">
-                      Selling Price
-                    </label>
-
-                    <input
-                      id="sellingPrice"
-                      name="sellingPrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={product.sellingPrice}
-                      onChange={handleChange}
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="tax">
-                      Tax (%)
-                    </label>
-
-                    <input
-                      id="tax"
-                      name="tax"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={product.tax}
-                      onChange={handleChange}
-                      placeholder="18"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="discountValue">
-                      Discount
-                    </label>
-
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <input
-                        id="discountValue"
-                        name="discountValue"
-                        type="number"
-                        min="0"
-                        value={product.discountValue}
-                        onChange={handleChange}
-                        placeholder="5"
-                        style={{ flex: 1 }}
-                      />
-                      <select
-                        name="discountType"
-                        value={product.discountType}
-                        onChange={handleChange}
-                        style={{ width: '80px' }}
-                      >
-                        <option value="PERCENT">%</option>
-                        <option value="FIXED">Fixed</option>
-                      </select>
-                    </div>
-                  </div>
-
+                <div className={styles.formGroup}>
+                  <label>Barcode / EAN</label>
+                  <input
+                    type="text"
+                    name="barcode"
+                    value={product.barcode}
+                    onChange={handleChange}
+                    placeholder="e.g. 8901234567890"
+                  />
                 </div>
               </div>
 
-              {/* =========================
-                  INVENTORY
-              ========================= */}
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Category <span className={styles.required}>*</span></label>
+                  <select
+                    name="categoryId"
+                    value={product.categoryId}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className={styles.card}>
-                <h2>Inventory</h2>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '15px' }}>
-                  Note: Inventory counts are managed via Purchases and Stock Adjustments. 
-                </p>
+                <div className={styles.formGroup}>
+                  <label>Subcategory</label>
+                  <input
+                    type="text"
+                    name="subcategory"
+                    value={product.subcategory}
+                    onChange={handleChange}
+                    placeholder="e.g. Audio & Accessories"
+                  />
+                </div>
+              </div>
 
-                <div className={styles.grid}>
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Brand</label>
+                  <select
+                    name="brandId"
+                    value={product.brandId}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Brand</option>
+                    {brands.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div>
-                    <label htmlFor="stock">
-                      Opening Stock (Read-only)
-                    </label>
+                <div className={styles.formGroup}>
+                  <label>Status</label>
+                  <select
+                    name="status"
+                    value={product.status}
+                    onChange={handleChange}
+                  >
+                    <option value="ACTIVE">Active (In Catalog)</option>
+                    <option value="INACTIVE">Inactive (Hidden)</option>
+                  </select>
+                </div>
+              </div>
 
+              <div className={styles.formGroup}>
+                <label>Product Description</label>
+                <textarea
+                  name="description"
+                  value={product.description}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Enter detailed retail product summary, specifications, or usage guidelines..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 2: Inventory Details */}
+          <div id="sec-inventory" className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.headerLeft}>
+                <div className={styles.cardIconBox}>
+                  <FiArchive />
+                </div>
+                <h2>2. Inventory Details</h2>
+              </div>
+              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Stock Metrics</span>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Stock Unit <span className={styles.required}>*</span></label>
+                  <select
+                    name="stockUnit"
+                    value={product.stockUnit}
+                    onChange={handleChange}
+                  >
+                    {DEFAULT_UNITS.map((u) => (
+                      <option key={u.id} value={u.name}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Initial Stock Quantity</label>
+                  <input
+                    type="number"
+                    name="initialStock"
+                    value={product.initialStock}
+                    onChange={handleChange}
+                    placeholder="100"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Opening Stock Date</label>
+                  <input
+                    type="date"
+                    name="openingStockDate"
+                    value={product.openingStockDate}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Reorder Level (Alert Threshold)</label>
+                  <input
+                    type="number"
+                    name="reorderLevel"
+                    value={product.reorderLevel}
+                    onChange={handleChange}
+                    placeholder="10"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Minimum Stock Level</label>
+                  <input
+                    type="number"
+                    name="minimumStock"
+                    value={product.minimumStock}
+                    onChange={handleChange}
+                    placeholder="5"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Maximum Stock Level (Optional)</label>
+                  <input
+                    type="number"
+                    name="maximumStock"
+                    value={product.maximumStock}
+                    onChange={handleChange}
+                    placeholder="500"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Warehouse / Store Location</label>
+                  <input
+                    type="text"
+                    name="warehouseLocation"
+                    value={product.warehouseLocation}
+                    onChange={handleChange}
+                    placeholder="Main Store Warehouse"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Rack / Shelf / Bin Location</label>
+                  <input
+                    type="text"
+                    name="rackLocation"
+                    value={product.rackLocation}
+                    onChange={handleChange}
+                    placeholder="e.g. Shelf A-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Pricing & Taxes */}
+          <div id="sec-pricing" className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.headerLeft}>
+                <div className={styles.cardIconBox}>
+                  <FiDollarSign />
+                </div>
+                <h2>3. Pricing & Taxes</h2>
+              </div>
+              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Rates & GST</span>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Purchase Cost (₹)</label>
+                  <input
+                    type="number"
+                    name="costPrice"
+                    value={product.costPrice}
+                    onChange={handleChange}
+                    placeholder="1200"
+                    step="0.01"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Selling Price (₹) <span className={styles.required}>*</span></label>
+                  <input
+                    type="number"
+                    name="sellingPrice"
+                    value={product.sellingPrice}
+                    onChange={handleChange}
+                    placeholder="1800"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Wholesale Price (₹)</label>
+                  <input
+                    type="number"
+                    name="wholesalePrice"
+                    value={product.wholesalePrice}
+                    onChange={handleChange}
+                    placeholder="1500"
+                    step="0.01"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Retail Price / MRP (₹)</label>
+                  <input
+                    type="number"
+                    name="retailPrice"
+                    value={product.retailPrice}
+                    onChange={handleChange}
+                    placeholder="1999"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Discount Value</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
                     <input
-                      id="stock"
-                      name="stock"
                       type="number"
-                      min="0"
-                      value={product.stock}
+                      name="discountValue"
+                      value={product.discountValue}
                       onChange={handleChange}
                       placeholder="0"
-                      disabled
+                      step="0.01"
+                      style={{ width: "100%" }}
                     />
-                  </div>
-
-                  <div>
-                    <label htmlFor="lowStock">
-                      Low Stock Alert
-                    </label>
-
-                    <input
-                      id="lowStock"
-                      name="lowStock"
-                      type="number"
-                      min="0"
-                      value={product.lowStock}
+                    <select
+                      name="discountType"
+                      value={product.discountType}
                       onChange={handleChange}
-                      placeholder="10"
-                    />
+                      style={{ width: "130px" }}
+                    >
+                      <option value="PERCENT">%</option>
+                      <option value="FIXED">Flat (₹)</option>
+                    </select>
                   </div>
+                </div>
 
-                  <div>
-                    <label htmlFor="warehouse">
-                      Warehouse
-                    </label>
-
-                    <input
-                      id="warehouse"
-                      name="warehouse"
-                      value={product.warehouse}
-                      onChange={handleChange}
-                      placeholder="Main Warehouse"
-                    />
-                  </div>
-
+                <div className={styles.formGroup}>
+                  <label>Tax / GST Rate (%)</label>
+                  <select
+                    name="taxRate"
+                    value={product.taxRate}
+                    onChange={handleChange}
+                  >
+                    <option value="0">0% (Exempted)</option>
+                    <option value="5">5% GST</option>
+                    <option value="12">12% GST</option>
+                    <option value="18">18% GST</option>
+                    <option value="28">28% GST</option>
+                  </select>
                 </div>
               </div>
-
             </div>
+          </div>
 
-            {/* =========================
-                RIGHT SECTION
-            ========================= */}
+          {/* SECTION 4: Supplier Information */}
+          <div id="sec-supplier" className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.headerLeft}>
+                <div className={styles.cardIconBox}>
+                  <FiTruck />
+                </div>
+                <h2>4. Supplier Information</h2>
+              </div>
+              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Goods Vendors</span>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Default Supplier</label>
+                  <select
+                    name="supplierId"
+                    value={product.supplierId}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Goods Vendor / Supplier</option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name || s.companyName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className={styles.right}>
-
-              {/* =========================
-                  PRODUCT IMAGE
-              ========================= */}
-
-              <div className={styles.card}>
-                <h2>Product Image</h2>
-
-                <div className={styles.uploadBox}>
-
-                  {imagePreview ? (
-                    <div className={styles.previewContainer}>
-
-                      <img
-                        src={imagePreview}
-                        alt="Product preview"
-                        className={styles.imagePreview}
-                      />
-
-                      <p className={styles.fileName}>
-                        {image?.name}
-                      </p>
-
-                      <button
-                        type="button"
-                        className={styles.removeButton}
-                        onClick={handleRemoveImage}
-                      >
-                        <FiX />
-                        Remove Image
-                      </button>
-
-                    </div>
-                  ) : (
-                    <>
-                      <FiUpload size={40} />
-
-                      <p>
-                        Click or Drag image here
-                      </p>
-
-                      <span>
-                        PNG, JPG up to 5MB
-                      </span>
-
-                      {/* Hidden File Input */}
-
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg"
-                        onChange={handleImageChange}
-                        className={styles.fileInput}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          fileInputRef.current?.click()
-                        }
-                      >
-                        Upload Image
-                      </button>
-                    </>
-                  )}
-
+                <div className={styles.formGroup}>
+                  <label>Supplier Product Code</label>
+                  <input
+                    type="text"
+                    name="supplierProductCode"
+                    value={product.supplierProductCode}
+                    onChange={handleChange}
+                    placeholder="VEND-SKU-992"
+                  />
                 </div>
               </div>
-
-              {/* =========================
-                  QUICK TIPS
-              ========================= */}
-
-              <div className={styles.card}>
-                <h2>Quick Tips</h2>
-
-                <ul className={styles.tips}>
-                  <li>
-                    Use a unique SKU.
-                  </li>
-
-                  <li>
-                    Upload a high-quality product image.
-                  </li>
-
-                  <li>
-                    Set low stock alerts.
-                  </li>
-
-                  <li>
-                    Verify pricing before saving.
-                  </li>
-                </ul>
-              </div>
-
             </div>
-
-          </form>
+          </div>
         </div>
-      </div>
+
+        {/* RIGHT COLUMN: Media & Guidance */}
+        <div className={styles.sideColumn}>
+          {/* Photo Upload Card */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.headerLeft}>
+                <div className={styles.cardIconBox}>
+                  <FiUpload />
+                </div>
+                <h2>Product Photo</h2>
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <div
+                className={styles.imageUploadBox}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {imagePreview ? (
+                  <div className={styles.previewContainer}>
+                    <img src={imagePreview} alt="Preview" className={styles.previewImg} />
+                    <button
+                      type="button"
+                      className={styles.removeImgBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage();
+                      }}
+                    >
+                      <FiX size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.uploadPlaceholder}>
+                    <FiUpload className={styles.uploadIcon} />
+                    <span style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a" }}>Upload Photo</span>
+                    <small>Supports PNG, JPG, WEBP up to 5MB</small>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: "none" }}
+              />
+            </div>
+          </div>
+
+          {/* Quick Info Card */}
+          <div className={styles.card} style={{ background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)" }}>
+            <div className={styles.cardHeader}>
+              <div className={styles.headerLeft}>
+                <FiCheckCircle style={{ color: "#4f46e5", fontSize: "20px" }} />
+                <h2>Retail ERP Guidance</h2>
+              </div>
+            </div>
+            <div className={styles.cardBody} style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6" }}>
+              <p style={{ margin: "0 0 12px 0" }}>
+                <strong>Barcode POS Scanning:</strong> Assign barcode values to enable instant checkout scanning at POS terminals.
+              </p>
+              <p style={{ margin: "0 0 12px 0" }}>
+                <strong>Reorder Thresholds:</strong> Receive automated reorder alerts when available quantity falls below minimum stock.
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Multi-tier Pricing:</strong> Set wholesale and retail MRP tiers for targeted store pricing policies.
+              </p>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

@@ -523,7 +523,11 @@ model Product {
 
   sku String @unique @db.VarChar(50)
 
+  barcode String? @db.VarChar(100)
+
   categoryId String
+
+  subcategory String? @db.VarChar(100)
 
   brandId String?
 
@@ -533,9 +537,15 @@ model Product {
 
   sellingPrice Decimal @db.Decimal(18, 2)
 
+  wholesalePrice Decimal? @db.Decimal(18, 2)
+
+  retailPrice Decimal? @db.Decimal(18, 2)
+
   discountType ProductDiscountType?
 
   discountValue Decimal? @db.Decimal(18, 2)
+
+  taxRate Decimal? @db.Decimal(5, 2)
 
   image String?
 
@@ -543,11 +553,62 @@ model Product {
 
   status ProductStatus @default(ACTIVE)
 
+  // Textile Fabric Specifications
+  isTextile Boolean @default(true)
+
+  fabricComposition String? @db.VarChar(150)
+
+  gsm Float?
+
+  rollWidth Float?
+
+  widthUnit String? @db.VarChar(20)
+
+  color String? @db.VarChar(50)
+
+  colorCode String? @db.VarChar(50)
+
+  pattern String? @db.VarChar(100)
+
+  weaveType String? @db.VarChar(100)
+
+  textureFinish String? @db.VarChar(100)
+
+  // Advanced Inventory Fields
+  stockUnit String? @db.VarChar(50)
+
+  initialStock Float? @default(0)
+
+  openingStockDate DateTime?
+
+  reorderLevel Int? @default(0)
+
+  minimumStock Int? @default(0)
+
+  maximumStock Int?
+
+  warehouseLocation String? @db.VarChar(150)
+
+  rackLocation String? @db.VarChar(100)
+
+  numberOfRolls Int? @default(0)
+
+  // Supplier Information
+  supplierId String?
+
+  supplierProductCode String? @db.VarChar(100)
+
+  leadTime Int?
+
+  hasVariants Boolean @default(false)
+
   unit Unit @relation(fields: [unitId], references: [id])
 
   category Category @relation(fields: [categoryId], references: [id])
 
   brand Brand? @relation(fields: [brandId], references: [id])
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
 
   barcodes Barcode[]
 
@@ -559,6 +620,8 @@ model Product {
 
   stockMovements StockMovement[]
 
+  variants ProductVariant[]
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
@@ -566,6 +629,7 @@ model Product {
   @@index([categoryId])
   @@index([brandId])
   @@index([unitId])
+  @@index([supplierId])
   @@map("products")
 }
 
@@ -586,6 +650,57 @@ model Barcode {
 
   @@index([productId])
   @@map("barcodes")
+}
+
+// PRODUCT VARIANT
+
+model ProductVariant {
+  id String @id @default(uuid())
+
+  productId String
+
+  sku String? @db.VarChar(50)
+
+  barcode String? @db.VarChar(100)
+
+  color String? @db.VarChar(50)
+
+  colorCode String? @db.VarChar(50)
+
+  rollWidth Float?
+
+  widthUnit String? @db.VarChar(20)
+
+  gsm Float?
+
+  pattern String? @db.VarChar(100)
+
+  weaveType String? @db.VarChar(100)
+
+  textureFinish String? @db.VarChar(100)
+
+  stock Float @default(0)
+
+  numberOfRolls Int? @default(0)
+
+  costPrice Decimal? @db.Decimal(18, 2)
+
+  sellingPrice Decimal? @db.Decimal(18, 2)
+
+  wholesalePrice Decimal? @db.Decimal(18, 2)
+
+  retailPrice Decimal? @db.Decimal(18, 2)
+
+  status ProductStatus @default(ACTIVE)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@map("product_variants")
 }
 
 // SUPPLIER
@@ -613,7 +728,13 @@ model Supplier {
 
   status Status @default(ACTIVE)
 
+  category String? @default("RETAIL") @db.VarChar(50)
+
+  isTextile Boolean @default(false)
+
   purchases Purchase[]
+
+  products Product[]
 
   createdAt DateTime @default(now())
 
@@ -643,6 +764,10 @@ model Warehouse {
   phone String?
 
   status Status @default(ACTIVE)
+
+  type String? @default("RETAIL_WH") @db.VarChar(50)
+
+  isTextile Boolean @default(false)
 
   inventories Inventory[]
 
@@ -1241,6 +1366,8 @@ model Branch {
   phone     String?
   email     String?
   isActive  Boolean  @default(true)
+  type      String?  @default("RETAIL_BRANCH") @db.VarChar(50)
+  isTextile Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

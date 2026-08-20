@@ -24,6 +24,7 @@ import {
   FiCheckCircle,
   FiHome,
   FiFileText,
+  FiShield,
 } from "react-icons/fi";
 
 export const INDUSTRY_CODES = {
@@ -89,6 +90,7 @@ export const ROUTE_MODULE_MAP = {
 
   // Textile Modules
   "/textile/products": "PRODUCTS",
+  "/textile/products/add": "PRODUCTS",
   "/textile/raw-materials": "RAW_MATERIALS",
   "/textile/production": "PRODUCTION",
   "/textile/quality-control": "QUALITY_CONTROL",
@@ -134,6 +136,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "BRANCHES", label: "Mills & Manufacturing Units", href: "/admin/branches", icon: FiMapPin, industry: "TEXTILE" },
   { moduleCode: "SUPPLIERS", label: "Yarn & Dye Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "TEXTILE" },
   { moduleCode: "SALES", label: "Fabric Sales & Export", href: "/sales", icon: FiShoppingCart, industry: "TEXTILE" },
+  { moduleCode: "EMPLOYEES", label: "Designations & Roles", href: "/admin/designations", icon: FiShield, industry: "TEXTILE" },
 
   // Retail Industry Modules
   { moduleCode: "SALES", label: "POS Terminal", href: "/pos", icon: FiMonitor, industry: "RETAIL" },
@@ -150,6 +153,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "SALES", label: "Sales Orders", href: "/sales", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "SALES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
   { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL" },
+  { moduleCode: "EMPLOYEES", label: "Designations & Roles", href: "/admin/designations", icon: FiShield, industry: "RETAIL" },
 
   // Shared Core Operations
   { moduleCode: "EXPENSES", label: "Expenses & Accounts", href: "/admin/expenses", icon: FiDollarSign },
