@@ -74,9 +74,18 @@ export default function AddEmployeePage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const generateEmployeeId = () => {
+    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    setFormData((prev) => ({
+      ...prev,
+      employeeId: `EMP-${randomNum}`,
+    }));
+  };
+
   useEffect(() => {
     fetchRoles();
     fetchBranches();
+    generateEmployeeId();
   }, []);
 
   const fetchRoles = async () => {
