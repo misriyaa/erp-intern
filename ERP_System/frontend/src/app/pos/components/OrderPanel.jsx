@@ -19,6 +19,7 @@ import {
   IconSave,
   IconPrint,
   IconCheck,
+  IconClose,
 } from "./icons";
 
 const PAYMENT_METHODS = [
@@ -67,6 +68,36 @@ export default function OrderPanel({
   onDeleteDraft,
 }) {
   const [customerSearch, setCustomerSearch] = useState(false);
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [modalErrors, setModalErrors] = useState({});
+
+  const handleModalSubmit = (e) => {
+    e.preventDefault();
+    const errors = {};
+    if (!newCustomerName.trim()) errors.name = "Name is required";
+    if (!newCustomerPhone.trim()) errors.phone = "Phone number is required";
+
+    if (Object.keys(errors).length > 0) {
+      setModalErrors(errors);
+      return;
+    }
+
+    onAddCustomer?.({
+      name: newCustomerName.trim(),
+      phone: newCustomerPhone.trim(),
+      email: newCustomerEmail.trim()
+    });
+
+    // Reset & Close
+    setNewCustomerName("");
+    setNewCustomerPhone("");
+    setNewCustomerEmail("");
+    setModalErrors({});
+    setShowAddCustomerModal(false);
+  };
 
   const handleRemove = removeItem || onRemoveItem;
   const handleClear = clearCart || onClearCart;
@@ -125,14 +156,7 @@ export default function OrderPanel({
           <button
             className="pos-customer-action-btn primary"
             title="Add Customer"
-            onClick={() => {
-              const name = prompt("Enter customer name:");
-              if (!name) return;
-              const phone = prompt("Enter customer phone number:");
-              if (!phone) return;
-              const email = prompt("Enter customer email (optional):") || "";
-              onAddCustomer?.({ name, phone, email });
-            }}
+            onClick={() => setShowAddCustomerModal(true)}
           >
             <IconPlus />
           </button>
@@ -348,6 +372,80 @@ export default function OrderPanel({
           <span>Complete Sale</span>
         </button>
       </div>
+
+      {showAddCustomerModal && (
+        <div className="pos-modal-overlay">
+          <div className="pos-modal-card">
+            <div className="pos-modal-header">
+              <h3>Add New Customer</h3>
+              <button 
+                className="pos-modal-close-btn"
+                onClick={() => {
+                  setShowAddCustomerModal(false);
+                  setModalErrors({});
+                }}
+              >
+                <IconClose />
+              </button>
+            </div>
+            
+            <div className="pos-modal-body">
+              <form onSubmit={handleModalSubmit}>
+                <div className="pos-form-group">
+                  <label>Customer Name <span>*</span></label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John Doe"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    className={`pos-form-input ${modalErrors.name ? "error" : ""}`}
+                  />
+                  {modalErrors.name && <span className="pos-input-error-msg">{modalErrors.name}</span>}
+                </div>
+
+                <div className="pos-form-group">
+                  <label>Phone Number <span>*</span></label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 9876543210"
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    className={`pos-form-input ${modalErrors.phone ? "error" : ""}`}
+                  />
+                  {modalErrors.phone && <span className="pos-input-error-msg">{modalErrors.phone}</span>}
+                </div>
+
+                <div className="pos-form-group">
+                  <label>Email Address <span>(Optional)</span></label>
+                  <input
+                    type="email"
+                    placeholder="e.g. john@example.com"
+                    value={newCustomerEmail}
+                    onChange={(e) => setNewCustomerEmail(e.target.value)}
+                    className="pos-form-input"
+                  />
+                </div>
+
+                <div className="pos-modal-actions">
+                  <button 
+                    type="button" 
+                    className="pos-modal-btn cancel"
+                    onClick={() => {
+                      setShowAddCustomerModal(false);
+                      setModalErrors({});
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="pos-modal-btn submit">
+                    Add Customer
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

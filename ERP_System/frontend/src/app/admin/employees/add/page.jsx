@@ -13,7 +13,7 @@ import { useCompany } from "@/context/CompanyContext";
 
 export default function AddEmployeePage() {
   const router = useRouter();
-  const { company, industryCode } = useCompany();
+  const { user, company, industryCode } = useCompany();
 
   const [roles, setRoles] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -159,7 +159,16 @@ export default function AddEmployeePage() {
       });
     }
 
-    setRoles(combined);
+    // Filter out Admin/Super Admin roles if logged-in user is a business Admin
+    let finalRoles = combined;
+    if (user?.role?.toUpperCase() === "ADMIN") {
+      finalRoles = combined.filter((r) => {
+        const nameUpper = r.name?.toUpperCase();
+        return nameUpper !== "ADMIN" && nameUpper !== "SUPER_ADMIN" && nameUpper !== "SUPERADMIN";
+      });
+    }
+
+    setRoles(finalRoles);
   };
 
   const fetchBranches = async () => {
@@ -496,7 +505,7 @@ export default function AddEmployeePage() {
                           ))
                         ) : (
                           <>
-                            <option value="Admin">Admin</option>
+                            {user?.role?.toUpperCase() !== "ADMIN" && <option value="Admin">Admin</option>}
                             <option value="Manager">Manager</option>
                             <option value="HR">HR</option>
                           </>

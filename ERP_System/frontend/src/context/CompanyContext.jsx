@@ -10,6 +10,7 @@ export function CompanyProvider({ children }) {
   const [modules, setModules] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [industryOverride, setIndustryOverride] = useState(null);
 
   const loadSession = () => {
     try {
@@ -23,6 +24,9 @@ export function CompanyProvider({ children }) {
         if (storedCompany) setCompany(JSON.parse(storedCompany));
         if (storedModules) setModules(JSON.parse(storedModules));
         if (storedPermissions) setPermissions(JSON.parse(storedPermissions));
+
+        const storedOverride = localStorage.getItem("industryOverride");
+        setIndustryOverride(storedOverride || null);
       }
     } catch (err) {
       console.error("Failed to load company session:", err);
@@ -73,10 +77,21 @@ export function CompanyProvider({ children }) {
     localStorage.removeItem("company");
     localStorage.removeItem("modules");
     localStorage.removeItem("permissions");
+    localStorage.removeItem("industryOverride");
+  };
+
+  const changeIndustryOverride = (code) => {
+    setIndustryOverride(code);
+    if (code) {
+      localStorage.setItem("industryOverride", code);
+    } else {
+      localStorage.removeItem("industryOverride");
+    }
+    window.dispatchEvent(new Event("user-updated"));
   };
 
   const industryCode =
-    company?.industry?.code || (user?.type || "RETAIL").toUpperCase();
+    industryOverride || company?.industry?.code || (user?.type || "RETAIL").toUpperCase();
 
   const isGym = industryCode.includes("GYM");
   const isTextile = industryCode.includes("TEXTILE");
@@ -117,6 +132,8 @@ export function CompanyProvider({ children }) {
         isModuleEnabled,
         saveSession,
         clearSession,
+        industryOverride,
+        changeIndustryOverride,
       }}
     >
       {children}

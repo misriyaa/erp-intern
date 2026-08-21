@@ -16,7 +16,7 @@ import { useCompany } from "@/context/CompanyContext";
 
 export default function EmployeePage() {
   const router = useRouter();
-  const { company, industryCode, isGym, isTextile } = useCompany();
+  const { user, company, industryCode, isGym, isTextile } = useCompany();
   const { settings, logoUrl } = useSettings();
   const { showSuccess, showError, showConfirm } = useAlert();
 
@@ -141,7 +141,18 @@ export default function EmployeePage() {
 
       const rawList = response.data?.data || [];
 
-      const filteredList = rawList.filter((emp) => {
+      // Filter out admins if logged-in user is a business-type admin
+      let baseList = rawList;
+      if (user?.role?.toUpperCase() === "ADMIN") {
+        baseList = rawList.filter(
+          (emp) =>
+            emp.role?.toUpperCase() !== "ADMIN" &&
+            emp.role?.toUpperCase() !== "SUPER_ADMIN" &&
+            emp.role?.toUpperCase() !== "SUPERADMIN"
+        );
+      }
+
+      const filteredList = baseList.filter((emp) => {
         const isTex =
           emp.type === "TEXTILE" ||
           emp.employeeId?.startsWith("EMP-TEX") ||

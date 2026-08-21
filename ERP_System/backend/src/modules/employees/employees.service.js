@@ -102,6 +102,27 @@ const addEmployee = async (
   const cleanPhone = phone.trim();
   const cleanRole = role.trim();
 
+  // If creating user is a business-type admin, block assigning Admin/Super Admin roles
+  if (req.user?.role?.toUpperCase() === "ADMIN") {
+    let requestedRoleName = "";
+    const roleById = await findRoleById(cleanRole);
+    if (roleById) {
+      requestedRoleName = roleById.name;
+    } else {
+      const roleByName = await findRoleByName(cleanRole);
+      if (roleByName) {
+        requestedRoleName = roleByName.name;
+      } else {
+        requestedRoleName = cleanRole;
+      }
+    }
+
+    const reqRoleUpper = requestedRoleName.toUpperCase();
+    if (reqRoleUpper === "ADMIN" || reqRoleUpper === "SUPER_ADMIN" || reqRoleUpper === "SUPERADMIN") {
+      throw new Error("Admins are not permitted to register or assign Admin/Super Admin roles");
+    }
+  }
+
 
   // Check email
   const existingEmail = await findEmployeeByEmail(cleanEmail);

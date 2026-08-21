@@ -1,0 +1,277 @@
+.page {
+  min-height: 100vh;
+  width: 100%;
+  padding: 32px 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  font-family: "Inter", sans-serif;
+  color: #334155;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #64748b;
+  max-width: 600px;
+}
+
+.activeBanner {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.activeInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.activeLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.activeVal {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resetBtn {
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resetBtn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 28px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+  position: relative;
+  overflow: hidden;
+}
+
+.cardActive {
+  border-color: #4f46e5;
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1), 0 8px 10px -6px rgba(79, 70, 229, 0.05);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.cardRetail::before {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.cardGym::before {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.cardTextile::before {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.cardIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease;
+}
+
+.iconRetail {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.iconGym {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.iconTextile {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.08);
+}
+
+.card:hover .cardIcon {
+  transform: scale(1.1) rotate(3deg);
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.card p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  min-height: 40px;
+}
+
+.modulesList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+  flex: 1;
+}
+
+.moduleItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.moduleDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotRetail {
+  background: #3b82f6;
+}
+
+.dotGym {
+  background: #10b981;
+}
+
+.dotTextile {
+  background: #f59e0b;
+}
+
+.actionBtn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+}
+
+.btnRetail {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.btnRetail:hover {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.btnGym {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.btnGym:hover {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.btnTextile {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.btnTextile:hover {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.btnActive {
+  background: #0f172a !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 960px) {
+  .cardsGrid {
+    grid-template-columns: 1fr;
+  }
+}

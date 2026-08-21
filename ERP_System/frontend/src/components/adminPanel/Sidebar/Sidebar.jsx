@@ -82,6 +82,15 @@ export default function Sidebar({ isOpen, onClose }) {
             <h4 className={styles.title}>Super Admin Controls</h4>
 
             <Link
+              href="/admin/superadmin-dashboard"
+              className={isActivePath("/admin/superadmin-dashboard") ? styles.active : ""}
+              onClick={handleLinkClick}
+            >
+              <FiGrid />
+              <span>SuperAdmin Dashboard</span>
+            </Link>
+
+            <Link
               href="/admin/add-admin"
               className={isActivePath("/admin/add-admin") ? styles.active : ""}
               onClick={handleLinkClick}
