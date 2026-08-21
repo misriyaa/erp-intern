@@ -49,6 +49,19 @@ import companyRoutes from "./modules/company/company.routes.js";
 import gymRoutes from "./modules/gym/gym.routes.js";
 import textileRoutes from "./modules/textile/textile.routes.js";
 
+import restaurantRoutes from "./modules/restaurants/restaurant.routes.js";
+import restaurantAreaRoutes from "./modules/restaurantAreas/restaurantArea.routes.js";
+import restaurantTableRoutes from "./modules/restaurantTables/restaurantTable.routes.js";
+import menuCategoryRoutes from "./modules/menuCategories/menuCategory.routes.js";
+import menuItemRoutes from "./modules/menuItems/menuItem.routes.js";
+import recipeRoutes from "./modules/recipes/recipe.routes.js";
+import modifierRoutes from "./modules/modifiers/modifier.routes.js";
+import restaurantOrderRoutes from "./modules/restaurantOrders/restaurantOrder.routes.js";
+import kitchenRoutes from "./modules/kitchen/kitchen.routes.js";
+import reservationRoutes from "./modules/reservations/reservation.routes.js";
+import wastageRoutes from "./modules/wastage/wastage.routes.js";
+import foodCostRoutes from "./modules/foodCost/foodCost.routes.js";
+
 import {
   attachUserIfAuthenticated,
 } from "./middlewares/auth.middleware.js";
@@ -278,6 +291,19 @@ app.use(
   "/api/reports",
   reportsRoutes
 );
+
+app.use("/api/restaurants", restaurantRoutes);
+app.use("/api/restaurant-areas", restaurantAreaRoutes);
+app.use("/api/restaurant-tables", restaurantTableRoutes);
+app.use("/api/menu-categories", menuCategoryRoutes);
+app.use("/api/menu-items", menuItemRoutes);
+app.use("/api/recipes", recipeRoutes);
+app.use("/api/modifiers", modifierRoutes);
+app.use("/api/restaurant-orders", restaurantOrderRoutes);
+app.use("/api/kitchen", kitchenRoutes);
+app.use("/api/reservations", reservationRoutes);
+app.use("/api/wastage", wastageRoutes);
+app.use("/api/food-cost", foodCostRoutes);
 
 
 app.use((req, res) => {

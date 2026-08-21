@@ -25,12 +25,19 @@ import {
   FiHome,
   FiFileText,
   FiShield,
+  FiCoffee,
+  FiTv,
+  FiCalendar,
+  FiPieChart,
+  FiTrash2,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 export const INDUSTRY_CODES = {
   RETAIL: "RETAIL",
   GYM: "GYM",
   TEXTILE: "TEXTILE",
+  RESTAURANT: "RESTAURANT",
 };
 
 export const ROUTE_MODULE_MAP = {
@@ -95,6 +102,17 @@ export const ROUTE_MODULE_MAP = {
   "/textile/production": "PRODUCTION",
   "/textile/quality-control": "QUALITY_CONTROL",
 
+  // Restaurant Modules
+  "/restaurant/dashboard": "RESTAURANT",
+  "/restaurant/tables": "RESTAURANT",
+  "/restaurant/reservations": "RESTAURANT",
+  "/restaurant/menu": "RESTAURANT",
+  "/restaurant/pos": "RESTAURANT",
+  "/restaurant/kitchen": "RESTAURANT",
+  "/restaurant/orders": "RESTAURANT",
+  "/restaurant/wastage": "RESTAURANT",
+  "/restaurant/food-cost": "RESTAURANT",
+
   // Core Operations
   "/admin/expenses": "EXPENSES",
   "/admin/branches": "BRANCHES",
@@ -145,7 +163,6 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "CATEGORIES", label: "Categories", href: "/admin/categories", icon: FiBox, industry: "RETAIL" },
   { moduleCode: "BRANDS", label: "Brands", href: "/admin/brand", icon: FiTag, industry: "RETAIL" },
   { moduleCode: "PRODUCTS", label: "Units of Measure", href: "/admin/units", icon: FiBox, industry: "RETAIL" },
-  { moduleCode: "INVENTORY", label: "Inventory / Stock", href: "/warehouse/stock", icon: FiPackage, industry: "RETAIL" },
   { moduleCode: "INVENTORY", label: "Warehouse Management", href: "/warehouse", icon: FiBriefcase, industry: "RETAIL" },
   { moduleCode: "CUSTOMERS", label: "Customers", href: "/customers", icon: FiUsers, industry: "RETAIL" },
   { moduleCode: "SUPPLIERS", label: "Goods Vendors & Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RETAIL" },
@@ -154,6 +171,20 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "SALES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
   { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL" },
   { moduleCode: "EMPLOYEES", label: "Designations & Roles", href: "/admin/designations", icon: FiShield, industry: "RETAIL" },
+
+  // Restaurant Industry Modules
+  { moduleCode: "RESTAURANT", label: "Restaurant Dashboard", href: "/restaurant/dashboard", icon: FiGrid, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Restaurant Outlets Setup", href: "/restaurant/manage", icon: FiMapPin, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Restaurant POS", href: "/restaurant/pos", icon: FiMonitor, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Floor & Tables", href: "/restaurant/tables", icon: FiCoffee, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Reservations", href: "/restaurant/reservations", icon: FiCalendar, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Menu & Recipes", href: "/restaurant/menu", icon: FiBox, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Kitchen Display (KDS)", href: "/restaurant/kitchen", icon: FiTv, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Restaurant Orders", href: "/restaurant/orders", icon: FiShoppingCart, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Wastage Management", href: "/restaurant/wastage", icon: FiTrash2, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Food Costing", href: "/restaurant/food-cost", icon: FiTrendingUp, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Raw Materials / Ingredients", href: "/admin/products/view", icon: FiPackage, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Kitchen Stock & Transfers", href: "/warehouse/stock", icon: FiTruck, industry: "RESTAURANT" },
 
   // Shared Core Operations
   { moduleCode: "EXPENSES", label: "Expenses & Accounts", href: "/admin/expenses", icon: FiDollarSign },

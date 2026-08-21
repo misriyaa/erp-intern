@@ -25,7 +25,13 @@ async function main() {
     create: { code: "TEXTILE", name: "Textile", status: true },
   });
 
-  console.log("✅ Industries Seeded:", retailIndustry.code, gymIndustry.code, textileIndustry.code);
+  const restaurantIndustry = await prisma.industry.upsert({
+    where: { code: "RESTAURANT" },
+    update: { name: "Restaurant", status: true },
+    create: { code: "RESTAURANT", name: "Restaurant", status: true },
+  });
+
+  console.log("✅ Industries Seeded:", retailIndustry.code, gymIndustry.code, textileIndustry.code, restaurantIndustry.code);
 
   // 2. Seed Modules Catalog
   const moduleList = [
@@ -51,6 +57,7 @@ async function main() {
     { code: "RAW_MATERIALS", name: "Raw Materials", description: "Yarn, Cotton, Dyes, and Chemical Stock" },
     { code: "PRODUCTION", name: "Production Tracking", description: "Textile batch processing & stage tracking" },
     { code: "QUALITY_CONTROL", name: "Quality Control", description: "Quality inspection and defect logging" },
+    { code: "RESTAURANT", name: "Restaurant ERP", description: "Food POS, Tables, Recipes, KOT, & KDS" },
   ];
 
   const createdModules = {};

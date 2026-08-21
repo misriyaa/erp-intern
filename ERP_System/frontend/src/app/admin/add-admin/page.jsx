@@ -326,6 +326,7 @@ export default function AddAdminPage() {
                 <option value="RETAIL">Retail (RETAIL)</option>
                 <option value="GYM">Gym & Fitness (GYM)</option>
                 <option value="TEXTILE">Textile ERP (TEXTILE)</option>
+                <option value="RESTAURANT">Restaurant ERP (RESTAURANT)</option>
               </select>
             </div>
 
@@ -508,6 +509,7 @@ export default function AddAdminPage() {
                   const industryCode = item.company?.industry?.code || item.type || "RETAIL";
                   const isGymClient = industryCode.toUpperCase().includes("GYM");
                   const isTextileClient = industryCode.toUpperCase().includes("TEXTILE");
+                  const isRestaurantClient = industryCode.toUpperCase().includes("RESTAURANT");
 
                   return (
                     <tr key={item.id}>
@@ -541,11 +543,29 @@ export default function AddAdminPage() {
                             borderRadius: "12px",
                             fontSize: "12px",
                             fontWeight: "700",
-                            background: isGymClient ? "#d1fae5" : isTextileClient ? "#ccfbf1" : "#e0e7ff",
-                            color: isGymClient ? "#047857" : isTextileClient ? "#0f766e" : "#4338ca",
+                            background: isGymClient
+                              ? "#d1fae5"
+                              : isTextileClient
+                              ? "#ccfbf1"
+                              : isRestaurantClient
+                              ? "#fef3c7"
+                              : "#e0e7ff",
+                            color: isGymClient
+                              ? "#047857"
+                              : isTextileClient
+                              ? "#0f766e"
+                              : isRestaurantClient
+                              ? "#92400e"
+                              : "#4338ca",
                           }}
                         >
-                          {isGymClient ? "🏋️ GYM" : isTextileClient ? "🧵 TEXTILE" : "🛒 RETAIL"}
+                          {isGymClient
+                            ? "🏋️ GYM"
+                            : isTextileClient
+                            ? "🧵 TEXTILE"
+                            : isRestaurantClient
+                            ? "🍽️ RESTAURANT"
+                            : "🛒 RETAIL"}
                         </span>
                       </td>
                       <td>

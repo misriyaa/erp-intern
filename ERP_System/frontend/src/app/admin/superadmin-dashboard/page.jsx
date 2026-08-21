@@ -10,7 +10,8 @@ import {
   FiShield,
   FiAlertTriangle,
   FiArrowLeft,
-  FiBriefcase
+  FiBriefcase,
+  FiCoffee
 } from "react-icons/fi";
 import Link from "next/link";
 import styles from "./superAdminDashboard.module.css";
@@ -214,6 +215,47 @@ export default function SuperAdminDashboard() {
             disabled={industryCode === "TEXTILE"}
           >
             {industryCode === "TEXTILE" ? "Currently Simulating" : "Activate Textile View"}
+          </button>
+        </div>
+
+        {/* RESTAURANT CARD */}
+        <div className={`${styles.card} ${industryCode === "RESTAURANT" ? styles.cardActive : ""}`} style={{ borderColor: industryCode === "RESTAURANT" ? "#f59e0b" : "#e2e8f0" }}>
+          <div className={styles.cardIcon} style={{ background: "#fef3c7", color: "#d97706" }}>
+            <FiCoffee />
+          </div>
+          <h3>Restaurant & Food ERP</h3>
+          <p>Complete food service management with Dine-In/Takeaway POS, Table floor plans, KOT kitchen displays, recipe BOM, and food costing.</p>
+          
+          <div className={styles.modulesList}>
+            <div className={styles.moduleItem}>
+              <span className={styles.moduleDot} style={{ background: "#f59e0b" }} />
+              <span>Restaurant POS & Floor Table Map</span>
+            </div>
+            <div className={styles.moduleItem}>
+              <span className={styles.moduleDot} style={{ background: "#f59e0b" }} />
+              <span>Kitchen Display System (KDS) & KOT</span>
+            </div>
+            <div className={styles.moduleItem}>
+              <span className={styles.moduleDot} style={{ background: "#f59e0b" }} />
+              <span>Recipe BOM & Auto Stock Deduction</span>
+            </div>
+            <div className={styles.moduleItem}>
+              <span className={styles.moduleDot} style={{ background: "#f59e0b" }} />
+              <span>Food Costing & Wastage Logs</span>
+            </div>
+          </div>
+
+          <button 
+            className={styles.actionBtn}
+            style={{
+              background: industryCode === "RESTAURANT" ? "#f59e0b" : "#fef3c7",
+              color: industryCode === "RESTAURANT" ? "#ffffff" : "#d97706",
+              border: "none"
+            }}
+            onClick={() => changeIndustryOverride("RESTAURANT")}
+            disabled={industryCode === "RESTAURANT"}
+          >
+            {industryCode === "RESTAURANT" ? "Currently Simulating" : "Activate Restaurant View"}
           </button>
         </div>
       </div>

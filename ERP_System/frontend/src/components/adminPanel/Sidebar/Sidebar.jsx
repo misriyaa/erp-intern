@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSettings } from "@/context/SettingsContext";
 import { useCompany } from "@/context/CompanyContext";
 import { MASTER_NAVIGATION_CATALOG } from "@/config/industries";
+import { restaurantService } from "@/services/restaurantService";
 
 import {
   FiGrid,
@@ -14,14 +15,48 @@ import {
   FiX,
   FiLogOut,
   FiShield,
+  FiCoffee,
+  FiFilter,
 } from "react-icons/fi";
 
 import styles from "./Sidebar.module.css";
 
 export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { settings, logoUrl } = useSettings();
-  const { user, company, isModuleEnabled, isGym, isTextile, clearSession } = useCompany();
+  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, clearSession } = useCompany();
+
+  const [restaurants, setRestaurants] = useState([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
+
+  useEffect(() => {
+    fetchRestaurantsList();
+  }, []);
+
+  const fetchRestaurantsList = async () => {
+    try {
+      const res = await restaurantService.getRestaurants();
+      setRestaurants(res.data || []);
+    } catch (err) {
+      console.error("Failed to load restaurants for sidebar filter:", err);
+    }
+  };
+
+  const handleRestaurantFilterChange = (restaurantId) => {
+    setSelectedRestaurantId(restaurantId);
+    if (restaurantId) {
+      if (pathname.startsWith("/restaurant/")) {
+        router.push(`${pathname}?restaurantId=${restaurantId}`);
+      } else {
+        router.push(`/restaurant/dashboard?restaurantId=${restaurantId}`);
+      }
+    } else {
+      if (pathname.startsWith("/restaurant/")) {
+        router.push(pathname);
+      }
+    }
+  };
 
   const isActivePath = (href) => {
     if (!href) return false;
@@ -50,7 +85,7 @@ export default function Sidebar({ isOpen, onClose }) {
     if (item.industry) {
       if (isGym && item.industry !== "GYM") return false;
       if (isTextile && item.industry !== "TEXTILE") return false;
-      if (!isGym && !isTextile && item.industry !== "RETAIL") return false;
+      if (isRestaurant && item.industry !== "RESTAURANT") return false;
     }
     return isModuleEnabled(item.moduleCode);
   });
@@ -75,6 +110,38 @@ export default function Sidebar({ isOpen, onClose }) {
           </button>
         )}
       </div>
+
+      {/* Restaurant Aside Outlet Filter */}
+      {restaurants.length > 0 && (
+        <div style={{ padding: "0 16px 16px 16px", borderBottom: "1px solid #334155", marginBottom: "16px" }}>
+          <label style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+            <FiFilter size={12} color="#38bdf8" />
+            <span>Filter Restaurant Outlet:</span>
+          </label>
+          <select
+            value={selectedRestaurantId}
+            onChange={(e) => handleRestaurantFilterChange(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              borderRadius: "6px",
+              border: "1px solid #475569",
+              backgroundColor: "#0f172a",
+              color: "#f8fafc",
+              fontSize: "13px",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            <option value="">All Restaurant Outlets</option>
+            {restaurants.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <nav>
         {isSuperAdmin && (
@@ -111,16 +178,26 @@ export default function Sidebar({ isOpen, onClose }) {
         )}
 
         <h4 className={styles.title}>
-          {isGym ? "GYM MANAGEMENT MODULES" : isTextile ? "TEXTILE ERP MODULES" : "RETAIL MANAGEMENT"}
+          {isGym
+            ? "GYM MANAGEMENT MODULES"
+            : isTextile
+            ? "TEXTILE ERP MODULES"
+            : isRestaurant
+            ? "RESTAURANT ERP MODULES"
+            : "SUPERMARKET & RESTAURANT ERP"}
         </h4>
 
         {visibleNavItems.map((item) => {
           const IconComp = item.icon;
           const active = isActivePath(item.href);
+          const finalHref = selectedRestaurantId && item.href.startsWith("/restaurant/")
+            ? `${item.href}?restaurantId=${selectedRestaurantId}`
+            : item.href;
+
           return (
             <Link
               key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
-              href={item.href}
+              href={finalHref}
               className={active ? styles.active : ""}
               onClick={handleLinkClick}
             >
