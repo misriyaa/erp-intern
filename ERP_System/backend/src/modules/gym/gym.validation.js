@@ -12,26 +12,49 @@ export const createGymMemberValidation = [
     .trim(),
 
   body("email")
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage("Invalid email address")
     .normalizeEmail(),
 
   body("membershipPlanId")
     .notEmpty()
-    .withMessage("Membership plan ID is required"),
+    .withMessage("Membership plan is required")
+    .isUUID()
+    .withMessage("Invalid membership plan ID"),
 
-  body("joinDate")
+  body("assignedTrainerId")
     .notEmpty()
-    .withMessage("Join date is required")
+    .withMessage("Assigned trainer is required")
+    .isUUID()
+    .withMessage("Invalid trainer ID"),
+
+  body("startDate")
+    .notEmpty()
+    .withMessage("Start date is required")
     .isISO8601()
-    .withMessage("Invalid join date format"),
+    .withMessage("Invalid start date format"),
 
   body("expiryDate")
     .notEmpty()
     .withMessage("Expiry date is required")
     .isISO8601()
     .withMessage("Invalid expiry date format"),
+
+  body("joinDate")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage("Invalid join date format"),
+
+  body("dob")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage("Invalid date of birth format"),
+
+  body("status")
+    .optional({ checkFalsy: true })
+    .isIn(["ACTIVE", "INACTIVE", "EXPIRED", "FROZEN"])
+    .withMessage("Invalid status value"),
 ];
 
 export const updateGymMemberValidation = [
@@ -48,20 +71,49 @@ export const updateGymMemberValidation = [
     .trim(),
 
   body("email")
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage("Invalid email address")
     .normalizeEmail(),
 
-  body("joinDate")
+  body("membershipPlanId")
+    .optional()
+    .notEmpty()
+    .withMessage("Membership plan ID cannot be empty")
+    .isUUID()
+    .withMessage("Invalid membership plan ID"),
+
+  body("assignedTrainerId")
+    .optional()
+    .notEmpty()
+    .withMessage("Assigned trainer ID cannot be empty")
+    .isUUID()
+    .withMessage("Invalid trainer ID"),
+
+  body("startDate")
     .optional()
     .isISO8601()
-    .withMessage("Invalid join date format"),
+    .withMessage("Invalid start date format"),
 
   body("expiryDate")
     .optional()
     .isISO8601()
     .withMessage("Invalid expiry date format"),
+
+  body("joinDate")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage("Invalid join date format"),
+
+  body("dob")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage("Invalid date of birth format"),
+
+  body("status")
+    .optional()
+    .isIn(["ACTIVE", "INACTIVE", "EXPIRED", "FROZEN"])
+    .withMessage("Invalid status value"),
 ];
 
 export const createGymPlanValidation = [

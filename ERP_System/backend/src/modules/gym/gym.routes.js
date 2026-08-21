@@ -21,6 +21,12 @@ import {
   getGymDashboardStatsController,
 } from "./gym.controller.js";
 
+import {
+  createGymMemberValidation,
+  updateGymMemberValidation,
+} from "./gym.validation.js";
+import validateRequest from "../../middlewares/validateRequest.js";
+
 import { requireModuleAccess } from "../../middlewares/moduleAccess.middleware.js";
 
 const router = express.Router();
@@ -31,8 +37,8 @@ router.get("/dashboard/stats", requireModuleAccess("DASHBOARD"), getGymDashboard
 // Members
 router.get("/members", requireModuleAccess("MEMBERS"), getGymMembersController);
 router.get("/members/:id", requireModuleAccess("MEMBERS"), getGymMemberByIdController);
-router.post("/members", requireModuleAccess("MEMBERS"), createGymMemberController);
-router.put("/members/:id", requireModuleAccess("MEMBERS"), updateGymMemberController);
+router.post("/members", requireModuleAccess("MEMBERS"), createGymMemberValidation, validateRequest, createGymMemberController);
+router.put("/members/:id", requireModuleAccess("MEMBERS"), updateGymMemberValidation, validateRequest, updateGymMemberController);
 router.delete("/members/:id", requireModuleAccess("MEMBERS"), deleteGymMemberController);
 
 // Membership Plans

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -45,6 +47,7 @@ export default function EmployeePage() {
   const [currentEmployee, setCurrentEmployee] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
+  const [filterType, setFilterType] = useState("all");
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -172,7 +175,13 @@ export default function EmployeePage() {
           emp.employeeId?.startsWith("EMP-GYM") ||
           emp.role?.toLowerCase().includes("trainer") ||
           emp.role?.toLowerCase().includes("nutrition") ||
-          emp.role?.toLowerCase().includes("fitness");
+          emp.role?.toLowerCase().includes("fitness") ||
+          emp.role?.toLowerCase().includes("desk") ||
+          emp.role?.toLowerCase().includes("check-in") ||
+          emp.role?.toLowerCase().includes("receptionist") ||
+          emp.role?.toLowerCase().includes("specialist") ||
+          emp.role?.toLowerCase().includes("staff") ||
+          emp.role?.toLowerCase().includes("manager");
 
         if (isTextile) return isTex;
         if (isGym) return isGymEmp;
@@ -487,6 +496,28 @@ export default function EmployeePage() {
     );
   };
 
+  const isTrainerRole = (emp) => {
+    const roleName = getRoleName(emp).toLowerCase();
+    return (
+      roleName.includes("trainer") ||
+      roleName.includes("nutrition") ||
+      roleName.includes("coach") ||
+      roleName.includes("instructor") ||
+      emp.employeeId?.startsWith("EMP-TRN")
+    );
+  };
+
+  const displayedEmployees = employees.filter((emp) => {
+    if (!isGym) return true;
+    if (filterType === "staff") {
+      return !isTrainerRole(emp);
+    }
+    if (filterType === "trainers") {
+      return isTrainerRole(emp);
+    }
+    return true; // "all"
+  });
+
   // =====================================================
   // RENDER
   // =====================================================
@@ -535,6 +566,31 @@ export default function EmployeePage() {
 
           </div>
 
+          {isGym && (
+            <div className={styles.filterContainer}>
+              <button
+                type="button"
+                className={`${styles.filterButton} ${filterType === "all" ? styles.filterButtonActive : ""}`}
+                onClick={() => setFilterType("all")}
+              >
+                All Employees
+              </button>
+              <button
+                type="button"
+                className={`${styles.filterButton} ${filterType === "staff" ? styles.filterButtonActive : ""}`}
+                onClick={() => setFilterType("staff")}
+              >
+                Staff Only
+              </button>
+              <button
+                type="button"
+                className={`${styles.filterButton} ${filterType === "trainers" ? styles.filterButtonActive : ""}`}
+                onClick={() => setFilterType("trainers")}
+              >
+                Trainers Only
+              </button>
+            </div>
+          )}
 
           {/* =================================================
               EMPLOYEE GRID
@@ -600,12 +656,27 @@ export default function EmployeePage() {
 
 
             {/* =================================================
-                EMPLOYEE CARDS
+                FILTER EMPTY STATE
             ================================================= */}
 
             {!loading &&
               employees.length > 0 &&
-              employees.map((employee) => {
+              displayedEmployees.length === 0 && (
+                <div className={styles.emptyState}>
+                  <Users className={styles.emptyIcon} />
+                  <h3>No employees match this filter</h3>
+                  <p>Try switching to another filter tab.</p>
+                </div>
+              )}
+
+
+            {/* =================================================
+                EMPLOYEE CARDS
+            ================================================= */}
+
+            {!loading &&
+              displayedEmployees.length > 0 &&
+              displayedEmployees.map((employee) => {
 
                 const employeeName =
                   employee.fullName ||

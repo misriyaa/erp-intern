@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, User, Loader2 } from "lucide-react";
@@ -33,8 +35,8 @@ export default function AddEmployeePage() {
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = "Full name must be at least 2 characters";
+    } else if (formData.fullName.trim().length < 3) {
+      newErrors.fullName = "Full name must be at least 3 characters";
     }
 
     if (!formData.employeeId.trim()) {
