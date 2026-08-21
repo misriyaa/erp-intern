@@ -120,7 +120,6 @@ export const ROUTE_MODULE_MAP = {
   "/admin/employees/add": "EMPLOYEES",
   "/admin/employees/view": "EMPLOYEES",
   "/admin/departments": "EMPLOYEES",
-  "/admin/designations": "EMPLOYEES",
   "/reports": "REPORTS",
   "/reports/inventory": "REPORTS",
   "/reports/purchase": "REPORTS",
@@ -143,7 +142,6 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "PAYMENTS", label: "Payments & Fees", href: "/gym/payments", icon: FiCreditCard, industry: "GYM" },
   { moduleCode: "BRANCHES", label: "Fitness Centers & Facilities", href: "/admin/branches", icon: FiMapPin, industry: "GYM" },
   { moduleCode: "SUPPLIERS", label: "Equipment Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "GYM" },
-  { moduleCode: "EMPLOYEES", label: "Designations & Roles", href: "/admin/designations", icon: FiShield, industry: "GYM" },
 
   // Textile Industry Modules
   { moduleCode: "PRODUCTS", label: "Textile Products", href: "/textile/products", icon: FiShoppingBag, industry: "TEXTILE" },
@@ -155,7 +153,6 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "BRANCHES", label: "Mills & Manufacturing Units", href: "/admin/branches", icon: FiMapPin, industry: "TEXTILE" },
   { moduleCode: "SUPPLIERS", label: "Yarn & Dye Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "TEXTILE" },
   { moduleCode: "SALES", label: "Fabric Sales & Export", href: "/sales", icon: FiShoppingCart, industry: "TEXTILE" },
-  { moduleCode: "EMPLOYEES", label: "Designations & Roles", href: "/admin/designations", icon: FiShield, industry: "TEXTILE" },
 
   // Retail Industry Modules
   { moduleCode: "SALES", label: "POS Terminal", href: "/pos", icon: FiMonitor, industry: "RETAIL" },
@@ -171,7 +168,6 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "SALES", label: "Sales Orders", href: "/sales", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "SALES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
   { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL" },
-  { moduleCode: "EMPLOYEES", label: "Designations & Roles", href: "/admin/designations", icon: FiShield, industry: "RETAIL" },
 
   // Restaurant Industry Modules
   { moduleCode: "RESTAURANT", label: "Restaurant Dashboard", href: "/restaurant/dashboard", icon: FiGrid, industry: "RESTAURANT" },

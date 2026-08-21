@@ -34,6 +34,12 @@ export default function POSPage() {
   const [localHeldDrafts, setLocalHeldDrafts] = useState([]);
 
   useEffect(() => {
+    if (customer === "" && selectedPayment === "Credit") {
+      setSelectedPayment("Cash");
+    }
+  }, [customer, selectedPayment]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const items = JSON.parse(localStorage.getItem("pos_held_drafts") || "[]");
       setLocalHeldDrafts(items);

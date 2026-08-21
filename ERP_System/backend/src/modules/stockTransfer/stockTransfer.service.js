@@ -66,7 +66,8 @@ export const createStockTransfer = async (data) => {
         throw new Error("Product not available in source warehouse.");
       }
 
-      if (sourceInventory.quantity < item.quantity) {
+      const itemQty = parseInt(item.quantity);
+      if (sourceInventory.quantity < itemQty) {
         throw new Error("Insufficient stock.");
       }
 
@@ -74,7 +75,7 @@ export const createStockTransfer = async (data) => {
         data: {
           stockTransferId: transfer.id,
           productId: item.productId,
-          quantity: item.quantity,
+          quantity: itemQty,
         },
       });
 
@@ -83,7 +84,7 @@ export const createStockTransfer = async (data) => {
           id: sourceInventory.id,
         },
         data: {
-          quantity: sourceInventory.quantity - item.quantity,
+          quantity: sourceInventory.quantity - itemQty,
         },
       });
 
@@ -100,7 +101,7 @@ export const createStockTransfer = async (data) => {
             id: destinationInventory.id,
           },
           data: {
-            quantity: destinationInventory.quantity + item.quantity,
+            quantity: destinationInventory.quantity + itemQty,
           },
         });
       } else {
@@ -108,7 +109,7 @@ export const createStockTransfer = async (data) => {
           data: {
             productId: item.productId,
             warehouseId: data.toWarehouseId,
-            quantity: item.quantity,
+            quantity: itemQty,
           },
         });
       }
@@ -118,7 +119,7 @@ export const createStockTransfer = async (data) => {
           productId: item.productId,
           warehouseId: data.fromWarehouseId,
           type: "TRANSFER_OUT",
-          quantity: item.quantity,
+          quantity: itemQty,
           referenceNo: data.transferNo,
           remarks: data.remarks,
         },
@@ -129,7 +130,7 @@ export const createStockTransfer = async (data) => {
           productId: item.productId,
           warehouseId: data.toWarehouseId,
           type: "TRANSFER_IN",
-          quantity: item.quantity,
+          quantity: itemQty,
           referenceNo: data.transferNo,
           remarks: data.remarks,
         },

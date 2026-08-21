@@ -1,4 +1,5 @@
 import * as reportsRepository from "./reports.repository.js";
+import prisma from "../../config/prisma.js";
 
 /**
  * Format date for grouping in chart
@@ -236,5 +237,175 @@ export const getReportFilters = async (companyId) => {
     customers,
     suppliers,
     warehouses,
+  };
+};
+
+export const getDashboardSummary = async (companyId) => {
+  const companyWhere = companyId ? { companyId } : {};
+
+  const totalProducts = await prisma.product.count({
+    where: {
+      status: "ACTIVE",
+      ...companyWhere,
+    },
+  });
+
+  const totalEmployees = await prisma.user.count({
+    where: {
+      ...companyWhere,
+    },
+  });
+
+  const lowStockProducts = await prisma.inventory.count({
+    where: {
+      quantity: {
+        lte: prisma.inventory.reorderLevel,
+      },
+      product: {
+        ...companyWhere,
+      },
+    },
+  }).catch(() => 0);
+
+  const inventories = await prisma.inventory.findMany({
+    where: {
+      product: {
+        ...companyWhere,
+      },
+    },
+    include: {
+      product: true,
+    },
+  });
+
+  let totalValuation = 0;
+  let inStockCount = 0;
+  let lowStockCount = 0;
+  let outOfStockCount = 0;
+
+  inventories.forEach((item) => {
+    const qty = Number(item.quantity || 0);
+    const price = Number(item.product?.sellingPrice || 0);
+    totalValuation += qty * price;
+
+    if (qty <= 0) {
+      outOfStockCount++;
+    } else if (qty <= (item.reorderLevel || 10)) {
+      lowStockCount++;
+    } else {
+      inStockCount++;
+    }
+  });
+
+  const salesOrders = await prisma.salesOrder.findMany({
+    where: {
+      status: "COMPLETED",
+      ...companyWhere,
+    },
+  });
+
+  const totalEarnings = salesOrders.reduce((sum, order) => sum + Number(order.netAmount || order.totalAmount || 0), 0);
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const recentSales = await prisma.salesOrder.findMany({
+    where: {
+      orderDate: {
+        gte: sixMonthsAgo,
+      },
+      status: "COMPLETED",
+      ...companyWhere,
+    },
+    orderBy: {
+      orderDate: "asc",
+    },
+  });
+
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const earningsMap = {};
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const mName = d.toLocaleString("default", { month: "short" });
+    earningsMap[mName] = 0;
+  }
+
+  recentSales.forEach((sale) => {
+    const d = new Date(sale.orderDate || sale.createdAt);
+    const mName = d.toLocaleString("default", { month: "short" });
+    if (earningsMap[mName] !== undefined) {
+      earningsMap[mName] += Number(sale.netAmount || sale.totalAmount || 0);
+    }
+  });
+
+  const earningsChartData = Object.keys(earningsMap).map((m) => ({
+    name: m,
+    earnings: Math.round(earningsMap[m]),
+  }));
+
+  const [lastSales, lastPurchases, lastTransfers] = await Promise.all([
+    prisma.salesOrder.findMany({
+      where: companyWhere,
+      take: 4,
+      orderBy: { createdAt: "desc" },
+    }).catch(() => []),
+    prisma.purchase.findMany({
+      where: companyWhere,
+      take: 4,
+      orderBy: { createdAt: "desc" },
+    }).catch(() => []),
+    prisma.stockTransfer.findMany({
+      where: companyWhere,
+      take: 4,
+      orderBy: { createdAt: "desc" },
+    }).catch(() => []),
+  ]);
+
+  const activities = [];
+  lastSales.forEach((s) => {
+    activities.push({
+      title: "New Sale completed",
+      sub: `Order ${s.orderNumber || "INV-N/A"} of ₹${Number(s.netAmount || s.totalAmount || 0).toFixed(2)}`,
+      icon: "↩️",
+      time: s.createdAt,
+    });
+  });
+
+  lastPurchases.forEach((p) => {
+    activities.push({
+      title: "New Purchase Order",
+      sub: `PO ${p.purchaseNo} total: ₹${Number(p.totalAmount || 0).toFixed(2)}`,
+      icon: "🧾",
+      time: p.createdAt,
+    });
+  });
+
+  lastTransfers.forEach((t) => {
+    activities.push({
+      title: "Stock Transfer executed",
+      sub: `Transfer ${t.transferNo} completed`,
+      icon: "📦",
+      time: t.createdAt,
+    });
+  });
+
+  activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  return {
+    stats: {
+      totalProducts,
+      totalEmployees,
+      lowStock: lowStockCount || lowStockProducts,
+      totalValue: Math.round(totalValuation),
+      totalEarnings: Math.round(totalEarnings),
+      inStock: inStockCount,
+      outOfStock: outOfStockCount,
+    },
+    earningsChart: earningsChartData,
+    recentActivities: activities.slice(0, 5),
   };
 };

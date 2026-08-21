@@ -2,7 +2,11 @@ import * as purchaseService from "./purchase.service.js";
 
 export const createPurchase = async (req, res) => {
   try {
-    const purchase = await purchaseService.createPurchase(req.body);
+    const companyId = req.user?.companyId;
+    const purchase = await purchaseService.createPurchase({
+      ...req.body,
+      companyId,
+    });
 
     return res.status(201).json({
       success: true,

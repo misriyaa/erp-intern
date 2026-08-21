@@ -99,7 +99,7 @@ class SalesRepository {
   // Find By Order Number
   // ===============================
   async findByOrderNumber(orderNumber) {
-    return await prisma.salesOrder.findUnique({
+    return await prisma.salesOrder.findFirst({
       where: { orderNumber },
     }).catch(() => null);
   }

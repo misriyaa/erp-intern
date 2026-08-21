@@ -110,3 +110,17 @@ export const getReportFilters = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getDashboardSummary = async (req, res, next) => {
+  try {
+    const companyId = req.user?.companyId;
+    const summary = await reportsService.getDashboardSummary(companyId);
+
+    res.status(200).json({
+      success: true,
+      data: summary,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

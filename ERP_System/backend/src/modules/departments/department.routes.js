@@ -1,4 +1,5 @@
 import express from "express";
+import { requireRoles } from "../../middlewares/auth.middleware.js";
 
 import {
   getDepartments,
@@ -14,8 +15,9 @@ const router = express.Router();
 
 router.get("/", getDepartments);
 router.get("/:id", getDepartment);
-router.post("/", validateDepartment, createDepartment);
-router.put("/:id", validateDepartment, updateDepartment);
-router.delete("/:id", deleteDepartment);
+router.post("/", requireRoles(["ADMIN", "OWNER"]), validateDepartment, createDepartment);
+router.put("/:id", requireRoles(["ADMIN", "OWNER"]), validateDepartment, updateDepartment);
+router.delete("/:id", requireRoles(["ADMIN", "OWNER"]), deleteDepartment);
 
 export default router;
+

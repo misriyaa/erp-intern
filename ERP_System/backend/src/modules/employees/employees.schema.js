@@ -77,6 +77,9 @@ const addEmployeeSchema = Joi.object({
   type: Joi.string()
     .trim()
     .optional(),
+
+  permissions: Joi.any()
+    .optional(),
 });
 
 export {

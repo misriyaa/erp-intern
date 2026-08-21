@@ -7,45 +7,52 @@ export default function SalesFilter({
   setCustomer,
   paymentStatus,
   setPaymentStatus,
+  customers = [],
 }) {
   return (
-    <div className="bg-white p-5 rounded-xl shadow mb-6">
+    <div className="filterCard">
+      <div className="filterGrid">
+        
+        <div className="filterGroup">
+          <label>Search Sales</label>
+          <input
+            type="text"
+            placeholder="Search Invoice, Cashier..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+        <div className="filterGroup">
+          <label>Customer</label>
+          <select
+            value={customer}
+            onChange={(e) => setCustomer(e.target.value)}
+          >
+            <option value="">All Customers</option>
+            <option value="Walk-in Customer">Walk-in Customer</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <input
-          type="text"
-          placeholder="Search Invoice..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border rounded-lg p-3"
-        />
-
-        <select
-          value={customer}
-          onChange={(e) => setCustomer(e.target.value)}
-          className="border rounded-lg p-3"
-        >
-          <option value="">All Customers</option>
-          <option>John Doe</option>
-          <option>Ameen</option>
-          <option>Rahul</option>
-          <option>Faris</option>
-        </select>
-
-        <select
-          value={paymentStatus}
-          onChange={(e) => setPaymentStatus(e.target.value)}
-          className="border rounded-lg p-3"
-        >
-          <option value="">All Payments</option>
-          <option>Paid</option>
-          <option>Pending</option>
-          <option>Partial</option>
-        </select>
+        <div className="filterGroup">
+          <label>Payment Status</label>
+          <select
+            value={paymentStatus}
+            onChange={(e) => setPaymentStatus(e.target.value)}
+          >
+            <option value="">All Payments</option>
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
 
       </div>
-
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
 } from "react-icons/fi";
 import { useSettings } from "@/context/SettingsContext";
 import { useCompany } from "@/context/CompanyContext";
+import apiClient from "@/services/apiClient";
 
 import styles from "./Header.module.css";
 
@@ -57,7 +58,18 @@ const QUICK_SEARCH_ITEMS = [
 export default function Header({ toggleSidebar }) {
   const router = useRouter();
   const { settings } = useSettings();
-  const { company, isGym, isTextile, isRestaurant, isRetail, industryCode } = useCompany();
+  const {
+    company,
+    isGym,
+    isTextile,
+    isRestaurant,
+    isRetail,
+    industryCode,
+    companyOverride,
+    branchOverride,
+    changeCompanyOverride,
+    changeBranchOverride,
+  } = useCompany();
 
   // User state
   const [user, setUser] = useState(null);
@@ -81,6 +93,56 @@ export default function Header({ toggleSidebar }) {
       }
     } catch (err) {
       console.error("Failed to parse user in Header", err);
+    }
+  };
+
+  const roleUpper = (user?.role || "").toUpperCase();
+  const isSuperAdmin = roleUpper.includes("SUPER");
+
+  const [companiesList, setCompaniesList] = useState([]);
+  const [selectedCompId, setSelectedCompId] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      apiClient.get("/companies")
+        .then((res) => {
+          if (res.data?.success && Array.isArray(res.data?.data)) {
+            setCompaniesList(res.data.data);
+          }
+        })
+        .catch((err) => console.error("Header failed to load companies:", err));
+    }
+  }, [isSuperAdmin]);
+
+  useEffect(() => {
+    setSelectedCompId(companyOverride?.id || "");
+    setSelectedBranchId(branchOverride?.id || "");
+  }, [companyOverride, branchOverride]);
+
+  const handleCompanyChange = (e) => {
+    const compId = e.target.value;
+    if (!compId) {
+      changeCompanyOverride(null);
+    } else {
+      const compObj = companiesList.find((c) => c.id === compId);
+      if (compObj) {
+        changeCompanyOverride(compObj);
+      }
+    }
+  };
+
+  const handleBranchChange = (e) => {
+    const bId = e.target.value;
+    if (!bId) {
+      changeBranchOverride(null);
+    } else {
+      const activeComp = companyOverride || company;
+      const branches = activeComp?.branches || [];
+      const branchObj = branches.find((b) => b.id === bId);
+      if (branchObj) {
+        changeBranchOverride(branchObj);
+      }
     }
   };
 
@@ -193,6 +255,63 @@ export default function Header({ toggleSidebar }) {
               : "🛒 RETAIL ERP MODE"}
           </span>
         </div>
+
+        {/* Super Admin simulation controls */}
+        {isSuperAdmin && (
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "15px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8" }}>Client:</span>
+              <select
+                value={selectedCompId}
+                onChange={handleCompanyChange}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  backgroundColor: "#1e293b",
+                  border: "1px solid #475569",
+                  color: "#f8fafc",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="">All Clients (Default)</option>
+                {companiesList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedCompId && (
+              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8" }}>Branch:</span>
+                <select
+                  value={selectedBranchId}
+                  onChange={handleBranchChange}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #475569",
+                    color: "#f8fafc",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="">All Branches</option>
+                  {(companiesList.find((c) => c.id === selectedCompId)?.branches || []).map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Dynamic Search Container */}
         <div className={styles.searchContainer}>

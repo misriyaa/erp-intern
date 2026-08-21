@@ -380,24 +380,23 @@ export default function CategoriesPage() {
                       </span>
                     </td>
                     <td>
-                      <div className={styles.actionWrapper}>
+                      <div className={styles.inlineActions}>
                         <button
                           type="button"
-                          className={styles.actionButton}
-                          onClick={() => setOpenMenu(openMenu === category.id ? null : category.id)}
+                          className={styles.inlineEditBtn}
+                          onClick={() => handleEdit(category)}
+                          title="Edit"
                         >
-                          <FiMoreVertical size={17} />
+                          <FiEdit2 size={15} />
                         </button>
-                        {openMenu === category.id && (
-                          <div className={styles.actionMenu}>
-                            <button type="button" onClick={() => handleEdit(category)}>
-                              <FiEdit2 size={14} /> Edit
-                            </button>
-                            <button type="button" className={styles.deleteAction} onClick={() => handleDelete(category.id)}>
-                              <FiTrash2 size={14} /> Delete
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          className={styles.inlineDeleteBtn}
+                          onClick={() => handleDelete(category.id)}
+                          title="Delete"
+                        >
+                          <FiTrash2 size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>

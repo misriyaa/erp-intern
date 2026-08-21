@@ -18,7 +18,7 @@ import { useCompany } from "@/context/CompanyContext";
 
 export default function EmployeePage() {
   const router = useRouter();
-  const { user, company, industryCode, isGym, isTextile } = useCompany();
+  const { user, company, industryCode, isGym, isTextile, isRestaurant } = useCompany();
   const { settings, logoUrl } = useSettings();
   const { showSuccess, showError, showConfirm } = useAlert();
 
@@ -107,15 +107,36 @@ export default function EmployeePage() {
     fetchBranches();
   }, []);
 
-  const fetchRoles = async () => {
-    try {
-      const res = await getRoles();
-      if (res.success && Array.isArray(res.data)) {
-        setRoles(res.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch roles:", err);
+  const fetchRoles = () => {
+    let combined = [];
+    if (isGym) {
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Trainer", name: "Trainer" },
+      ];
+    } else if (isTextile) {
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Weaver", name: "Weaver" },
+        { id: "Dyer", name: "Dyer" },
+        { id: "Quality Inspector", name: "Quality Inspector" },
+      ];
+    } else if (isRestaurant) {
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Cashier", name: "Cashier" },
+        { id: "Waiter", name: "Waiter" },
+        { id: "Kitchen Staff", name: "Kitchen Staff" },
+      ];
+    } else {
+      // Retail / default
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Cashier", name: "Cashier" },
+        { id: "Inventory Manager", name: "Inventory Manager" },
+      ];
     }
+    setRoles(combined);
   };
 
   const fetchBranches = async () => {
@@ -158,30 +179,27 @@ export default function EmployeePage() {
       const filteredList = baseList.filter((emp) => {
         const isTex =
           emp.type === "TEXTILE" ||
-          emp.employeeId?.startsWith("EMP-TEX") ||
-          emp.role?.toLowerCase().includes("loom") ||
-          emp.role?.toLowerCase().includes("weaving") ||
-          emp.role?.toLowerCase().includes("spinning") ||
-          emp.role?.toLowerCase().includes("dyeing") ||
-          emp.role?.toLowerCase().includes("textile") ||
-          emp.role?.toLowerCase().includes("mill") ||
-          emp.branch?.name?.toLowerCase().includes("mill") ||
-          emp.branch?.name?.toLowerCase().includes("weaving") ||
-          emp.branch?.name?.toLowerCase().includes("spinning") ||
-          emp.branch?.name?.toLowerCase().includes("dyeing");
+          (!emp.type && (
+            emp.employeeId?.startsWith("EMP-TEX") ||
+            emp.role?.toLowerCase().includes("loom") ||
+            emp.role?.toLowerCase().includes("weaving") ||
+            emp.role?.toLowerCase().includes("spinning") ||
+            emp.role?.toLowerCase().includes("dyeing") ||
+            emp.role?.toLowerCase().includes("textile") ||
+            emp.role?.toLowerCase().includes("mill")
+          ));
 
         const isGymEmp =
           emp.type === "GYM" ||
-          emp.employeeId?.startsWith("EMP-GYM") ||
-          emp.role?.toLowerCase().includes("trainer") ||
-          emp.role?.toLowerCase().includes("nutrition") ||
-          emp.role?.toLowerCase().includes("fitness") ||
-          emp.role?.toLowerCase().includes("desk") ||
-          emp.role?.toLowerCase().includes("check-in") ||
-          emp.role?.toLowerCase().includes("receptionist") ||
-          emp.role?.toLowerCase().includes("specialist") ||
-          emp.role?.toLowerCase().includes("staff") ||
-          emp.role?.toLowerCase().includes("manager");
+          (!emp.type && (
+            emp.employeeId?.startsWith("EMP-GYM") ||
+            emp.role?.toLowerCase().includes("trainer") ||
+            emp.role?.toLowerCase().includes("nutrition") ||
+            emp.role?.toLowerCase().includes("fitness") ||
+            emp.role?.toLowerCase().includes("desk") ||
+            emp.role?.toLowerCase().includes("check-in") ||
+            emp.role?.toLowerCase().includes("receptionist")
+          ));
 
         if (isTextile) return isTex;
         if (isGym) return isGymEmp;
@@ -347,12 +365,14 @@ export default function EmployeePage() {
       type: "danger",
       onConfirm: async () => {
         try {
-          await apiClient.delete(`/employees/${employeeId}`);
-          showSuccess("Employee added", "Employee profile deleted successfully.");
+          if (typeof employeeId === "string" && !employeeId.startsWith("emp-")) {
+            await apiClient.delete(`/employees/${employeeId}`);
+          }
+          showSuccess("Employee Deleted", "Employee profile deleted successfully.");
           setEmployees((previous) => previous.filter((employee) => employee.id !== employeeId));
         } catch (error) {
           console.error("Delete employee error:", error);
-          showError("Product couldn't be deleted", error.response?.data?.message || "Failed to delete employee.");
+          showError("Employee Deletion Failed", error.response?.data?.message || "Failed to delete employee.");
         }
       },
     });

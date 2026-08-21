@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-
 import SalesTable from "./components/SalesTable";
 import SalesFilter from "./components/SalesFilter";
 import useSales from "@/hooks/useSales";
+import apiClient from "@/services/apiClient";
+import "./sales.css";
 
 export default function SalesPage() {
   const { sales, loading } = useSales();
@@ -13,6 +14,18 @@ export default function SalesPage() {
   const [search, setSearch] = useState("");
   const [customer, setCustomer] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    apiClient
+      .get("/customers")
+      .then((res) => {
+        if (res.data?.success && res.data?.data) {
+          setCustomers(res.data.data);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
@@ -44,8 +57,8 @@ export default function SalesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h2 className="text-xl font-semibold">
+      <div className="page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh" }}>
+        <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
           Loading Sales...
         </h2>
       </div>
@@ -53,27 +66,12 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-
-      <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
-
+    <div className="page">
+      <div className="header">
         <div>
-          <h1 className="text-3xl font-bold">
-            Sales Management
-          </h1>
-
-          <p className="text-gray-500 mt-2">
-            Manage invoices and customer sales.
-          </p>
+          <h1>Sales Management</h1>
+          <p>Manage invoices and customer sales.</p>
         </div>
-
-        {/* <Link
-          href="/sales/add"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg self-start"
-        >
-          + New Sale
-        </Link> */}
-
       </div>
 
       <SalesFilter
@@ -83,10 +81,12 @@ export default function SalesPage() {
         setCustomer={setCustomer}
         paymentStatus={paymentStatus}
         setPaymentStatus={setPaymentStatus}
+        customers={customers}
       />
 
-      <SalesTable sales={filteredSales} />
-
+      <div className="tableCard">
+        <SalesTable sales={filteredSales} />
+      </div>
     </div>
   );
 }

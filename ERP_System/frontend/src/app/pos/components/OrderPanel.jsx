@@ -312,7 +312,12 @@ export default function OrderPanel({
         <div className="pos-payment-card">
           <h3 className="pos-section-title">Payment Method</h3>
           <div className="pos-payment-grid">
-            {PAYMENT_METHODS.map((pm) => {
+            {PAYMENT_METHODS.filter((pm) => {
+              if (pm.id === "Credit") {
+                return customer !== "";
+              }
+              return true;
+            }).map((pm) => {
               const IconComp = pm.icon;
               const isSelected = selectedPayment === pm.id;
               return (

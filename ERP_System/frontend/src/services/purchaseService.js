@@ -1,37 +1,26 @@
-import axios from "axios";
-import API_URL from "@/config/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const BASE_URL = API_URL || `${API_BASE}/api`;
-
-const purchaseAPI = axios.create({
-  baseURL: `${BASE_URL}/purchases`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+import apiClient from "./apiClient";
 
 export const getPurchases = async () => {
-  const response = await purchaseAPI.get("/");
+  const response = await apiClient.get("/purchases");
   return response.data;
 };
 
 export const getPurchase = async (id) => {
-  const response = await purchaseAPI.get(`/${id}`);
+  const response = await apiClient.get(`/purchases/${id}`);
   return response.data;
 };
 
 export const createPurchase = async (data) => {
-  const response = await purchaseAPI.post("/", data);
+  const response = await apiClient.post("/purchases", data);
   return response.data;
 };
 
 export const updatePurchase = async (id, data) => {
-  const response = await purchaseAPI.put(`/${id}`, data);
+  const response = await apiClient.put(`/purchases/${id}`, data);
   return response.data;
 };
 
 export const deletePurchase = async (id) => {
-  const response = await purchaseAPI.delete(`/${id}`);
+  const response = await apiClient.delete(`/purchases/${id}`);
   return response.data;
-};
+};

@@ -107,8 +107,8 @@ const addEmployee = async (
   const cleanPhone = phone.trim();
   const cleanRole = role.trim();
 
-  // If creating user is a business-type admin, block assigning Admin/Super Admin roles
-  if (req.user?.role?.toUpperCase() === "ADMIN") {
+  // If creating user is a business-type admin/manager, block assigning Admin/Super Admin roles
+  if (req.user?.role?.toUpperCase() === "ADMIN" || req.user?.role?.toUpperCase() === "MANAGER") {
     let requestedRoleName = "";
     let roleById = null;
     if (isUuid(cleanRole)) {
@@ -127,7 +127,7 @@ const addEmployee = async (
 
     const reqRoleUpper = requestedRoleName.toUpperCase();
     if (reqRoleUpper === "ADMIN" || reqRoleUpper === "SUPER_ADMIN" || reqRoleUpper === "SUPERADMIN") {
-      throw new Error("Admins are not permitted to register or assign Admin/Super Admin roles");
+      throw new Error("Admins/Managers are not permitted to register or assign Admin/Super Admin roles");
     }
   }
 
@@ -227,6 +227,9 @@ const addEmployee = async (
 
     companyId: req?.body?.companyId || req?.user?.companyId || null,
     type: req?.body?.type || req?.user?.type || "RETAIL",
+    permissions: req?.body?.permissions
+      ? (typeof req.body.permissions === "string" ? req.body.permissions : JSON.stringify(req.body.permissions))
+      : null,
   });
 
 
@@ -446,6 +449,12 @@ const modifyEmployee = async (
 
   if (updateData.firstLogin !== undefined) {
     safeUpdateData.firstLogin = Boolean(updateData.firstLogin);
+  }
+
+  if (updateData.permissions !== undefined) {
+    safeUpdateData.permissions = updateData.permissions
+      ? (typeof updateData.permissions === "string" ? updateData.permissions : JSON.stringify(updateData.permissions))
+      : null;
   }
 
 

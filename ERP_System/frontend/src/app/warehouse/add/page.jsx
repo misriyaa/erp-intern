@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createWarehouse } from "@/services/warehouseService";
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
+import "../warehouse.css";
 
 export default function AddWarehousePage() {
   const router = useRouter();
@@ -57,24 +58,30 @@ export default function AddWarehousePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow">
-        <h1 className="text-2xl font-bold mb-2">
-          {isTextile
-            ? "🧵 Add Textile Mill & Processing Warehouse"
-            : isGym
-            ? "🏋️ Add Gym Equipment Warehouse"
-            : "📦 Add Retail Warehouse"}
-        </h1>
-        <p className="text-sm text-gray-500 mb-6">
-          {isTextile
-            ? "Register a fabric mill, yarn depot, spinning center, or dyeing facility."
-            : "Register a storage facility for store products or gym gear."}
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
+    <div className="warehouse-page-wrapper" style={{ padding: "40px 20px" }}>
+      <div className="modal-content-card" style={{ margin: "0 auto", padding: "0" }}>
+        
+        <div className="modal-card-header">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <h2 style={{ fontSize: "20px", fontWeight: "700", margin: 0 }}>
+              {isTextile
+                ? "🧵 Add Textile Mill & Processing Warehouse"
+                : isGym
+                ? "🏋️ Add Gym Equipment Warehouse"
+                : "📦 Add Retail Warehouse"}
+            </h2>
+            <p style={{ fontSize: "13px", color: "#64748b", marginTop: "4px", margin: 0 }}>
+              {isTextile
+                ? "Register a fabric mill, yarn depot, spinning center, or dyeing facility."
+                : "Register a storage facility for store products or gym gear."}
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-card-body" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          
+          <div className="modal-field-group">
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>
               {isTextile ? "Mill / Warehouse Name *" : "Warehouse Name *"}
             </label>
             <input
@@ -83,12 +90,12 @@ export default function AddWarehousePage() {
               onChange={handleChange}
               placeholder={isTextile ? "e.g. Surat Spinning Depot A" : "Warehouse Name"}
               required
-              className="w-full border p-3 rounded-lg"
+              className="form-control-pill"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <div className="modal-field-group">
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>
               Warehouse Code *
             </label>
             <input
@@ -97,12 +104,12 @@ export default function AddWarehousePage() {
               onChange={handleChange}
               placeholder="Warehouse Code"
               required
-              className="w-full border p-3 rounded-lg"
+              className="form-control-pill"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <div className="modal-field-group">
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>
               Location / City
             </label>
             <input
@@ -110,12 +117,12 @@ export default function AddWarehousePage() {
               value={form.location}
               onChange={handleChange}
               placeholder="e.g. Industrial Estate Sector 4"
-              className="w-full border p-3 rounded-lg"
+              className="form-control-pill"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <div className="modal-field-group">
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>
               Street Address & Details
             </label>
             <textarea
@@ -124,21 +131,33 @@ export default function AddWarehousePage() {
               onChange={handleChange}
               placeholder="Address details"
               rows={4}
-              className="w-full border p-3 rounded-lg"
+              className="form-control-pill"
+              style={{ minHeight: "100px", resize: "vertical" }}
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-teal-600 text-white p-3 rounded-lg hover:bg-teal-700 disabled:opacity-50 font-bold"
-          >
-            {loading
-              ? "Creating..."
-              : isTextile
-              ? "Create Textile Mill Warehouse"
-              : "Create Warehouse"}
-          </button>
+          <div className="modal-card-footer" style={{ marginTop: "12px" }}>
+            <button
+              type="button"
+              className="btn-action-secondary"
+              onClick={() => router.push("/warehouse")}
+              style={{ marginRight: "10px" }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-action-primary"
+            >
+              {loading
+                ? "Creating..."
+                : isTextile
+                ? "Create Textile Mill Warehouse"
+                : "Create Warehouse"}
+            </button>
+          </div>
+
         </form>
       </div>
     </div>

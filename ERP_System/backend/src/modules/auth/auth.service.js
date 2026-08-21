@@ -56,7 +56,19 @@ const loginService = async (login, password) => {
     DEFAULT_INDUSTRY_MODULES[industryCodeUpper] ||
     DEFAULT_INDUSTRY_MODULES.RETAIL;
 
-  const enabledModuleCodes = companyModules.length > 0 ? companyModules : defaultCodes;
+  let enabledModuleCodes = companyModules.length > 0 ? companyModules : defaultCodes;
+  if (employee.permissions) {
+    try {
+      const parsed = JSON.parse(employee.permissions);
+      if (Array.isArray(parsed)) {
+        enabledModuleCodes = parsed;
+      }
+    } catch (e) {
+      if (typeof employee.permissions === "string") {
+        enabledModuleCodes = employee.permissions.split(",").map((s) => s.trim().toUpperCase());
+      }
+    }
+  }
 
   return {
     success: true,

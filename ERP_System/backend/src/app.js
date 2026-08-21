@@ -38,7 +38,6 @@ import unitRoutes from "./modules/units/unit.routes.js";
 import departmentRoutes from "./modules/departments/department.routes.js";
 import businessTypeRoutes from "./modules/businessTypes/businessType.routes.js";
 import roleRoutes from "./modules/roles/roles.routes.js";
-import designationRoutes from "./modules/designations/designations.routes.js";
 
 import landingRoutes from "./modules/landing/landing.routes.js";
 import settingsRoutes from "./modules/settings/settings.routes.js";
@@ -265,11 +264,6 @@ app.use(
 app.use(
   "/api/roles",
   roleRoutes
-);
-
-app.use(
-  "/api/designations",
-  designationRoutes
 );
 
 app.use(

@@ -1,4 +1,5 @@
 import express from "express";
+import { requireRoles } from "../../middlewares/auth.middleware.js";
 import {
   getRoles,
   getRole,
@@ -11,8 +12,9 @@ const router = express.Router();
 
 router.get("/", getRoles);
 router.get("/:id", getRole);
-router.post("/", createRole);
-router.put("/:id", updateRole);
-router.delete("/:id", deleteRole);
+router.post("/", requireRoles(["ADMIN", "OWNER"]), createRole);
+router.put("/:id", requireRoles(["ADMIN", "OWNER"]), updateRole);
+router.delete("/:id", requireRoles(["ADMIN", "OWNER"]), deleteRole);
 
 export default router;
+

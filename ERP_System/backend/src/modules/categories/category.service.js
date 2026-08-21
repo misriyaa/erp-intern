@@ -70,5 +70,12 @@ export const deleteCategory = async (id) => {
     throw new Error("Category not found.");
   }
 
+  const productsCount = await categoryRepository.getCategoryProductsCount(id);
+  if (productsCount > 0) {
+    throw new Error(
+      "Cannot delete category because it contains active products. Please delete or reassign the products first."
+    );
+  }
+
   return await categoryRepository.deleteCategory(id);
 };

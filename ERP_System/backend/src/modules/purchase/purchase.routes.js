@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireRoles } from "../../middlewares/auth.middleware.js";
 import * as purchaseController from "./purchase.controller.js";
 import {
   createPurchaseValidation,
@@ -11,6 +12,7 @@ const router = Router();
 
 router.post(
   "/",
+  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER"]),
   createPurchaseValidation,
   validateRequest,
   purchaseController.createPurchase
@@ -28,6 +30,7 @@ router.get(
 
 router.put(
   "/:id",
+  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER"]),
   updatePurchaseValidation,
   validateRequest,
   purchaseController.updatePurchase
@@ -35,7 +38,8 @@ router.put(
 
 router.delete(
   "/:id",
+  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER"]),
   purchaseController.deletePurchase
 );
 
-export default router;
+export default router;

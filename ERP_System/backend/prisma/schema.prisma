@@ -52,8 +52,6 @@ model Department {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  designations Designation[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -63,29 +61,7 @@ model Department {
   @@map("departments")
 }
 
-// DESIGNATION
 
-model Designation {
-  id          String   @id @default(uuid())
-  code        String   @unique @db.VarChar(50)
-  designation String   @db.VarChar(150)
-  department  String   @db.VarChar(150)
-  status      Status   @default(ACTIVE)
-  isTextile   Boolean  @default(false)
-  category    String?  @default("RETAIL")
-  companyId   String?
-  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  Department   Department? @relation(fields: [departmentId], references: [id])
-  departmentId String?
-
-  @@index([designation])
-  @@index([department])
-  @@index([companyId])
-  @@map("designations")
-}
 
 // ==========================================
 // MULTI-INDUSTRY & TENANT SYSTEM MODELS
@@ -126,7 +102,6 @@ model Company {
   auditLogs          AuditLog[]
   systemSettings     SystemSettings[]
   roles              Role[]
-  designations       Designation[]
   departments        Department[]
 
   gymMembers         GymMember[]
@@ -397,6 +372,8 @@ model User {
   roleId String?
 
   type String?
+
+  permissions String?
 
   roleRef Role? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 

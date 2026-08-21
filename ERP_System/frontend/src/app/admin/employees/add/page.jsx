@@ -2,14 +2,13 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, User, Loader2 } from "lucide-react";
 import apiClient from "@/services/apiClient";
 import { toast, Toaster } from "react-hot-toast";
 import styles from "./addEmployees.module.css";
 import { getRoles } from "@/services/roleService";
-import { getDesignations } from "@/services/designationService";
 import { getBranches } from "@/services/branchService";
 import { useCompany } from "@/context/CompanyContext";
 
@@ -29,6 +28,136 @@ export default function AddEmployeePage() {
     branchId: "",
     password: "",
   });
+
+  const [selectedModules, setSelectedModules] = useState([]);
+
+  const availableModules = useMemo(() => {
+    const isTex = Boolean(industryCode?.includes("TEXTILE"));
+    const isGymMode = Boolean(industryCode?.includes("GYM"));
+    const isRest = Boolean(industryCode?.includes("RESTAURANT"));
+
+    if (isGymMode) {
+      return [
+        { code: "DASHBOARD", name: "Dashboard", description: "Business statistics & charts" },
+        { code: "MEMBERS", name: "Members", description: "Manage gym member accounts" },
+        { code: "MEMBERSHIP_PLANS", name: "Membership Plans", description: "Configure membership packages" },
+        { code: "TRAINERS", name: "Trainers", description: "Gym instructors & schedules" },
+        { code: "ATTENDANCE", name: "Attendance", description: "Daily gym check-ins logs" },
+        { code: "PAYMENTS", name: "Payments", description: "Financial receipts & invoices" },
+        { code: "EMPLOYEES", name: "Employees", description: "Manage staff & team permissions" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor catalog & logistics" },
+        { code: "REPORTS", name: "Reports & Analytics", description: "Visual operations summaries" },
+      ];
+    } else if (isTex) {
+      return [
+        { code: "DASHBOARD", name: "Dashboard", description: "Industrial performance summary" },
+        { code: "PRODUCTS", name: "Products", description: "Manufactured product inventory" },
+        { code: "RAW_MATERIALS", name: "Raw Materials", description: "Weaving yarn & mill supplies" },
+        { code: "PRODUCTION", name: "Production Run", description: "Textile manufacturing tracking" },
+        { code: "INVENTORY", name: "Inventory", description: "Raw & finished product stocks" },
+        { code: "WAREHOUSE", name: "Warehouse", description: "Storage mills & stock depots" },
+        { code: "QUALITY_CONTROL", name: "Quality Control", description: "Fabric inspection sheets" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Supplier records & bulk orders" },
+        { code: "SALES", name: "Sales Orders", description: "Client sales & invoices" },
+        { code: "PAYMENTS", name: "Payments", description: "Transactional records ledger" },
+        { code: "EMPLOYEES", name: "Employees", description: "Manage workers & mill supervisors" },
+        { code: "REPORTS", name: "Industrial Reports", description: "Factory output summaries" },
+      ];
+    } else if (isRest) {
+      return [
+        { code: "DASHBOARD", name: "Restaurant Dashboard", description: "Food sales charts & analytics" },
+        { code: "RESTAURANT", name: "Restaurant POS & Floor", description: "POS terminal, KOT, tables & costing" },
+        { code: "PRODUCTS", name: "Menu & Ingredients", description: "Manage raw ingredients & recipes" },
+        { code: "INVENTORY", name: "Kitchen Inventory", description: "Stock control of kitchen supplies" },
+        { code: "WAREHOUSE", name: "Outlets / Storage", description: "Store storage rooms & pantries" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details for food orders" },
+        { code: "PURCHASES", name: "Food Purchases", description: "Supplier ingredients procurement" },
+        { code: "EMPLOYEES", name: "Staff Management", description: "Waiters, kitchen & cashier accounts" },
+        { code: "REPORTS", name: "Analytics & Reports", description: "Restaurant operations overview" },
+      ];
+    } else {
+      const list = [
+        { code: "DASHBOARD", name: "Dashboard", description: "Live metrics & charts" },
+        { code: "INVENTORY", name: "Inventory", description: "Current stock catalogs" },
+        { code: "WAREHOUSE", name: "Warehouse", description: "Store depots & physical logs" },
+        { code: "STOCK_TRANSFER", name: "Stock Transfer", description: "Inter-branch product transfers" },
+        { code: "CUSTOMERS", name: "Customers", description: "Client database & profiles" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details & catalog" },
+        { code: "PURCHASES", name: "Purchases", description: "Supplier purchase logs" },
+        { code: "SALES", name: "Sales Orders", description: "Store sales & invoices" },
+        { code: "REPORTS", name: "Reports & Analytics", description: "Operations summaries" },
+        { code: "INVOICES", name: "Invoices", description: "Generate receipt documents" },
+        { code: "EMPLOYEES", name: "Employees / Team", description: "Manage branch staff accounts" },
+      ];
+      return list;
+    }
+  }, [industryCode]);
+
+  useEffect(() => {
+    if (formData.role === "Manager") {
+      const defaultManagerModules = [
+        "DASHBOARD",
+        "INVENTORY",
+        "WAREHOUSE",
+        "STOCK_TRANSFER",
+        "CUSTOMERS",
+        "SUPPLIERS",
+        "PURCHASES",
+        "SALES",
+        "REPORTS",
+        "INVOICES",
+        "EMPLOYEES",
+      ];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultManagerModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Admin") {
+      setSelectedModules(availableModules.map((m) => m.code));
+    } else if (formData.role === "Cashier") {
+      const defaultCashierModules = ["SALES", "POS", "DASHBOARD", "RESTAURANT"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultCashierModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Inventory Manager") {
+      const defaultInvModules = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "DASHBOARD", "STOCK-TRANSFER"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultInvModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Trainer") {
+      const defaultTrainerModules = ["DASHBOARD", "ATTENDANCE", "TRAINERS"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultTrainerModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Waiter") {
+      const defaultWaiterModules = ["RESTAURANT", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultWaiterModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Kitchen Staff") {
+      const defaultKitchenModules = ["RESTAURANT", "INVENTORY", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultKitchenModules.includes(c));
+      setSelectedModules(valid);
+    } else {
+      if (formData.role) {
+        setSelectedModules(availableModules.map((m) => m.code));
+      } else {
+        setSelectedModules([]);
+      }
+    }
+  }, [formData.role, availableModules]);
+
+  const handleModuleToggle = (code) => {
+    setSelectedModules((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
 
   const validateEmployeeForm = () => {
     const newErrors = {};
@@ -92,85 +221,46 @@ export default function AddEmployeePage() {
     fetchBranches();
   }, [industryCode]);
 
-  const fetchRoles = async () => {
-    let dbRoles = [];
-    let dbDesignations = [];
+  useEffect(() => {
+    generateEmployeeId();
+  }, []);
 
+  const fetchRoles = () => {
     const isTex = Boolean(industryCode?.includes("TEXTILE"));
     const isGymMode = Boolean(industryCode?.includes("GYM"));
+    const isRestMode = Boolean(industryCode?.includes("RESTAURANT"));
 
-    try {
-      const [roleRes, desigRes] = await Promise.allSettled([
-        getRoles(),
-        getDesignations(),
-      ]);
+    let combined = [];
 
-      if (roleRes.status === "fulfilled" && roleRes.value) {
-        const val = roleRes.value;
-        const rawRoles = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
-        dbRoles = rawRoles.filter((r) => {
-          const nameUpper = (r.name || "").toUpperCase();
-          if (nameUpper === "ADMIN" || nameUpper === "SUPER_ADMIN") return true;
-          const rIsTex = r.isTextile === true || r.category === "TEXTILE";
-          return isTex ? rIsTex : !rIsTex;
-        });
-      }
-
-      if (desigRes.status === "fulfilled" && desigRes.value) {
-        const val = desigRes.value;
-        const rawDesigs = Array.isArray(val?.data) ? val.data : Array.isArray(val) ? val : [];
-        dbDesignations = rawDesigs.filter((d) => {
-          const dIsTex = d.isTextile === true || d.category === "TEXTILE";
-          return isTex ? dIsTex : !dIsTex;
-        });
-      }
-    } catch (err) {
-      console.error("Failed to fetch roles/designations:", err);
+    if (isGymMode) {
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Trainer", name: "Trainer" },
+      ];
+    } else if (isTex) {
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Weaver", name: "Weaver" },
+        { id: "Dyer", name: "Dyer" },
+        { id: "Quality Inspector", name: "Quality Inspector" },
+      ];
+    } else if (isRestMode) {
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Cashier", name: "Cashier" },
+        { id: "Waiter", name: "Waiter" },
+        { id: "Kitchen Staff", name: "Kitchen Staff" },
+      ];
+    } else {
+      // Retail / default
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Cashier", name: "Cashier" },
+        { id: "Inventory Manager", name: "Inventory Manager" },
+      ];
     }
 
-    const defaultRoles = isTex
-      ? ["Loom Weaving Specialist", "Quality Inspector", "Spinning Machine Master", "Dyeing Technician", "Textile Mill Supervisor", "Factory Manager"]
-      : isGymMode
-      ? ["Senior Personal Trainer", "Sports Nutritionist", "Desk & Check-in Specialist", "Fitness Manager"]
-      : ["Store Operations Manager", "Senior POS Cashier", "Inventory & Stock Clerk", "Sales Executive", "Retail Supervisor"];
-
-    const combined = [];
-
-    // 1. Added DB Roles
-    dbRoles.forEach((r) => {
-      const name = typeof r === "object" ? r.name : r;
-      if (name && !combined.some((item) => item.name?.toLowerCase() === name.toLowerCase())) {
-        combined.push({ id: r.id || name, name });
-      }
-    });
-
-    // 2. Added DB Designations
-    dbDesignations.forEach((d) => {
-      const name = typeof d === "object" ? (d.designation || d.name) : d;
-      if (name && !combined.some((item) => item.name?.toLowerCase() === name.toLowerCase())) {
-        combined.push({ id: d.id || name, name });
-      }
-    });
-
-    // 3. Only fallback if no DB roles or designations exist at all
-    if (combined.length === 0) {
-      defaultRoles.forEach((name) => {
-        if (!combined.some((item) => item.name?.toLowerCase() === name.toLowerCase())) {
-          combined.push({ id: name, name });
-        }
-      });
-    }
-
-    // Filter out Admin/Super Admin roles if logged-in user is a business Admin
-    let finalRoles = combined;
-    if (user?.role?.toUpperCase() === "ADMIN") {
-      finalRoles = combined.filter((r) => {
-        const nameUpper = r.name?.toUpperCase();
-        return nameUpper !== "ADMIN" && nameUpper !== "SUPER_ADMIN" && nameUpper !== "SUPERADMIN";
-      });
-    }
-
-    setRoles(finalRoles);
+    setRoles(combined);
   };
 
   const fetchBranches = async () => {
@@ -245,6 +335,7 @@ export default function AddEmployeePage() {
           ...formData,
           companyId: company?.id,
           type: industryCode,
+          permissions: selectedModules.length > 0 ? selectedModules : undefined,
         }
       );
 
@@ -391,31 +482,7 @@ export default function AddEmployeePage() {
                     </div>
 
 
-                    <div className={styles.formGroup}>
 
-                      <label className={styles.label}>
-                        Employee ID{" "}
-                        <span className={styles.required}>
-                          *
-                        </span>
-                      </label>
-
-                      <input
-                        type="text"
-                        name="employeeId"
-                        value={formData.employeeId}
-                        onChange={handleInputChange}
-                        className={styles.input}
-                        placeholder="EMP-001"
-                        style={errors.employeeId ? { borderColor: "#ef4444" } : {}}
-                      />
-                      {errors.employeeId && (
-                        <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                          {errors.employeeId}
-                        </span>
-                      )}
-
-                    </div>
 
                   </div>
 
@@ -652,6 +719,56 @@ export default function AddEmployeePage() {
                   </p>
 
                 </div>
+
+                {formData.role && (
+                  <div className={styles.card} style={{ marginTop: "24px" }}>
+                    <h2 className={styles.cardTitle}>Module Access Permissions</h2>
+                    <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "16px" }}>
+                      Select which modules this {formData.role} can access.
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {availableModules.map((mod) => {
+                        const isSelected = selectedModules.includes(mod.code);
+                        return (
+                          <label
+                            key={mod.code}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              padding: "10px 12px",
+                              borderRadius: "6px",
+                              backgroundColor: isSelected ? "rgba(79, 70, 229, 0.1)" : "#1e293b",
+                              border: `1px solid ${isSelected ? "#4f46e5" : "#334155"}`,
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleModuleToggle(mod.code)}
+                              style={{
+                                width: "16px",
+                                height: "16px",
+                                accentColor: "#4f46e5",
+                                cursor: "pointer",
+                              }}
+                            />
+                            <div>
+                              <strong style={{ display: "block", fontSize: "13px", color: "#f8fafc" }}>
+                                {mod.name}
+                              </strong>
+                              <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                                {mod.description}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               </div>
 

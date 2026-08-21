@@ -25,6 +25,7 @@ import { toast, Toaster } from "react-hot-toast";
 
 import { getBranches } from "@/services/branchService";
 import { useAlert } from "@/context/AlertContext";
+import apiClient from "@/services/apiClient";
 import styles from "./managers.module.css";
 
 export default function ManagersPage() {
@@ -45,7 +46,7 @@ export default function ManagersPage() {
     branchId: "",
     employeeId: "",
     password: "",
-    role: "Admin", // Fixed role as required
+    role: "Manager", // Fixed role as required
   });
 
   // Fetch branches and managers on load
@@ -71,7 +72,12 @@ export default function ManagersPage() {
       const res = await apiClient.get("/employees");
       const allEmployees = res.data?.data || [];
       // Filter managers or all employees with manager/admin role
-      setManagers(allEmployees);
+      const filtered = allEmployees.filter(
+        (emp) =>
+          emp.role?.toUpperCase() === "MANAGER" ||
+          emp.role?.toUpperCase() === "ADMIN"
+      );
+      setManagers(filtered);
     } catch (err) {
       console.error("Failed to fetch managers:", err);
       toast.error("Failed to fetch manager records");
@@ -153,7 +159,7 @@ export default function ManagersPage() {
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         branchId: formData.branchId,
-        role: "Admin", // Fixed role: Admin
+        role: "Manager", // Fixed role: Manager
         password: formData.password,
         employeeId: autoId,
       };
@@ -202,7 +208,7 @@ export default function ManagersPage() {
       branchId: "",
       employeeId: "",
       password: "",
-      role: "Admin",
+      role: "Manager",
     });
     setShowAdd(false);
   };
@@ -370,7 +376,7 @@ export default function ManagersPage() {
                 {errors.branchId && <span className={styles.errorText}>{errors.branchId}</span>}
               </div>
 
-              {/* Role (FIXED TO ADMIN) */}
+              {/* Role (FIXED TO MANAGER) */}
               <div className={styles.formGroup}>
                 <label>
                   Role <span>* (Fixed)</span>
@@ -378,12 +384,12 @@ export default function ManagersPage() {
                 <input
                   type="text"
                   name="role"
-                  value="Admin"
+                  value="Manager"
                   readOnly
                   disabled
                   className={`${styles.input} ${styles.fixedInput}`}
                 />
-                <span className={styles.fieldHint}>🔒 Role is permanently fixed as Admin</span>
+                <span className={styles.fieldHint}>🔒 Role is permanently fixed as Manager</span>
               </div>
 
               {/* Password */}

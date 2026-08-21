@@ -656,94 +656,45 @@
    ACTION
 ========================= */
 
-.actionWrapper {
-  position: relative;
-
+.inlineActions {
   display: flex;
-
-  justify-content: flex-start;
-}
-
-.actionButton {
-  width: 36px;
-  height: 36px;
-
-  display: flex;
-
   align-items: center;
+  gap: 8px;
+}
 
+.inlineEditBtn,
+.inlineDeleteBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-
-  background: #ffffff;
-
-  color: #64748b;
-
-  border: 1px solid #dbe2ea;
-
-  border-radius: 7px;
-
-  cursor: pointer;
-
-  transition: all 0.2s ease;
-}
-
-.actionButton:hover {
-  background: #f8fafc;
-
-  color: #1e293b;
-
-  border-color: #cbd5e1;
-}
-
-.actionMenu {
-  position: absolute;
-
-  top: 40px;
-
-  left: 0;
-
-  z-index: 20;
-
-  min-width: 120px;
-
-  padding: 5px;
-
-  background: #ffffff;
-
+  border-radius: 6px;
   border: 1px solid #e2e8f0;
-
-  border-radius: 8px;
-
-  box-shadow:
-    0 8px 20px rgba(15, 23, 42, 0.12);
-}
-
-.actionMenu button {
-  width: 100%;
-
-  padding: 8px 10px;
-
-  text-align: left;
-
-  background: transparent;
-
-  color: #475569;
-
-  border: none;
-
-  border-radius: 5px;
-
-  font-family: inherit;
-
-  font-size: 13px;
-
   cursor: pointer;
+  transition: all 0.2s ease;
+  background: #ffffff;
 }
 
-.actionMenu button:hover {
-  background: #f1f5f9;
+.inlineEditBtn {
+  color: #475569;
+}
 
+.inlineEditBtn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
   color: #1e293b;
+}
+
+.inlineDeleteBtn {
+  color: #ef4444;
+  border-color: #fee2e2;
+}
+
+.inlineDeleteBtn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
 }
 
 /* =========================

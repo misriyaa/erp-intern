@@ -33,9 +33,10 @@ export const createPurchase = async (data) => {
         supplierId: data.supplierId,
         warehouseId: data.warehouseId,
         purchaseDate: data.purchaseDate,
-        totalAmount: data.totalAmount,
+        totalAmount: parseFloat(data.totalAmount),
         status: data.status,
         notes: data.notes,
+        companyId: data.companyId || null,
       },
     });
 
@@ -46,13 +47,17 @@ export const createPurchase = async (data) => {
         throw new Error("Product not found.");
       }
 
+      const itemQty = parseInt(item.quantity);
+      const itemUnitPrice = parseFloat(item.unitPrice);
+      const itemTotalPrice = parseFloat(item.totalPrice);
+
       await tx.purchaseItem.create({
         data: {
           purchaseId: purchase.id,
           productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
+          quantity: itemQty,
+          unitPrice: itemUnitPrice,
+          totalPrice: itemTotalPrice,
         },
       });
 
@@ -69,7 +74,7 @@ export const createPurchase = async (data) => {
             id: inventory.id,
           },
           data: {
-            quantity: inventory.quantity + item.quantity,
+            quantity: inventory.quantity + itemQty,
           },
         });
       } else {
@@ -77,7 +82,7 @@ export const createPurchase = async (data) => {
           data: {
             productId: item.productId,
             warehouseId: data.warehouseId,
-            quantity: item.quantity,
+            quantity: itemQty,
           },
         });
       }
@@ -87,7 +92,7 @@ export const createPurchase = async (data) => {
           productId: item.productId,
           warehouseId: data.warehouseId,
           type: "PURCHASE",
-          quantity: item.quantity,
+          quantity: itemQty,
           referenceNo: data.purchaseNo,
           remarks: data.notes,
         },

@@ -1,0 +1,197 @@
+/* Starline ERP System - Sales Module Styles (Matches Purchases & Suppliers) */
+
+.page {
+  min-height: 100vh;
+  width: 100%;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  color: #53677f;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  margin: 0;
+  color: #1f344d;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.header p {
+  margin: 4px 0 0;
+  color: #71839a;
+  font-size: 14px;
+}
+
+/* CARD / FORM CONTAINER */
+.filterCard {
+  margin-bottom: 24px;
+  background: #ffffff;
+  border: 1px solid #e1e6ec;
+  border-radius: 8px;
+  padding: 20px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.filterGroup label {
+  margin-bottom: 6px;
+  color: #253b55;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filterGroup input,
+.filterGroup select {
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #263b55;
+  border: 1px solid #dce2e8;
+  border-radius: 7px;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.filterGroup input:focus,
+.filterGroup select:focus {
+  border-color: #6b8bad;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+/* TABLE CARD & TOOLBAR */
+.tableCard {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e0e5eb;
+  border-radius: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* TABLE STYLING */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  height: 48px;
+  padding: 0 16px;
+  text-align: left;
+  white-space: nowrap;
+  color: #17304b;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid #e0e5eb;
+  background: #ffffff;
+}
+
+.table td {
+  height: 56px;
+  padding: 0 16px;
+  white-space: nowrap;
+  color: #5e7188;
+  font-size: 14px;
+  border-bottom: 1px solid #e3e7ec;
+}
+
+.table tbody tr:hover {
+  background: #fafbfd;
+}
+
+/* STATUS BADGES */
+.paidStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #009b71;
+  background: #eaf6f1;
+}
+
+.pendingStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d97706;
+  background: #fef3c7;
+}
+
+.cancelledStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+/* BUTTONS */
+.viewButton {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1d2c42;
+  border: 1px solid #dce2e8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.viewButton:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+@media (max-width: 768px) {
+  .filterGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

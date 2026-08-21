@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireRoles } from "../../middlewares/auth.middleware.js";
 import * as stockTransferController from "./stockTransfer.controller.js";
 import {
   createStockTransferValidation,
@@ -11,6 +12,7 @@ const router = Router();
 
 router.post(
   "/",
+  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER"]),
   createStockTransferValidation,
   validateRequest,
   stockTransferController.createStockTransfer
@@ -28,6 +30,7 @@ router.get(
 
 router.put(
   "/:id",
+  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER"]),
   updateStockTransferValidation,
   validateRequest,
   stockTransferController.updateStockTransfer
@@ -35,7 +38,8 @@ router.put(
 
 router.delete(
   "/:id",
+  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER"]),
   stockTransferController.deleteStockTransfer
 );
 
-export default router;
+export default router;

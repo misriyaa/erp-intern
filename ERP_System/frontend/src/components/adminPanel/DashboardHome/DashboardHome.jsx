@@ -304,10 +304,13 @@ export default function DashboardHome() {
     totalEmployees: 0,
     totalCategories: 0,
     totalValue: 0,
+    totalEarnings: 0,
     inStock: 0,
     lowStock: 0,
     outOfStock: 0,
   });
+  const [earningsChart, setEarningsChart] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -318,40 +321,13 @@ export default function DashboardHome() {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const [prodRes, empRes, catRes, invRes] = await Promise.all([
-        apiClient.get("/products").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/employees").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/categories").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/inventory").catch(() => ({ data: { data: [] } })),
-      ]);
-
-      const products = prodRes.data?.data || [];
-      const employees = empRes.data?.data || [];
-      const categories = catRes.data?.data || [];
-      const inventories = invRes.data?.data || [];
-
-      let totalVal = 0;
-      let inStk = 0;
-      let lowStk = 0;
-      let outStk = 0;
-
-      products.forEach((p) => {
-        const qty = p.inventories?.reduce((a, b) => a + (b.quantity || 0), 0) || 0;
-        totalVal += qty * (parseFloat(p.sellingPrice) || 0);
-        if (qty === 0) outStk++;
-        else if (qty < 10) lowStk++;
-        else inStk++;
-      });
-
-      setStats({
-        totalProducts: products.length,
-        totalEmployees: employees.length,
-        totalCategories: categories.length,
-        totalValue: totalVal,
-        inStock: inStk || products.length,
-        lowStock: lowStk,
-        outOfStock: outStk,
-      });
+      const res = await apiClient.get("/reports/dashboard-summary");
+      if (res.data?.success && res.data?.data) {
+        const { stats: fetchedStats, earningsChart: fetchedChart, recentActivities: fetchedActivities } = res.data.data;
+        setStats(fetchedStats);
+        setEarningsChart(fetchedChart);
+        setRecentActivities(fetchedActivities);
+      }
     } catch (err) {
       console.error("Dashboard stats fetch error:", err);
     } finally {
@@ -360,9 +336,9 @@ export default function DashboardHome() {
   };
 
   const dynamicStockStatus = [
-    { name: "In stock", value: stats.inStock || 412, color: "#3B4CCA" },
-    { name: "Low stock", value: stats.lowStock || 34, color: "#F5A623" },
-    { name: "Out of stock", value: stats.outOfStock || 9, color: "#E11D48" },
+    { name: "In stock", value: stats.inStock || 0, color: "#3B4CCA" },
+    { name: "Low stock", value: stats.lowStock || 0, color: "#F5A623" },
+    { name: "Out of stock", value: stats.outOfStock || 0, color: "#E11D48" },
   ];
 
   const donutTotal = dynamicStockStatus.reduce(
@@ -518,13 +494,13 @@ export default function DashboardHome() {
                 >
                   <PieChart>
                     <Pie
-                      data={stockStatus}
+                      data={dynamicStockStatus}
                       dataKey="value"
                       innerRadius={34}
                       outerRadius={52}
                       paddingAngle={2}
                     >
-                      {stockStatus.map((item) => (
+                      {dynamicStockStatus.map((item) => (
                         <Cell
                           key={item.name}
                           fill={item.color}
@@ -537,7 +513,7 @@ export default function DashboardHome() {
               </div>
 
               <div className={styles.stockList}>
-                {stockStatus.map((item) => (
+                {dynamicStockStatus.map((item) => (
                   <div
                     key={item.name}
                     className={styles.stockRow}
@@ -748,7 +724,7 @@ export default function DashboardHome() {
             </p>
 
             <p className={styles.largeValue}>
-              KD 64,522
+              ₹{stats.totalEarnings ? stats.totalEarnings.toLocaleString() : "0"}
             </p>
 
             <div className={styles.earningsChart}>
@@ -756,7 +732,7 @@ export default function DashboardHome() {
                 width="100%"
                 height="100%"
               >
-                <AreaChart data={earnings}>
+                <AreaChart data={earningsChart.length > 0 ? earningsChart : earnings}>
                   <defs>
                     <linearGradient
                       id="earningsGradient"
@@ -779,9 +755,11 @@ export default function DashboardHome() {
                     </linearGradient>
                   </defs>
 
+                  <XAxis dataKey={earningsChart.length > 0 ? "name" : "m"} hide />
+
                   <Area
                     type="monotone"
-                    dataKey="v"
+                    dataKey={earningsChart.length > 0 ? "earnings" : "v"}
                     stroke="#3B4CCA"
                     strokeWidth={2}
                     fill="url(#earningsGradient)"
@@ -914,13 +892,13 @@ export default function DashboardHome() {
             />
 
             <div className={styles.activityList}>
-              {activity.map((item) => (
+              {(recentActivities.length > 0 ? recentActivities : activity).map((item, index) => (
                 <div
-                  key={item.title}
+                  key={index}
                   className={styles.activityItem}
                 >
                   <span className={styles.activityIcon}>
-                    {item.img}
+                    {item.icon || item.img}
                   </span>
 
                   <div>

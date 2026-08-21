@@ -11,6 +11,8 @@ export function CompanyProvider({ children }) {
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [industryOverride, setIndustryOverride] = useState(null);
+  const [companyOverride, setCompanyOverride] = useState(null);
+  const [branchOverride, setBranchOverride] = useState(null);
 
   const loadSession = () => {
     try {
@@ -27,6 +29,12 @@ export function CompanyProvider({ children }) {
 
         const storedOverride = localStorage.getItem("industryOverride");
         setIndustryOverride(storedOverride || null);
+
+        const storedCompanyOverride = localStorage.getItem("companyOverride");
+        const storedBranchOverride = localStorage.getItem("branchOverride");
+
+        if (storedCompanyOverride) setCompanyOverride(JSON.parse(storedCompanyOverride));
+        if (storedBranchOverride) setBranchOverride(JSON.parse(storedBranchOverride));
       }
     } catch (err) {
       console.error("Failed to load company session:", err);
@@ -78,6 +86,10 @@ export function CompanyProvider({ children }) {
     localStorage.removeItem("modules");
     localStorage.removeItem("permissions");
     localStorage.removeItem("industryOverride");
+    localStorage.removeItem("companyOverride");
+    localStorage.removeItem("branchOverride");
+    setCompanyOverride(null);
+    setBranchOverride(null);
   };
 
   const changeIndustryOverride = (code) => {
@@ -90,8 +102,32 @@ export function CompanyProvider({ children }) {
     window.dispatchEvent(new Event("user-updated"));
   };
 
+  const changeCompanyOverride = (compObj) => {
+    setCompanyOverride(compObj);
+    if (compObj) {
+      localStorage.setItem("companyOverride", JSON.stringify(compObj));
+    } else {
+      localStorage.removeItem("companyOverride");
+    }
+    setBranchOverride(null);
+    localStorage.removeItem("branchOverride");
+    window.dispatchEvent(new Event("user-updated"));
+  };
+
+  const changeBranchOverride = (branchObj) => {
+    setBranchOverride(branchObj);
+    if (branchObj) {
+      localStorage.setItem("branchOverride", JSON.stringify(branchObj));
+    } else {
+      localStorage.removeItem("branchOverride");
+    }
+    window.dispatchEvent(new Event("user-updated"));
+  };
+
+  const activeCompany = companyOverride || company;
+
   const industryCode =
-    industryOverride || company?.industry?.code || (user?.type || "RETAIL").toUpperCase();
+    industryOverride || activeCompany?.industry?.code || (user?.type || "RETAIL").toUpperCase();
 
   const isGym = industryCode.includes("GYM");
   const isTextile = industryCode.includes("TEXTILE");
@@ -99,13 +135,50 @@ export function CompanyProvider({ children }) {
   const isRetail = !isGym && !isTextile && !isRestaurant;
 
   const isModuleEnabled = (moduleCode) => {
-    const roleUpper = (user?.role || "").toUpperCase();
+    const roleUpper = (user?.role || "").toUpperCase().replace(/\s+/g, "_");
     if (roleUpper.includes("SUPER")) return true;
 
     if (!moduleCode) return true;
     const codeUpper = moduleCode.toUpperCase();
 
-    if (isRetail && ["DASHBOARD", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS", "RESTAURANT"].includes(codeUpper)) {
+    // 1. Role-based overrides/filters
+    if (roleUpper === "CASHIER") {
+      const allowed = ["SALES", "POS", "DASHBOARD", "RESTAURANT"];
+      if (!allowed.includes(codeUpper)) {
+        return false;
+      }
+    } else if (roleUpper === "BRAND_MANAGER") {
+      const allowed = ["PRODUCTS", "CATEGORIES", "BRANDS", "PURCHASES", "DASHBOARD"];
+      if (!allowed.includes(codeUpper)) {
+        return false;
+      }
+    } else if (roleUpper === "WAREHOUSE_MANAGER" || roleUpper === "INVENTORY_MANAGER") {
+      const allowed = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "DASHBOARD", "STOCK-TRANSFER"];
+      if (!allowed.includes(codeUpper)) {
+        return false;
+      }
+    } else if (roleUpper === "MANAGER") {
+      const allowed = [
+        "DASHBOARD",
+        "INVENTORY",
+        "WAREHOUSE",
+        "STOCK_TRANSFER",
+        "STOCK-TRANSFER",
+        "CUSTOMERS",
+        "SUPPLIERS",
+        "PURCHASES",
+        "SALES",
+        "REPORTS",
+        "INVOICES",
+        "EMPLOYEES",
+      ];
+      if (!allowed.includes(codeUpper)) {
+        return false;
+      }
+    }
+
+    // 2. Industry checks
+    if (isRetail && ["DASHBOARD", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS", "RESTAURANT"].includes(codeUpper)) {
       return true;
     }
     if (isRestaurant && ["DASHBOARD", "RESTAURANT", "PRODUCTS", "INVENTORY", "WAREHOUSE", "SUPPLIERS", "PURCHASES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
@@ -125,7 +198,7 @@ export function CompanyProvider({ children }) {
     <CompanyContext.Provider
       value={{
         user,
-        company,
+        company: activeCompany,
         modules,
         permissions,
         industryCode,
@@ -139,6 +212,10 @@ export function CompanyProvider({ children }) {
         clearSession,
         industryOverride,
         changeIndustryOverride,
+        companyOverride,
+        branchOverride,
+        changeCompanyOverride,
+        changeBranchOverride,
       }}
     >
       {children}
