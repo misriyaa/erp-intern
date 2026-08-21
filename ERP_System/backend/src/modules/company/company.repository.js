@@ -88,6 +88,17 @@ export const getAllCompaniesRepo = async () => {
         where: { enabled: true },
         include: { module: true },
       },
+      _count: {
+        select: {
+          branches: true,
+          products: true,
+          warehouses: true,
+          customers: true,
+          salesOrders: true,
+          purchases: true,
+          users: true,
+        }
+      }
     },
     orderBy: { createdAt: "desc" },
   });

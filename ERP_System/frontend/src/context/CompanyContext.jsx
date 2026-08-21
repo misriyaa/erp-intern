@@ -175,6 +175,11 @@ export function CompanyProvider({ children }) {
       if (!allowed.includes(codeUpper)) {
         return false;
       }
+    } else if (roleUpper === "DATA_ENTRY") {
+      const allowed = ["PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "RAW_MATERIALS", "DASHBOARD"];
+      if (!allowed.includes(codeUpper)) {
+        return false;
+      }
     }
 
     // 2. Industry checks

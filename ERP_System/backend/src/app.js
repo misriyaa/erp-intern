@@ -47,6 +47,7 @@ import reportsRoutes from "./modules/reports/reports.routes.js";
 import companyRoutes from "./modules/company/company.routes.js";
 import gymRoutes from "./modules/gym/gym.routes.js";
 import textileRoutes from "./modules/textile/textile.routes.js";
+import { tenantStorage } from "./config/prisma.js";
 
 import restaurantRoutes from "./modules/restaurants/restaurant.routes.js";
 import restaurantAreaRoutes from "./modules/restaurantAreas/restaurantArea.routes.js";
@@ -101,6 +102,16 @@ app.use(
 
 // Attach logged-in user if authentication cookie/token exists
 app.use(attachUserIfAuthenticated);
+
+// SaaS Multi-Tenant data isolation: run all database queries inside AsyncLocalStorage tenant storage context
+app.use((req, res, next) => {
+  const tenantId = req.user?.companyId || req.headers["x-company-override"];
+  if (tenantId) {
+    tenantStorage.run(tenantId, next);
+  } else {
+    next();
+  }
+});
 
 
 app.use(

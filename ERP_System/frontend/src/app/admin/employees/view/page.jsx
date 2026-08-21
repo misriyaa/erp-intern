@@ -113,6 +113,7 @@ export default function EmployeePage() {
       combined = [
         { id: "Manager", name: "Manager" },
         { id: "Trainer", name: "Trainer" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     } else if (isTextile) {
       combined = [
@@ -120,6 +121,7 @@ export default function EmployeePage() {
         { id: "Weaver", name: "Weaver" },
         { id: "Dyer", name: "Dyer" },
         { id: "Quality Inspector", name: "Quality Inspector" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     } else if (isRestaurant) {
       combined = [
@@ -127,6 +129,7 @@ export default function EmployeePage() {
         { id: "Cashier", name: "Cashier" },
         { id: "Waiter", name: "Waiter" },
         { id: "Kitchen Staff", name: "Kitchen Staff" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     } else {
       // Retail / default
@@ -134,6 +137,7 @@ export default function EmployeePage() {
         { id: "Manager", name: "Manager" },
         { id: "Cashier", name: "Cashier" },
         { id: "Inventory Manager", name: "Inventory Manager" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     }
     setRoles(combined);

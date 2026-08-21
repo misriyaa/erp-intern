@@ -51,7 +51,10 @@ export default function AddEmployeePage() {
     } else if (isTex) {
       return [
         { code: "DASHBOARD", name: "Dashboard", description: "Industrial performance summary" },
-        { code: "PRODUCTS", name: "Products", description: "Manufactured product inventory" },
+        { code: "PRODUCTS", name: "Products Setup", description: "Manage product listings" },
+        { code: "CATEGORIES", name: "Product Categories", description: "Configure category filters" },
+        { code: "BRANDS", name: "Product Brands", description: "Configure product brand tags" },
+        { code: "UNITS", name: "Units of Measure", description: "Configure units of measure (UoM)" },
         { code: "RAW_MATERIALS", name: "Raw Materials", description: "Weaving yarn & mill supplies" },
         { code: "PRODUCTION", name: "Production Run", description: "Textile manufacturing tracking" },
         { code: "INVENTORY", name: "Inventory", description: "Raw & finished product stocks" },
@@ -68,6 +71,9 @@ export default function AddEmployeePage() {
         { code: "DASHBOARD", name: "Restaurant Dashboard", description: "Food sales charts & analytics" },
         { code: "RESTAURANT", name: "Restaurant POS & Floor", description: "POS terminal, KOT, tables & costing" },
         { code: "PRODUCTS", name: "Menu & Ingredients", description: "Manage raw ingredients & recipes" },
+        { code: "CATEGORIES", name: "Menu Categories", description: "Configure menu categories" },
+        { code: "BRANDS", name: "Ingredient Brands", description: "Configure ingredient brands" },
+        { code: "UNITS", name: "Units of Measure", description: "Configure recipe units of measure" },
         { code: "INVENTORY", name: "Kitchen Inventory", description: "Stock control of kitchen supplies" },
         { code: "WAREHOUSE", name: "Outlets / Storage", description: "Store storage rooms & pantries" },
         { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details for food orders" },
@@ -78,6 +84,10 @@ export default function AddEmployeePage() {
     } else {
       const list = [
         { code: "DASHBOARD", name: "Dashboard", description: "Live metrics & charts" },
+        { code: "PRODUCTS", name: "Products Setup", description: "Manage product listings" },
+        { code: "CATEGORIES", name: "Product Categories", description: "Configure category filters" },
+        { code: "BRANDS", name: "Product Brands", description: "Configure product brand tags" },
+        { code: "UNITS", name: "Units of Measure", description: "Configure units of measure (UoM)" },
         { code: "INVENTORY", name: "Inventory", description: "Current stock catalogs" },
         { code: "WAREHOUSE", name: "Warehouse", description: "Store depots & physical logs" },
         { code: "STOCK_TRANSFER", name: "Stock Transfer", description: "Inter-branch product transfers" },
@@ -143,6 +153,12 @@ export default function AddEmployeePage() {
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultKitchenModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Data Entry") {
+      const defaultDataEntryModules = ["PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "RAW_MATERIALS", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultDataEntryModules.includes(c));
       setSelectedModules(valid);
     } else {
       if (formData.role) {
@@ -236,6 +252,7 @@ export default function AddEmployeePage() {
       combined = [
         { id: "Manager", name: "Manager" },
         { id: "Trainer", name: "Trainer" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     } else if (isTex) {
       combined = [
@@ -243,6 +260,7 @@ export default function AddEmployeePage() {
         { id: "Weaver", name: "Weaver" },
         { id: "Dyer", name: "Dyer" },
         { id: "Quality Inspector", name: "Quality Inspector" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     } else if (isRestMode) {
       combined = [
@@ -250,6 +268,7 @@ export default function AddEmployeePage() {
         { id: "Cashier", name: "Cashier" },
         { id: "Waiter", name: "Waiter" },
         { id: "Kitchen Staff", name: "Kitchen Staff" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     } else {
       // Retail / default
@@ -257,6 +276,7 @@ export default function AddEmployeePage() {
         { id: "Manager", name: "Manager" },
         { id: "Cashier", name: "Cashier" },
         { id: "Inventory Manager", name: "Inventory Manager" },
+        { id: "Data Entry", name: "Data Entry" },
       ];
     }
 
