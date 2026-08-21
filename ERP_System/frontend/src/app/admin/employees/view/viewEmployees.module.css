@@ -1178,3 +1178,43 @@
     transition: none;
   }
 }
+
+/* =========================================================
+   FILTER TABS (PREMIUM PILLS)
+========================================================= */
+
+.filterContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #edf0f4;
+  padding: 5px;
+  border-radius: 10px;
+  width: fit-content;
+  margin-bottom: 25px;
+  border: 1px solid #e2e6ec;
+}
+
+.filterButton {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #4a5568;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.filterButton:hover {
+  color: #172033;
+}
+
+.filterButtonActive {
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
