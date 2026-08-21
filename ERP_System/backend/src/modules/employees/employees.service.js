@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-
+import prisma from "../../config/prisma.js";
 
 import {
   sendEmployeeCredentialsEmail,
@@ -7,6 +7,11 @@ import {
 } from "../../config/mail.js";
 
 import { recordAuditLog } from "../audit/audit.service.js";
+
+const isUuid = (str) => {
+  if (typeof str !== "string") return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+};
 
 import {
   getAllEmployees,
@@ -105,7 +110,10 @@ const addEmployee = async (
   // If creating user is a business-type admin, block assigning Admin/Super Admin roles
   if (req.user?.role?.toUpperCase() === "ADMIN") {
     let requestedRoleName = "";
-    const roleById = await findRoleById(cleanRole);
+    let roleById = null;
+    if (isUuid(cleanRole)) {
+      roleById = await findRoleById(cleanRole);
+    }
     if (roleById) {
       requestedRoleName = roleById.name;
     } else {
@@ -151,7 +159,10 @@ const addEmployee = async (
 
 
   // Check role: lookup by ID, then by Name. If missing, create role in DB!
-  let employeeRole = await findRoleById(cleanRole);
+  let employeeRole = null;
+  if (isUuid(cleanRole)) {
+    employeeRole = await findRoleById(cleanRole);
+  }
 
   if (!employeeRole) {
     employeeRole = await findRoleByName(cleanRole);
@@ -168,14 +179,15 @@ const addEmployee = async (
 
   let assignedBranchId = null;
   if (branchId) {
+    const OR = [];
+    if (isUuid(branchId)) {
+      OR.push({ id: branchId });
+    }
+    OR.push({ code: branchId });
+    OR.push({ name: { equals: branchId, mode: "insensitive" } });
+
     const dbBranch = await prisma.branch.findFirst({
-      where: {
-        OR: [
-          { id: branchId },
-          { code: branchId },
-          { name: { equals: branchId, mode: "insensitive" } }
-        ]
-      }
+      where: { OR }
     });
 
     if (dbBranch) {
@@ -354,7 +366,10 @@ const modifyEmployee = async (
 
   // Role handling (by roleId or role name string)
   if (updateData.roleId) {
-    let roleObj = await findRoleById(updateData.roleId);
+    let roleObj = null;
+    if (isUuid(updateData.roleId)) {
+      roleObj = await findRoleById(updateData.roleId);
+    }
     if (!roleObj) {
       roleObj = await findRoleByName(updateData.roleId);
     }
@@ -364,7 +379,10 @@ const modifyEmployee = async (
     safeUpdateData.roleId = roleObj.id;
     safeUpdateData.role = roleObj.name;
   } else if (updateData.role) {
-    let roleObj = await findRoleById(updateData.role);
+    let roleObj = null;
+    if (isUuid(updateData.role)) {
+      roleObj = await findRoleById(updateData.role);
+    }
     if (!roleObj) {
       roleObj = await findRoleByName(updateData.role);
     }
@@ -378,7 +396,33 @@ const modifyEmployee = async (
 
   // Branch handling — allow assigning or clearing the branch
   if (updateData.branchId !== undefined) {
-    safeUpdateData.branchId = updateData.branchId || null;
+    if (updateData.branchId) {
+      const OR = [];
+      if (isUuid(updateData.branchId)) {
+        OR.push({ id: updateData.branchId });
+      }
+      OR.push({ code: updateData.branchId });
+      OR.push({ name: { equals: updateData.branchId, mode: "insensitive" } });
+
+      const dbBranch = await prisma.branch.findFirst({
+        where: { OR }
+      });
+
+      if (dbBranch) {
+        safeUpdateData.branchId = dbBranch.id;
+      } else {
+        const newBranch = await prisma.branch.create({
+          data: {
+            name: updateData.branchId.startsWith("b-") ? "Main Store Branch" : updateData.branchId,
+            code: `BR-${Date.now().toString().slice(-4)}`,
+            isActive: true,
+          }
+        });
+        safeUpdateData.branchId = newBranch.id;
+      }
+    } else {
+      safeUpdateData.branchId = null;
+    }
   }
 
 

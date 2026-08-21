@@ -138,8 +138,28 @@ export default function GymMembers() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.fullName.trim() || !formData.phone.trim()) {
-      toast.error("Name and Phone are required");
+    if (!formData.fullName.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+    if (!formData.phone.trim()) {
+      toast.error("Phone number is required");
+      return;
+    }
+    if (!formData.membershipPlanId) {
+      toast.error("Membership plan is required");
+      return;
+    }
+    if (!formData.assignedTrainerId) {
+      toast.error("Assigned trainer is required");
+      return;
+    }
+    if (!formData.startDate) {
+      toast.error("Start date is required");
+      return;
+    }
+    if (!formData.expiryDate) {
+      toast.error("Expiry date is required");
       return;
     }
 
@@ -162,7 +182,12 @@ export default function GymMembers() {
       setShowModal(false);
       fetchInitialData();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to save member");
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const errorMsgs = err.response.data.errors.map((e) => e.msg).join(", ");
+        toast.error(`Validation Failed: ${errorMsgs}`);
+      } else {
+        toast.error(err.response?.data?.message || "Failed to save member");
+      }
     }
   };
 
@@ -421,7 +446,7 @@ export default function GymMembers() {
               </div>
 
               <div>
-                <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>Membership Plan</label>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>Membership Plan *</label>
                 <select
                   value={formData.membershipPlanId}
                   onChange={(e) => setFormData({ ...formData, membershipPlanId: e.target.value })}
@@ -435,7 +460,7 @@ export default function GymMembers() {
               </div>
 
               <div>
-                <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>Assigned Trainer</label>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>Assigned Trainer *</label>
                 <select
                   value={formData.assignedTrainerId}
                   onChange={(e) => setFormData({ ...formData, assignedTrainerId: e.target.value })}

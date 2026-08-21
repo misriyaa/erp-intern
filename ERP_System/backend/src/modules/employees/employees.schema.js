@@ -69,6 +69,14 @@ const addEmployeeSchema = Joi.object({
       "string.empty": "Temporary password is required",
       "any.required": "Temporary password is required",
     }),
+
+  companyId: Joi.string()
+    .trim()
+    .optional(),
+
+  type: Joi.string()
+    .trim()
+    .optional(),
 });
 
 export {

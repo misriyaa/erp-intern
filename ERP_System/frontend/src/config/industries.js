@@ -143,6 +143,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "PAYMENTS", label: "Payments & Fees", href: "/gym/payments", icon: FiCreditCard, industry: "GYM" },
   { moduleCode: "BRANCHES", label: "Fitness Centers & Facilities", href: "/admin/branches", icon: FiMapPin, industry: "GYM" },
   { moduleCode: "SUPPLIERS", label: "Equipment Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "GYM" },
+  { moduleCode: "EMPLOYEES", label: "Designations & Roles", href: "/admin/designations", icon: FiShield, industry: "GYM" },
 
   // Textile Industry Modules
   { moduleCode: "PRODUCTS", label: "Textile Products", href: "/textile/products", icon: FiShoppingBag, industry: "TEXTILE" },
