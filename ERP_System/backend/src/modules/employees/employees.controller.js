@@ -15,6 +15,16 @@ const getEmployees = async (req, res, next) => {
 
     const result = await fetchAllEmployees(companyId, type);
 
+    // If caller is a business-type Admin, remove Admin and Super Admin accounts
+    if (req.user?.role?.toUpperCase() === "ADMIN" && result?.data) {
+      result.data = result.data.filter(
+        (emp) =>
+          emp.role?.toUpperCase() !== "ADMIN" &&
+          emp.role?.toUpperCase() !== "SUPER_ADMIN" &&
+          emp.role?.toUpperCase() !== "SUPERADMIN"
+      );
+    }
+
     return res.status(200).json(result);
   } catch (error) {
     next(error);

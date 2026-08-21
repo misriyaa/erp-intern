@@ -13,6 +13,7 @@ export default function PosToolbar({
   query = "",
   onQueryChange,
   onScan,
+  onBarcodeScan,
   selectedCategory = "All",
   onCategoryChange,
   selectedBrand = "All",
@@ -22,6 +23,7 @@ export default function PosToolbar({
   activeTab = "Products",
   onTabChange,
 }) {
+  const triggerScan = onScan || onBarcodeScan;
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerError, setScannerError] = useState("");
   const [isStarting, setIsStarting] = useState(false);
@@ -157,7 +159,7 @@ export default function PosToolbar({
               /*
                * Send barcode to parent POS component
                */
-              onScan?.(barcode);
+              triggerScan?.(barcode);
 
               /*
                * Close scanner after successful scan
@@ -239,7 +241,7 @@ export default function PosToolbar({
 
     if (!cleanedCode) return;
 
-    onScan?.(cleanedCode);
+    triggerScan?.(cleanedCode);
   };
 
   return (
@@ -278,6 +280,16 @@ export default function PosToolbar({
               placeholder="Search product by name, SKU or scan barcode"
               value={query}
               onChange={(e) => onQueryChange?.(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const code = query.trim();
+                  if (code) {
+                    triggerScan?.(code);
+                    onQueryChange?.("");
+                  }
+                }
+              }}
               autoComplete="off"
             />
 

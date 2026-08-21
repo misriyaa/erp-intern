@@ -17,7 +17,9 @@ import {
   FiPlus,
   FiTrash2,
   FiZap,
+  FiCamera,
 } from "react-icons/fi";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Loader2 } from "lucide-react";
 
 import styles from "../../add/addProducts.module.css";
@@ -137,6 +139,139 @@ export default function EditProductPage({ params }) {
 
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+
+  // Barcode Scanner states
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
+
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const readerRef = useRef(null);
+  const controlsRef = useRef(null);
+  const scannedRef = useRef(false);
+
+  const stopScanner = () => {
+    if (controlsRef.current) {
+      controlsRef.current.stop();
+      controlsRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const closeScanner = () => {
+    stopScanner();
+    scannedRef.current = false;
+    setScannerError("");
+    setIsStarting(false);
+    setScannerOpen(false);
+  };
+
+  useEffect(() => {
+    if (!scannerOpen) return;
+
+    let mounted = true;
+
+    const startScanner = async () => {
+      setIsStarting(true);
+      setScannerError("");
+      scannedRef.current = false;
+
+      try {
+        if (!videoRef.current) {
+          throw new Error("Camera element not ready");
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera is not supported by this browser.");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+          },
+          audio: false,
+        });
+
+        if (!mounted) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+
+        const reader = new BrowserMultiFormatReader();
+        readerRef.current = reader;
+
+        const controls = await reader.decodeFromVideoElement(
+          videoRef.current,
+          (result, error) => {
+            if (!mounted) return;
+
+            if (result && !scannedRef.current) {
+              scannedRef.current = true;
+              const scannedBarcode = result.getText()?.trim();
+
+              if (!scannedBarcode) {
+                scannedRef.current = false;
+                return;
+              }
+
+              setProduct((prev) => ({ ...prev, barcode: scannedBarcode }));
+              toast.success(`Barcode Scanned: ${scannedBarcode}`);
+
+              setTimeout(() => {
+                if (mounted) {
+                  closeScanner();
+                }
+              }, 200);
+            }
+          }
+        );
+
+        if (mounted) {
+          controlsRef.current = controls;
+          setIsStarting(false);
+        }
+      } catch (error) {
+        console.error("Barcode scanner error:", error);
+        if (!mounted) return;
+        setIsStarting(false);
+        let message = "Unable to start camera.";
+        if (error?.name === "NotAllowedError") {
+          message = "Camera permission denied. Please enable camera access.";
+        } else if (error?.name === "NotReadableError" || error?.message?.includes("in use") || error?.message?.includes("Readable")) {
+          message = "Camera is already in use by another tab, window, or application. Please close other apps and try again.";
+        } else if (error?.message) {
+          message = error.message;
+        }
+        setScannerError(message);
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      mounted = false;
+      stopScanner();
+    };
+  }, [scannerOpen]);
+
+  const handleFormKeyDown = (e) => {
+    if (e.key === "Enter" && e.target.tagName === "INPUT") {
+      e.preventDefault();
+    }
+  };
 
   const fileInputRef = useRef(null);
 
@@ -526,7 +661,7 @@ export default function EditProductPage({ params }) {
           </div>
 
           {/* FORM */}
-          <form id="edit-product-form" className={styles.form} onSubmit={handleSubmit}>
+          <form id="edit-product-form" className={styles.form} onSubmit={handleSubmit} onKeyDown={handleFormKeyDown}>
             {/* LEFT SECTION */}
             <div className={styles.left}>
               {/* 1. BASIC PRODUCT INFORMATION */}
@@ -563,13 +698,24 @@ export default function EditProductPage({ params }) {
 
                   <div>
                     <label htmlFor="barcode">Barcode</label>
-                    <input
-                      id="barcode"
-                      name="barcode"
-                      value={product.barcode}
-                      onChange={handleChange}
-                      placeholder="e.g. 890123456789"
-                    />
+                    <div className={styles.inputWithButton}>
+                      <input
+                        id="barcode"
+                        name="barcode"
+                        value={product.barcode}
+                        onChange={handleChange}
+                        placeholder="e.g. 890123456789"
+                        style={{ flex: 1, marginBottom: 0 }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.scanButton}
+                        onClick={() => setScannerOpen(true)}
+                        title="Scan barcode with camera"
+                      >
+                        <FiCamera size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -1326,6 +1472,36 @@ export default function EditProductPage({ params }) {
               </div>
             </div>
           </form>
+
+          {scannerOpen && (
+            <div className={styles.scannerOverlay}>
+              <div className={styles.scannerModal}>
+                <div className={styles.scannerHeader}>
+                  <h3>Scan Barcode / EAN</h3>
+                  <button className={styles.scannerCloseBtn} onClick={closeScanner}>
+                    <FiX size={18} />
+                  </button>
+                </div>
+
+                <div className={styles.scannerBody}>
+                  <div className={styles.videoWrapper}>
+                    <video ref={videoRef} playsInline />
+                    <div className={styles.scannerLaser} />
+                  </div>
+
+                  {scannerError && (
+                    <div className={styles.scannerError}>
+                      {scannerError}
+                    </div>
+                  )}
+
+                  <div className={styles.scannerStatus}>
+                    {isStarting ? "Accessing camera..." : "Point your camera at a barcode to scan"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
