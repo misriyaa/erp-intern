@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings, logoUrl } = useSettings();
-  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, clearSession } = useCompany();
+  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, isRetail, industryCode, clearSession } = useCompany();
 
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
@@ -83,9 +83,9 @@ export default function Sidebar({ isOpen, onClose }) {
   // Filter master catalog based on enabled modules and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
     if (item.industry) {
-      if (isGym && item.industry !== "GYM") return false;
-      if (isTextile && item.industry !== "TEXTILE") return false;
-      if (isRestaurant && item.industry !== "RESTAURANT") return false;
+      if (item.industry !== industryCode) {
+        return false;
+      }
     }
     return isModuleEnabled(item.moduleCode);
   });

@@ -57,7 +57,7 @@ const QUICK_SEARCH_ITEMS = [
 export default function Header({ toggleSidebar }) {
   const router = useRouter();
   const { settings } = useSettings();
-  const { company, isGym, isTextile } = useCompany();
+  const { company, isGym, isTextile, isRestaurant, isRetail, industryCode } = useCompany();
 
   // User state
   const [user, setUser] = useState(null);
@@ -171,6 +171,8 @@ export default function Header({ toggleSidebar }) {
               ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
               : isTextile
               ? "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
+              : isRestaurant
+              ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
               : "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
             color: "#ffffff",
             borderRadius: "20px",
@@ -182,7 +184,13 @@ export default function Header({ toggleSidebar }) {
           }}
         >
           <span>
-            {isGym ? "🏋️ GYM ERP MODE" : isTextile ? "🧵 TEXTILE ERP MODE" : "🛒 RETAIL ERP MODE"}
+            {isGym
+              ? "🏋️ GYM ERP MODE"
+              : isTextile
+              ? "🧵 TEXTILE ERP MODE"
+              : isRestaurant
+              ? "🍽️ RESTAURANT ERP MODE"
+              : "🛒 RETAIL ERP MODE"}
           </span>
         </div>
 
