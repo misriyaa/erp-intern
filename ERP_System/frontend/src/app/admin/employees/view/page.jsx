@@ -489,7 +489,7 @@ export default function EmployeePage() {
       employee.role &&
       typeof employee.role === "object"
     ) {
-      return employee.role.name || "Employee";
+      return employee.role?.name || "Employee";
     }
 
     if (
@@ -532,6 +532,14 @@ export default function EmployeePage() {
   };
 
   const displayedEmployees = employees.filter((emp) => {
+    const callerRole = (user?.role || "").toUpperCase();
+    if (callerRole !== "SUPER_ADMIN" && callerRole !== "SUPERADMIN") {
+      const empRole = (typeof emp.role === "string" ? emp.role : (emp.role?.name || "")).toUpperCase();
+      if (empRole === "ADMIN" || empRole === "SUPER_ADMIN" || empRole === "SUPERADMIN") {
+        return false;
+      }
+    }
+
     if (!isGym) return true;
     if (filterType === "staff") {
       return !isTrainerRole(emp);

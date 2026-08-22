@@ -115,22 +115,21 @@ const addEmployee = async (
       roleById = await findRoleById(cleanRole);
     }
     if (roleById) {
-      requestedRoleName = roleById.name;
+      requestedRoleName = roleById.name || "";
     } else {
       const roleByName = await findRoleByName(cleanRole);
       if (roleByName) {
-        requestedRoleName = roleByName.name;
+        requestedRoleName = roleByName.name || "";
       } else {
         requestedRoleName = cleanRole;
       }
     }
 
-    const reqRoleUpper = requestedRoleName.toUpperCase();
+    const reqRoleUpper = (requestedRoleName || "").toUpperCase();
     if (reqRoleUpper === "ADMIN" || reqRoleUpper === "SUPER_ADMIN" || reqRoleUpper === "SUPERADMIN") {
       throw new Error("Admins/Managers are not permitted to register or assign Admin/Super Admin roles");
     }
   }
-
 
   // Check email
   const existingEmail = await findEmployeeByEmail(cleanEmail);
@@ -138,7 +137,6 @@ const addEmployee = async (
   if (existingEmail) {
     throw new Error("Email already exists");
   }
-
 
   // Check employee ID
   const existingEmployeeId =
@@ -148,7 +146,6 @@ const addEmployee = async (
     throw new Error("Employee ID already exists");
   }
 
-
   // Check phone
   const existingPhone =
     await findEmployeeByPhone(cleanPhone);
@@ -156,7 +153,6 @@ const addEmployee = async (
   if (existingPhone) {
     throw new Error("Phone number already exists");
   }
-
 
   // Check role: lookup by ID, then by Name. If missing, create role in DB!
   let employeeRole = null;
@@ -172,10 +168,8 @@ const addEmployee = async (
     employeeRole = await createRoleInRepo(cleanRole);
   }
 
-
   // Hash password and store the plain text for future reference
   const passwordHash = await bcrypt.hash(password, 12);
-
 
   let assignedBranchId = null;
   if (branchId) {
@@ -219,8 +213,8 @@ const addEmployee = async (
     // Employee must change password on first login
     firstLogin: true,
 
-    role: employeeRole.name,
-    roleId: employeeRole.id,
+    role: employeeRole?.name || cleanRole,
+    roleId: employeeRole?.id || null,
 
     // Required branch assignment
     branchId: assignedBranchId,

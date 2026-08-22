@@ -84,17 +84,32 @@ export default function RestaurantManagePage() {
       return;
     }
 
-    if (!form.branchId) {
-      alert("Please select or create an Assigned Branch for this restaurant outlet.");
-      return;
+    let targetBranchId = form.branchId || branches[0]?.id;
+    if (!targetBranchId) {
+      try {
+        const newBranchRes = await createBranch({
+          name: "Main Branch Outlet",
+          code: "BR-01",
+          address: "Main City Center",
+        });
+        const createdB = newBranchRes.data || newBranchRes;
+        targetBranchId = createdB?.id;
+      } catch (err) {
+        console.error("Failed to auto-create default branch:", err);
+      }
     }
+
+    const payload = {
+      ...form,
+      branchId: targetBranchId,
+    };
 
     try {
       if (editingRestaurant) {
-        await restaurantService.updateRestaurant(editingRestaurant.id, form);
+        await restaurantService.updateRestaurant(editingRestaurant.id, payload);
         alert("Restaurant outlet updated successfully!");
       } else {
-        await restaurantService.createRestaurant(form);
+        await restaurantService.createRestaurant(payload);
         alert("New restaurant outlet added successfully!");
       }
       setShowAddModal(false);
@@ -298,61 +313,6 @@ export default function RestaurantManagePage() {
                   onChange={(e) => setForm({ ...form, code: e.target.value })}
                   style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                 />
-              </div>
-
-              {/* Dedicated Spacious Assigned Branch Block */}
-              <div style={{ marginBottom: "20px", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: "700", marginBottom: "8px", color: "#0f172a" }}>
-                  Assigned Branch Outlet <span style={{ color: "#ef4444" }}>*</span>
-                </label>
-
-                {branches.length === 0 ? (
-                  <div style={{ backgroundColor: "#fff3cd", border: "1px solid #ffebaAvailable", padding: "12px", borderRadius: "8px", marginTop: "6px" }}>
-                    <div style={{ fontSize: "13px", color: "#854d0e", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
-                      <FiAlertCircle size={16} />
-                      <span>No store branches found in your enterprise.</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAutoCreateBranch}
-                      disabled={creatingBranch}
-                      style={{
-                        padding: "8px 14px",
-                        backgroundColor: "#2563eb",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: "6px",
-                        fontWeight: "600",
-                        fontSize: "13px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {creatingBranch ? "Creating Branch..." : "+ Create Default Main Branch"}
-                    </button>
-                  </div>
-                ) : (
-                  <select
-                    value={form.branchId}
-                    onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      backgroundColor: "#fff",
-                      fontWeight: "600",
-                      color: "#1e293b",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.code || "Branch"})
-                      </option>
-                    ))}
-                  </select>
-                )}
               </div>
 
               {/* Phone Number */}

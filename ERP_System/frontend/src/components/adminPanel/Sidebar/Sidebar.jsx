@@ -111,38 +111,6 @@ export default function Sidebar({ isOpen, onClose }) {
         )}
       </div>
 
-      {/* Restaurant Aside Outlet Filter */}
-      {restaurants.length > 0 && (
-        <div style={{ padding: "0 16px 16px 16px", borderBottom: "1px solid #334155", marginBottom: "16px" }}>
-          <label style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-            <FiFilter size={12} color="#38bdf8" />
-            <span>Filter Restaurant Outlet:</span>
-          </label>
-          <select
-            value={selectedRestaurantId}
-            onChange={(e) => handleRestaurantFilterChange(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 10px",
-              borderRadius: "6px",
-              border: "1px solid #475569",
-              backgroundColor: "#0f172a",
-              color: "#f8fafc",
-              fontSize: "13px",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
-          >
-            <option value="">All Restaurant Outlets</option>
-            {restaurants.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       <nav>
         {isSuperAdmin && (
           <>

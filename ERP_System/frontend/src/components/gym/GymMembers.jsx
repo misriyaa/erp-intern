@@ -24,6 +24,7 @@ export default function GymMembers() {
   const [members, setMembers] = useState([]);
   const [plans, setPlans] = useState([]);
   const [trainers, setTrainers] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -44,9 +45,10 @@ export default function GymMembers() {
     emergencyContact: "",
     emergencyPhone: "",
     membershipPlanId: "",
+    assignedTrainerId: "",
+    branchId: "",
     startDate: "",
     expiryDate: "",
-    assignedTrainerId: "",
     status: "ACTIVE",
     notes: "",
   });
@@ -57,15 +59,18 @@ export default function GymMembers() {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [membersRes, plansRes, trainersRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/gym/members", { headers }),
-        axios.get("http://localhost:5000/api/gym/plans", { headers }),
-        axios.get("http://localhost:5000/api/gym/trainers", { headers }),
+      const [membersRes, plansRes, trainersRes, branchesRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/gym/members", { headers }).catch(() => ({ data: { success: true, data: [] } })),
+        axios.get("http://localhost:5000/api/gym/plans", { headers }).catch(() => ({ data: { success: true, data: [] } })),
+        axios.get("http://localhost:5000/api/gym/trainers", { headers }).catch(() => ({ data: { success: true, data: [] } })),
+        axios.get("http://localhost:5000/api/branches", { headers }).catch(() => ({ data: { data: [] } })),
       ]);
 
       if (membersRes.data.success) setMembers(membersRes.data.data || []);
       if (plansRes.data.success) setPlans(plansRes.data.data || []);
       if (trainersRes.data.success) setTrainers(trainersRes.data.data || []);
+      const bList = branchesRes.data?.data || (Array.isArray(branchesRes.data) ? branchesRes.data : []);
+      setBranches(bList);
     } catch (err) {
       console.error("Error loading gym data", err);
       toast.error("Failed to load Gym Members");
@@ -106,9 +111,10 @@ export default function GymMembers() {
       emergencyContact: "",
       emergencyPhone: "",
       membershipPlanId: plans[0]?.id || "",
+      assignedTrainerId: "",
+      branchId: branches[0]?.id || "",
       startDate: new Date().toISOString().split("T")[0],
       expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      assignedTrainerId: "",
       status: "ACTIVE",
       notes: "",
     });
@@ -127,9 +133,10 @@ export default function GymMembers() {
       emergencyContact: member.emergencyContact || "",
       emergencyPhone: member.emergencyPhone || "",
       membershipPlanId: member.membershipPlanId || "",
+      assignedTrainerId: member.assignedTrainerId || "",
+      branchId: member.branchId || (branches[0]?.id || ""),
       startDate: member.startDate ? new Date(member.startDate).toISOString().split("T")[0] : "",
       expiryDate: member.expiryDate ? new Date(member.expiryDate).toISOString().split("T")[0] : "",
-      assignedTrainerId: member.assignedTrainerId || "",
       status: member.status || "ACTIVE",
       notes: member.notes || "",
     });
@@ -469,6 +476,22 @@ export default function GymMembers() {
                   <option value="">Select Trainer</option>
                   {trainers.map((t) => (
                     <option key={t.id} value={t.id}>{t.fullName}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>Gym Branch / Club Facility</label>
+                <select
+                  value={formData.branchId}
+                  onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", marginTop: "4px" }}
+                >
+                  <option value="">Main Fitness Center</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code || "Branch"})
+                    </option>
                   ))}
                 </select>
               </div>

@@ -126,7 +126,6 @@ export const ROUTE_MODULE_MAP = {
   "/reports/sales": "REPORTS",
   "/admin/settings": "SETTINGS",
   "/settings": "SETTINGS",
-  "/settings/business": "SETTINGS",
   "/settings/profile": "SETTINGS",
 };
 
@@ -186,5 +185,4 @@ export const MASTER_NAVIGATION_CATALOG = [
   // Shared Core Operations
   { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck },
   { moduleCode: "REPORTS", label: "Reports & Analytics", href: "/reports", icon: FiBarChart2 },
-  { moduleCode: "SETTINGS", label: "Settings", href: "/admin/settings", icon: FiSettings },
 ];
