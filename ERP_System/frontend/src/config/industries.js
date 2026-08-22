@@ -184,7 +184,6 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "RESTAURANT", label: "Kitchen Stock & Transfers", href: "/warehouse/stock", icon: FiTruck, industry: "RESTAURANT" },
 
   // Shared Core Operations
-  { moduleCode: "EXPENSES", label: "Expenses & Accounts", href: "/admin/expenses", icon: FiDollarSign },
   { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck },
   { moduleCode: "REPORTS", label: "Reports & Analytics", href: "/reports", icon: FiBarChart2 },
   { moduleCode: "SETTINGS", label: "Settings", href: "/admin/settings", icon: FiSettings },

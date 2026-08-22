@@ -256,63 +256,6 @@ export default function Header({ toggleSidebar }) {
           </span>
         </div>
 
-        {/* Super Admin simulation controls */}
-        {isSuperAdmin && (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "15px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8" }}>Client:</span>
-              <select
-                value={selectedCompId}
-                onChange={handleCompanyChange}
-                style={{
-                  padding: "4px 8px",
-                  borderRadius: "6px",
-                  backgroundColor: "#1e293b",
-                  border: "1px solid #475569",
-                  color: "#f8fafc",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                }}
-              >
-                <option value="">All Clients (Default)</option>
-                {companiesList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedCompId && (
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8" }}>Branch:</span>
-                <select
-                  value={selectedBranchId}
-                  onChange={handleBranchChange}
-                  style={{
-                    padding: "4px 8px",
-                    borderRadius: "6px",
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #475569",
-                    color: "#f8fafc",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                  }}
-                >
-                  <option value="">All Branches</option>
-                  {(companiesList.find((c) => c.id === selectedCompId)?.branches || []).map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Dynamic Search Container */}
         <div className={styles.searchContainer}>
           <div className={styles.searchBox}>
@@ -379,6 +322,32 @@ export default function Header({ toggleSidebar }) {
 
       {/* Right Section */}
       <div className={styles.right}>
+        {/* Cashier / POS Quick Terminal in Top Nav Bar */}
+        {(roleUpper === "CASHIER" || isRetail || isRestaurant) && (
+          <Link
+            href={isRestaurant ? "/restaurant/pos" : "/pos"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "7px 16px",
+              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+              color: "#ffffff",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: "700",
+              textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+              marginRight: "6px",
+              transition: "transform 0.15s ease",
+            }}
+            title="Open Cashier POS Counter"
+          >
+            <FiShoppingCart size={16} />
+            <span>{roleUpper === "CASHIER" ? "Cashier Counter" : "POS Terminal"}</span>
+          </Link>
+        )}
+
         {/* Settings Quick Link */}
         <Link href="/admin/settings" className={styles.iconBtn} title="Settings">
           <FiSettings />

@@ -165,15 +165,6 @@ export default function Sidebar({ isOpen, onClose }) {
               <FiUserCheck />
               <span>Add Client / Admin</span>
             </Link>
-
-            <Link
-              href="/admin/business-type"
-              className={isActivePath("/admin/business-type") ? styles.active : ""}
-              onClick={handleLinkClick}
-            >
-              <FiBriefcase />
-              <span>Business Types</span>
-            </Link>
           </>
         )}
 
