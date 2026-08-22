@@ -220,15 +220,18 @@ export default function AddRetailProductPage() {
     const timestamp = Date.now().toString().slice(-4);
     const code = `PRD-${randomStr}${timestamp}`;
     const sku = `SKU-${randomStr}-${timestamp}`;
+    const barcode = `890${Math.floor(1000000000 + Math.random() * 9000000000)}`;
     setProduct((prev) => ({
       ...prev,
       code,
-      sku,
+      sku: prev.sku || sku,
+      barcode: prev.barcode || barcode,
     }));
   };
 
   useEffect(() => {
     fetchFormData();
+    generateSKUAndCode();
   }, []);
 
   const fetchFormData = async () => {
@@ -475,25 +478,49 @@ export default function AddRetailProductPage() {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Product Code / SKU</label>
-                  <input
-                    type="text"
-                    name="sku"
-                    value={product.sku}
-                    onChange={handleChange}
-                    placeholder="Auto-generated (e.g. RET-849201)"
-                  />
+                  <label>
+                    Product Code / SKU <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "700" }}>(Auto-Generated)</span>
+                  </label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      name="sku"
+                      value={product.sku}
+                      onChange={handleChange}
+                      placeholder="Auto-generated (e.g. SKU-849201)"
+                      style={{ backgroundColor: "#f8fafc", fontWeight: "700", color: "#0f172a" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={generateSKUAndCode}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        whiteSpace: "nowrap",
+                      }}
+                      title="Generate new random SKU"
+                    >
+                      ⚡ Auto Generate
+                    </button>
+                  </div>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Barcode / EAN</label>
+                  <label>
+                    Barcode / EAN <span style={{ fontSize: "11px", color: "#64748b" }}>(Auto-Computed / Optional)</span>
+                  </label>
                   <div className={styles.inputWithButton}>
                     <input
                       type="text"
                       name="barcode"
                       value={product.barcode}
                       onChange={handleChange}
-                      placeholder="e.g. 8901234567890"
+                      placeholder="Auto-generated barcode"
                     />
                     <button
                       type="button"

@@ -145,12 +145,28 @@ export default function EmployeePage() {
 
   const fetchBranches = async () => {
     try {
-      const res = await getBranches();
-      if (res.success && Array.isArray(res.data)) {
-        setBranches(res.data);
-      }
+      const [res, restRes] = await Promise.all([
+        getBranches().catch(() => []),
+        restaurantService.getRestaurants().catch(() => []),
+      ]);
+
+      const bList = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : (res?.data?.data || []);
+      const rList = Array.isArray(restRes?.data) ? restRes.data : Array.isArray(restRes) ? restRes : (restRes?.data?.data || []);
+
+      const combined = [...bList];
+      rList.forEach((r) => {
+        if (r?.id && !combined.some((b) => b.id === r.id)) {
+          combined.push({
+            id: r.id,
+            name: `${r.name} (${r.code || "Outlet"})`,
+            code: r.code || "OUTLET",
+          });
+        }
+      });
+
+      setBranches(combined);
     } catch (err) {
-      console.error("Failed to fetch branches:", err);
+      console.error("Failed to fetch branches/outlets:", err);
     }
   };
 
@@ -210,102 +226,7 @@ export default function EmployeePage() {
         return !isTex && !isGymEmp;
       });
 
-      if (filteredList.length > 0) {
-        setEmployees(filteredList);
-      } else {
-        // Industry-isolated employee roster fallback
-        if (isTextile) {
-          setEmployees([
-            {
-              id: "emp-tex-1",
-              fullName: "Ramesh Kumar",
-              employeeId: "EMP-TEX-01",
-              email: "ramesh.weaving@textile.com",
-              phone: "+91 98765 00111",
-              role: "Loom Weaving Specialist",
-              branch: { name: "Weaving Mill #1" },
-            },
-            {
-              id: "emp-tex-2",
-              fullName: "Anita Sharma",
-              employeeId: "EMP-TEX-02",
-              email: "anita.qc@textile.com",
-              phone: "+91 98765 00222",
-              role: "Quality Inspector",
-              branch: { name: "Dyeing & Finishing Unit" },
-            },
-            {
-              id: "emp-tex-3",
-              fullName: "Sunil Verma",
-              employeeId: "EMP-TEX-03",
-              email: "sunil.spinning@textile.com",
-              phone: "+91 98765 00333",
-              role: "Spinning Machine Master",
-              branch: { name: "Spinning Plant A" },
-            },
-          ]);
-        } else if (isGym) {
-          setEmployees([
-            {
-              id: "emp-gym-1",
-              fullName: "Marcus Vance",
-              employeeId: "EMP-GYM-01",
-              email: "marcus.trainer@gymfitness.com",
-              phone: "+91 98765 11111",
-              role: "Senior Personal Trainer",
-              branch: { name: "Downtown Fitness Club" },
-            },
-            {
-              id: "emp-gym-2",
-              fullName: "Priya Patel",
-              employeeId: "EMP-GYM-02",
-              email: "priya.nutrition@gymfitness.com",
-              phone: "+91 98765 22222",
-              role: "Sports Nutritionist",
-              branch: { name: "Uptown Health Hub" },
-            },
-            {
-              id: "emp-gym-3",
-              fullName: "David Miller",
-              employeeId: "EMP-GYM-03",
-              email: "david.desk@gymfitness.com",
-              phone: "+91 98765 33333",
-              role: "Desk & Check-in Specialist",
-              branch: { name: "Downtown Fitness Club" },
-            },
-          ]);
-        } else {
-          setEmployees([
-            {
-              id: "emp-ret-1",
-              fullName: "Rajesh Gupta",
-              employeeId: "EMP-RET-01",
-              email: "rajesh.manager@retail.com",
-              phone: "+91 98765 44444",
-              role: "Store Operations Manager",
-              branch: { name: "Central Supermarket Outlet" },
-            },
-            {
-              id: "emp-ret-2",
-              fullName: "Sneha Reddy",
-              employeeId: "EMP-RET-02",
-              email: "sneha.cashier@retail.com",
-              phone: "+91 98765 55555",
-              role: "Senior POS Cashier",
-              branch: { name: "Central Supermarket Outlet" },
-            },
-            {
-              id: "emp-ret-3",
-              fullName: "Amit Shah",
-              employeeId: "EMP-RET-03",
-              email: "amit.stock@retail.com",
-              phone: "+91 98765 66666",
-              role: "Inventory & Stock Clerk",
-              branch: { name: "Westside Retail Depot" },
-            },
-          ]);
-        }
-      }
+      setEmployees(filteredList);
     } catch (error) {
       console.error("Fetch employees error:", error);
     } finally {

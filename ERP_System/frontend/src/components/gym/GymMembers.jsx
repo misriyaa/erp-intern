@@ -228,25 +228,47 @@ export default function GymMembers() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "12px 20px",
-            background: "#4f46e5",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "8px",
-            fontSize: "14px",
-            fontWeight: "600",
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(79, 70, 229, 0.3)",
-          }}
-        >
-          <FiPlus size={18} /> Add New Member
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <Link
+            href="/gym/branches"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "12px 18px",
+              background: "#ffffff",
+              color: "#334155",
+              border: "1px solid #cbd5e1",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: "600",
+              textDecoration: "none",
+            }}
+          >
+            <FiMapPin size={16} style={{ color: "#4f46e5" }} />
+            <span>+ Add Gym Branch</span>
+          </Link>
+
+          <button
+            onClick={handleOpenAdd}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "12px 20px",
+              background: "#4f46e5",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(79, 70, 229, 0.3)",
+            }}
+          >
+            <FiPlus size={18} /> New Member Registration
+          </button>
+        </div>
       </div>
 
       {/* FILTER & SEARCH TOOLBAR */}

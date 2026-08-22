@@ -286,14 +286,32 @@ export default function AddEmployeePage() {
   const fetchBranches = async () => {
     let dbBranches = [];
     try {
-      const res = await getBranches();
-      dbBranches = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : (res?.data?.data || []);
+      const [branchRes, restRes] = await Promise.all([
+        getBranches().catch(() => []),
+        restaurantService.getRestaurants().catch(() => []),
+      ]);
+
+      const bList = Array.isArray(branchRes?.data) ? branchRes.data : Array.isArray(branchRes) ? branchRes : (branchRes?.data?.data || []);
+      const rList = Array.isArray(restRes?.data) ? restRes.data : Array.isArray(restRes) ? restRes : (restRes?.data?.data || []);
+
+      dbBranches = [...bList];
+
+      rList.forEach((r) => {
+        if (r?.id && !dbBranches.some((b) => b.id === r.id)) {
+          dbBranches.push({
+            id: r.id,
+            name: `${r.name} (${r.code || "Outlet"})`,
+            code: r.code || "OUTLET",
+          });
+        }
+      });
     } catch (err) {
-      console.error("Failed to fetch branches:", err);
+      console.error("Failed to fetch branches/outlets:", err);
     }
 
     const isTex = Boolean(industryCode?.includes("TEXTILE"));
     const isGymMode = Boolean(industryCode?.includes("GYM"));
+    const isRestMode = Boolean(industryCode?.includes("RESTAURANT"));
 
     const defaultBranches = isTex
       ? [
@@ -305,6 +323,11 @@ export default function AddEmployeePage() {
       ? [
           { id: "b-gym-1", name: "Downtown Fitness Club", code: "GYM-01" },
           { id: "b-gym-2", name: "Uptown Health Hub", code: "GYM-02" },
+        ]
+      : isRestMode
+      ? [
+          { id: "b-rest-1", name: "Main Dining Restaurant Outlet", code: "RST-01" },
+          { id: "b-rest-2", name: "Central Kitchen Outlet", code: "RST-02" },
         ]
       : [
           { id: "b-ret-1", name: "Central Supermarket Outlet", code: "RET-01" },

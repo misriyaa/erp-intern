@@ -137,9 +137,10 @@ export default function RestaurantManagePage() {
     if (!confirm("Are you sure you want to delete this restaurant outlet?")) return;
     try {
       await restaurantService.deleteRestaurant(id);
+      setRestaurants((prev) => prev.filter((r) => r.id !== id));
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      alert(err.response?.data?.message || err.message || "Failed to delete restaurant outlet");
     }
   };
 

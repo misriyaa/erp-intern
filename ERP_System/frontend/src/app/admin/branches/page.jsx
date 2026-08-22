@@ -124,42 +124,22 @@ export default function BranchesPage() {
       setError(null);
       const res = await getBranches();
       const list = res?.success && Array.isArray(res.data) ? res.data : [];
-      if (list.length > 0) {
-        const filtered = list.filter((b) => {
-          const isTex =
-            b.isTextile === true ||
-            b.type === "TEXTILE_MILL" ||
-            b.name?.toLowerCase().includes("mill") ||
-            b.name?.toLowerCase().includes("spinning") ||
-            b.name?.toLowerCase().includes("weaving") ||
-            b.name?.toLowerCase().includes("dyeing") ||
-            b.name?.toLowerCase().includes("plant") ||
-            b.code?.startsWith("MILL-") ||
-            b.code?.startsWith("TEX-");
-          if (isTextile) return isTex;
-          if (isGym) return b.type === "GYM" || b.code?.startsWith("GYM-") || b.name?.toLowerCase().includes("gym") || b.name?.toLowerCase().includes("fitness");
-          return !isTex && b.type !== "GYM" && !b.code?.startsWith("GYM-");
-        });
-        setBranches(filtered);
-      } else {
-        if (isTextile) {
-          setBranches([
-            { id: "b-tex-1", name: "Weaving Mill #1", code: "MILL-01", city: "Surat", state: "Gujarat", phone: "+91 98765 11001", email: "weaving1@textilemills.com", isActive: true, isTextile: true, type: "TEXTILE_MILL" },
-            { id: "b-tex-2", name: "Dyeing & Finishing Unit", code: "MILL-02", city: "Ahmedabad", state: "Gujarat", phone: "+91 98765 11002", email: "dyeing@textilemills.com", isActive: true, isTextile: true, type: "TEXTILE_MILL" },
-            { id: "b-tex-3", name: "Spinning Plant A", code: "MILL-03", city: "Coimbatore", state: "Tamil Nadu", phone: "+91 98765 11003", email: "spinning@textilemills.com", isActive: true, isTextile: true, type: "TEXTILE_MILL" },
-          ]);
-        } else if (isGym) {
-          setBranches([
-            { id: "b-gym-1", name: "Downtown Fitness Club", code: "GYM-01", city: "Mumbai", state: "Maharashtra", phone: "+91 98765 22001", email: "downtown@gymfitness.com", isActive: true, isTextile: false, type: "GYM" },
-            { id: "b-gym-2", name: "Uptown Health Hub", code: "GYM-02", city: "Bangalore", state: "Karnataka", phone: "+91 98765 22002", email: "uptown@gymfitness.com", isActive: true, isTextile: false, type: "GYM" },
-          ]);
-        } else {
-          setBranches([
-            { id: "b-ret-1", name: "Central Supermarket Outlet", code: "RET-01", city: "Mumbai", state: "Maharashtra", phone: "+91 98765 33001", email: "central@retailmart.com", isActive: true, isTextile: false, type: "RETAIL_BRANCH" },
-            { id: "b-ret-2", name: "Westside Retail Depot", code: "RET-02", city: "Pune", state: "Maharashtra", phone: "+91 98765 33002", email: "westside@retailmart.com", isActive: true, isTextile: false, type: "RETAIL_BRANCH" },
-          ]);
-        }
-      }
+      const filtered = list.filter((b) => {
+        const isTex =
+          b.isTextile === true ||
+          b.type === "TEXTILE_MILL" ||
+          b.name?.toLowerCase().includes("mill") ||
+          b.name?.toLowerCase().includes("spinning") ||
+          b.name?.toLowerCase().includes("weaving") ||
+          b.name?.toLowerCase().includes("dyeing") ||
+          b.name?.toLowerCase().includes("plant") ||
+          b.code?.startsWith("MILL-") ||
+          b.code?.startsWith("TEX-");
+        if (isTextile) return isTex;
+        if (isGym) return b.type === "GYM" || b.code?.startsWith("GYM-") || b.name?.toLowerCase().includes("gym") || b.name?.toLowerCase().includes("fitness");
+        return !isTex && b.type !== "GYM" && !b.code?.startsWith("GYM-");
+      });
+      setBranches(filtered);
     } catch (err) {
       console.error(err);
     } finally {

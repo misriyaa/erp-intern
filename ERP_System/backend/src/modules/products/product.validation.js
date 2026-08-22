@@ -9,11 +9,8 @@ export const createProductValidation = [
     .withMessage("Product name must be between 2 and 150 characters"),
 
   body("sku")
-    .trim()
-    .notEmpty()
-    .withMessage("SKU is required")
-    .isLength({ min: 2, max: 50 })
-    .withMessage("SKU must be between 2 and 50 characters"),
+    .optional({ nullable: true })
+    .trim(),
 
   body("barcode")
     .optional({ nullable: true })

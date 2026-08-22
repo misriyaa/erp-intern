@@ -187,14 +187,26 @@ const addEmployee = async (
     if (dbBranch) {
       assignedBranchId = dbBranch.id;
     } else {
-      const newBranch = await prisma.branch.create({
-        data: {
-          name: branchId.startsWith("b-") ? "Main Store Branch" : branchId,
-          code: `BR-${Date.now().toString().slice(-4)}`,
-          isActive: true,
-        }
-      });
-      assignedBranchId = newBranch.id;
+      let dbRest = null;
+      if (isUuid(branchId)) {
+        dbRest = await prisma.restaurant.findUnique({ where: { id: branchId } }).catch(() => null);
+      }
+      if (!dbRest) {
+        dbRest = await prisma.restaurant.findFirst({ where: { OR } }).catch(() => null);
+      }
+
+      if (dbRest) {
+        assignedBranchId = dbRest.branchId;
+      } else {
+        const newBranch = await prisma.branch.create({
+          data: {
+            name: branchId.startsWith("b-") ? "Main Store Branch" : branchId,
+            code: `BR-${Date.now().toString().slice(-4)}`,
+            isActive: true,
+          }
+        });
+        assignedBranchId = newBranch.id;
+      }
     }
   }
 

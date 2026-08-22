@@ -94,6 +94,7 @@ export const ROUTE_MODULE_MAP = {
   "/gym/trainers": "TRAINERS",
   "/gym/attendance": "ATTENDANCE",
   "/gym/payments": "PAYMENTS",
+  "/gym/branches": "BRANCHES",
 
   // Textile Modules
   "/textile/products": "PRODUCTS",
@@ -139,7 +140,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "TRAINERS", label: "Gym Trainers", href: "/gym/trainers", icon: FiUserCheck, industry: "GYM" },
   { moduleCode: "ATTENDANCE", label: "Attendance Log", href: "/gym/attendance", icon: FiCheckSquare, industry: "GYM" },
   { moduleCode: "PAYMENTS", label: "Payments & Fees", href: "/gym/payments", icon: FiCreditCard, industry: "GYM" },
-  { moduleCode: "BRANCHES", label: "Fitness Centers & Facilities", href: "/admin/branches", icon: FiMapPin, industry: "GYM" },
+  { moduleCode: "BRANCHES", label: "Gym Fitness Centers & Branches", href: "/gym/branches", icon: FiMapPin, industry: "GYM" },
   { moduleCode: "SUPPLIERS", label: "Equipment Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "GYM" },
 
   // Textile Industry Modules

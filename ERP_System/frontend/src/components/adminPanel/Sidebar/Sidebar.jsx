@@ -83,7 +83,9 @@ export default function Sidebar({ isOpen, onClose }) {
   // Filter master catalog based on enabled modules and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
     if (item.industry) {
-      if (item.industry !== industryCode) {
+      const codeUpper = (industryCode || "").toUpperCase();
+      const itemInd = (item.industry || "").toUpperCase();
+      if (codeUpper !== itemInd && !codeUpper.includes(itemInd)) {
         return false;
       }
     }

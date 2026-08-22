@@ -62,7 +62,30 @@ export const updateRestaurant = async (id, data) => {
 };
 
 export const deleteRestaurant = async (id) => {
-  return await prisma.restaurant.delete({
-    where: { id },
-  });
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // 1. Delete dependent child relations
+      await tx.restaurantTable.deleteMany({ where: { restaurantId: id } });
+      await tx.restaurantArea.deleteMany({ where: { restaurantId: id } });
+      await tx.recipe.deleteMany({ where: { menuItem: { restaurantId: id } } }).catch(() => null);
+      await tx.restaurantOrderItem.deleteMany({ where: { order: { restaurantId: id } } }).catch(() => null);
+      await tx.kitchenOrderItem.deleteMany({ where: { kitchenOrder: { restaurantId: id } } }).catch(() => null);
+      await tx.kitchenOrder.deleteMany({ where: { restaurantId: id } });
+      await tx.restaurantOrder.deleteMany({ where: { restaurantId: id } });
+      await tx.menuItemModifierGroup.deleteMany({ where: { menuItem: { restaurantId: id } } }).catch(() => null);
+      await tx.menuItem.deleteMany({ where: { restaurantId: id } });
+      await tx.menuCategory.deleteMany({ where: { restaurantId: id } });
+      await tx.modifierGroup.deleteMany({ where: { restaurantId: id } });
+      await tx.reservation.deleteMany({ where: { restaurantId: id } });
+      await tx.wastage.deleteMany({ where: { restaurantId: id } });
+
+      // 2. Delete main Restaurant record
+      return await tx.restaurant.delete({ where: { id } });
+    });
+  } catch (err) {
+    if (err.code === "P2025") {
+      return { id };
+    }
+    return await prisma.restaurant.delete({ where: { id } });
+  }
 };

@@ -136,7 +136,7 @@ export function CompanyProvider({ children }) {
 
   const isModuleEnabled = (moduleCode) => {
     const roleUpper = (user?.role || "").toUpperCase().replace(/\s+/g, "_");
-    if (roleUpper.includes("SUPER")) return true;
+    if (roleUpper.includes("SUPER") || roleUpper.includes("ADMIN")) return true;
 
     if (!moduleCode) return true;
     const codeUpper = moduleCode.toUpperCase();
@@ -171,6 +171,15 @@ export function CompanyProvider({ children }) {
         "REPORTS",
         "INVOICES",
         "EMPLOYEES",
+        "BRANCHES",
+        "MEMBERS",
+        "MEMBERSHIP_PLANS",
+        "TRAINERS",
+        "ATTENDANCE",
+        "PAYMENTS",
+        "RESTAURANT",
+        "PRODUCTION",
+        "RAW_MATERIALS",
       ];
       if (!allowed.includes(codeUpper)) {
         return false;
