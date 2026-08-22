@@ -36,13 +36,8 @@ export const createAdminService = async ({
     throw new Error("Phone number already exists");
   }
 
-  // Find ADMIN role
+  // Find or create ADMIN role
   const adminRole = await findAdminRole();
-  if (!adminRole) {
-    throw new Error(
-      "ADMIN role not found. Please create ADMIN role first."
-    );
-  }
 
   // Find or determine Industry
   const typeUpper = (type || "RETAIL").toUpperCase();
@@ -50,6 +45,8 @@ export const createAdminService = async ({
     ? "GYM"
     : typeUpper.includes("TEXTILE")
     ? "TEXTILE"
+    : typeUpper.includes("RESTAURANT")
+    ? "RESTAURANT"
     : "RETAIL";
 
   let industry = await prisma.industry.findUnique({
@@ -60,7 +57,14 @@ export const createAdminService = async ({
     industry = await prisma.industry.create({
       data: {
         code: industryCodeUpper,
-        name: industryCodeUpper === "GYM" ? "Gym" : industryCodeUpper === "TEXTILE" ? "Textile" : "Retail",
+        name:
+          industryCodeUpper === "GYM"
+            ? "Gym"
+            : industryCodeUpper === "TEXTILE"
+            ? "Textile"
+            : industryCodeUpper === "RESTAURANT"
+            ? "Restaurant"
+            : "Retail",
         status: true,
       },
     });
@@ -71,7 +75,7 @@ export const createAdminService = async ({
   const company = await prisma.company.create({
     data: {
       name: finalCompanyName,
-      industryId: industry.id,
+      industryId: industry?.id || null,
       status: "ACTIVE",
     },
   });
@@ -89,7 +93,7 @@ export const createAdminService = async ({
     where: { code: { in: moduleCodesToEnable } },
   });
 
-  if (allModules.length > 0) {
+  if (allModules.length > 0 && company?.id) {
     await prisma.companyModule.createMany({
       data: allModules.map((m) => ({
         companyId: company.id,
@@ -125,13 +129,13 @@ export const createAdminService = async ({
     role: "ADMIN",
 
     // Role table relation
-    roleId: adminRole.id,
+    roleId: adminRole?.id || null,
 
     // Business type / Industry code
     type: industryCodeUpper,
 
     // Company Link
-    companyId: company.id,
+    companyId: company?.id || null,
 
     isVerified: true,
     firstLogin: true,

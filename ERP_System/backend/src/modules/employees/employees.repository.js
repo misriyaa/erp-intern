@@ -144,11 +144,30 @@ const deleteEmployee = async (id) => {
  * Create role in database
  */
 const createRoleInRepo = async (roleName) => {
-  return await prisma.role.create({
-    data: {
-      name: roleName.trim(),
+  const cleanName = roleName.trim();
+  let role = await prisma.role.findFirst({
+    where: {
+      name: { equals: cleanName, mode: "insensitive" },
     },
   });
+
+  if (!role) {
+    try {
+      role = await prisma.role.upsert({
+        where: { name: cleanName },
+        update: {},
+        create: { name: cleanName },
+      });
+    } catch (e) {
+      role = await prisma.role.findFirst({
+        where: {
+          name: { equals: cleanName, mode: "insensitive" },
+        },
+      });
+    }
+  }
+
+  return role;
 };
 
 export {

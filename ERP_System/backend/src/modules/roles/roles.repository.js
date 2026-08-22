@@ -36,9 +36,25 @@ const getRoleByName = async (name) => {
 };
 
 const createRole = async (data) => {
+  const cleanName = data.name.trim();
+  const existingRole = await prisma.role.findFirst({
+    where: {
+      name: { equals: cleanName, mode: "insensitive" },
+    },
+    include: {
+      _count: {
+        select: { users: true },
+      },
+    },
+  });
+
+  if (existingRole) {
+    return existingRole;
+  }
+
   return await prisma.role.create({
     data: {
-      name: data.name.trim(),
+      name: cleanName,
       isTextile: data.isTextile === true || data.category === "TEXTILE",
       category: data.category || (data.isTextile ? "TEXTILE" : "RETAIL"),
     },

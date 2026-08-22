@@ -50,6 +50,11 @@ export default function LoginForm() {
         throw new Error(data.message || "Login failed");
       }
 
+      // Clear any previous session overrides
+      localStorage.removeItem("industryOverride");
+      localStorage.removeItem("companyOverride");
+      localStorage.removeItem("branchOverride");
+
       localStorage.setItem("token", data.token);
       if (data.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -68,7 +73,12 @@ export default function LoginForm() {
 
       showSuccess("Login Successful", "User logged in successfully! Redirecting...");
 
-      window.location.href = "/dashboard";
+      const userRole = (data.user?.role || "").toUpperCase();
+      if (userRole.includes("SUPER")) {
+        window.location.href = "/admin/superadmin-dashboard";
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Login failed");
     } finally {
@@ -103,7 +113,7 @@ export default function LoginForm() {
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label className={styles.label}>
-              Employee ID / Email
+              Email / Employee ID / Phone
             </label>
 
             <div className={styles.inputGroup}>
@@ -116,7 +126,7 @@ export default function LoginForm() {
               <input
                 type="text"
                 name="login"
-                placeholder="EMP001 or employee@company.com"
+                placeholder="admin@company.com, ADM-001, or 9876543210"
                 value={formData.login}
                 onChange={handleChange}
                 required

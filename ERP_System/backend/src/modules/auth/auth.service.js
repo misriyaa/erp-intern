@@ -45,6 +45,8 @@ const loginService = async (login, password) => {
     ? "GYM"
     : rawCodeUpper.includes("TEXTILE")
     ? "TEXTILE"
+    : rawCodeUpper.includes("RESTAURANT")
+    ? "RESTAURANT"
     : "RETAIL";
 
   const companyModules =
@@ -70,6 +72,9 @@ const loginService = async (login, password) => {
     }
   }
 
+  const rawRole = (employee.roleRef?.name || employee.role || "Employee").trim();
+  const normalizedRole = rawRole.toUpperCase().replace(/\s+/g, "_");
+
   return {
     success: true,
     message: "Login successful",
@@ -80,7 +85,7 @@ const loginService = async (login, password) => {
       email: employee.email,
       employeeId: employee.employeeId,
       phone: employee.phone,
-      role: employee.roleRef?.name || employee.role || "Employee",
+      role: normalizedRole,
       type: industryCodeUpper,
       companyId: employee.companyId || employee.company?.id || null,
     },
@@ -89,7 +94,14 @@ const loginService = async (login, password) => {
       name: employee.company?.name || "ERP Enterprise",
       industry: {
         code: industryCodeUpper,
-        name: industryCodeUpper === "GYM" ? "Gym" : industryCodeUpper === "TEXTILE" ? "Textile" : "Retail",
+        name:
+          industryCodeUpper === "GYM"
+            ? "Gym"
+            : industryCodeUpper === "TEXTILE"
+            ? "Textile"
+            : industryCodeUpper === "RESTAURANT"
+            ? "Restaurant"
+            : "Retail",
       },
     },
     modules: enabledModuleCodes,

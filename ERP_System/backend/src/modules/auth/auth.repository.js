@@ -8,6 +8,7 @@ const findUserByLogin = async (login) => {
       OR: [
         { email: { equals: cleanLogin, mode: "insensitive" } },
         { employeeId: { equals: cleanLogin, mode: "insensitive" } },
+        { phone: { equals: cleanLogin, mode: "insensitive" } },
       ],
     },
 

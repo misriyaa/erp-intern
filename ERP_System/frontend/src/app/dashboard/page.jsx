@@ -3,12 +3,14 @@
 import DashboardHome from "@/components/adminPanel/DashboardHome/DashboardHome";
 import GymDashboard from "@/components/gym/GymDashboard";
 import TextileDashboard from "@/components/textile/TextileDashboard";
+import RestaurantDashboardPage from "@/app/restaurant/dashboard/page";
 import { useCompany } from "@/context/CompanyContext";
 
 const DASHBOARD_REGISTRY = {
   RETAIL: DashboardHome,
   GYM: GymDashboard,
   TEXTILE: TextileDashboard,
+  RESTAURANT: RestaurantDashboardPage,
 };
 
 export default function DashboardPage() {

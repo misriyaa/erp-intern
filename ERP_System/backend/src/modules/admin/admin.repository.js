@@ -20,21 +20,39 @@ export const findUserByPhone = async (phone) => {
 
 // Find or create ADMIN role
 export const findAdminRole = async () => {
+  // 1. Exact or case-insensitive match
   let role = await prisma.role.findFirst({
     where: {
       name: { equals: "ADMIN", mode: "insensitive" },
     },
   });
+  if (role) return role;
 
-  if (!role) {
-    role = await prisma.role.create({
-      data: {
-        name: "ADMIN",
-      },
+  // 2. Contains "ADMIN" match
+  role = await prisma.role.findFirst({
+    where: {
+      name: { contains: "ADMIN", mode: "insensitive" },
+    },
+  });
+  if (role) return role;
+
+  // 3. Safe upsert
+  try {
+    role = await prisma.role.upsert({
+      where: { name: "ADMIN" },
+      update: {},
+      create: { name: "ADMIN", category: "RETAIL" },
     });
+    if (role) return role;
+  } catch (err) {
+    role = await prisma.role.findFirst({
+      where: { name: { equals: "ADMIN", mode: "insensitive" } },
+    });
+    if (role) return role;
   }
 
-  return role;
+  // 4. Return any first existing role
+  return await prisma.role.findFirst();
 };
 
 // Create admin
