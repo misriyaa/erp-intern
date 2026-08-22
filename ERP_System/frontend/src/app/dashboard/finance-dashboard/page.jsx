@@ -227,11 +227,11 @@ export default function FinanceDashboard() {
   const [invoicesList, setInvoicesList] = useState(defaultInvoices);
   const [paymentsList, setPaymentsList] = useState(defaultPayments);
   const [financeStats, setFinanceStats] = useState({
-    totalRevenue: "₹125,000",
-    totalExpenses: "₹89,500",
-    pendingInvoices: 12,
-    budgetUtilization: "65%",
-    netProfit: "₹35,500",
+    totalRevenue: "₹0.00",
+    totalExpenses: "₹0.00",
+    pendingInvoices: 0,
+    budgetUtilization: "0%",
+    netProfit: "₹0.00",
   });
   const [loading, setLoading] = useState(true);
 

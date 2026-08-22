@@ -183,10 +183,10 @@ export default function PosDashboard() {
       const totalRev = salesReport?.summary?.totalSales || 0;
 
       setMetrics({
-        totalSales: totalRev > 0 ? `₹${(totalRev / 1000).toFixed(1)}K` : "₹145.8K",
-        totalCustomers: liveCustomers.length > 0 ? String(liveCustomers.length) : "1,240",
-        totalTransactions: salesList.length > 0 ? String(salesList.length) : "3,890",
-        netProfit: totalRev > 0 ? `₹${((totalRev * 0.3) / 1000).toFixed(1)}K` : "₹42.5K",
+        totalSales: totalRev > 0 ? `₹${totalRev.toLocaleString()}` : "₹0.00",
+        totalCustomers: String(liveCustomers.length),
+        totalTransactions: String(salesList.length),
+        netProfit: totalRev > 0 ? `₹${(totalRev * 0.3).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "₹0.00",
       });
 
       // 2. Chart data

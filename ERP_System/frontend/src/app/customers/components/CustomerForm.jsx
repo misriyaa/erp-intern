@@ -26,6 +26,11 @@ export default function CustomerForm({
 
   const [submitting, setSubmitting] = useState(false);
 
+  const generateLoyaltyId = () => {
+    const num = Math.floor(100000 + Math.random() * 900000);
+    setForm((prev) => ({ ...prev, loyaltyId: `LOY-${num}` }));
+  };
+
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       setForm({
@@ -33,10 +38,12 @@ export default function CustomerForm({
         phone: initialData.phone || "",
         email: initialData.email || "",
         address: initialData.address || "",
-        loyaltyId: initialData.loyaltyId || "",
+        loyaltyId: initialData.loyaltyId || `LOY-${Math.floor(100000 + Math.random() * 900000)}`,
         creditLimit: initialData.creditLimit || 0,
         currentBalance: initialData.currentBalance || 0,
       });
+    } else {
+      generateLoyaltyId();
     }
   }, [initialData]);
 
@@ -66,7 +73,11 @@ export default function CustomerForm({
 
     try {
       setSubmitting(true);
-      await onSubmit(form);
+      const finalForm = {
+        ...form,
+        loyaltyId: form.loyaltyId || `LOY-${Math.floor(100000 + Math.random() * 900000)}`,
+      };
+      await onSubmit(finalForm);
     } finally {
       setSubmitting(false);
     }
@@ -121,15 +132,37 @@ export default function CustomerForm({
       </div>
 
       <div className={styles.formGroup}>
-        <label htmlFor="loyaltyId">Loyalty ID</label>
-        <input
-          id="loyaltyId"
-          type="text"
-          name="loyaltyId"
-          value={form.loyaltyId}
-          onChange={handleChange}
-          placeholder="e.g. LOYAL-8899"
-        />
+        <label htmlFor="loyaltyId">
+          Customer Loyalty ID <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "700" }}>(Auto-Generated)</span>
+        </label>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <input
+            id="loyaltyId"
+            type="text"
+            name="loyaltyId"
+            value={form.loyaltyId}
+            onChange={handleChange}
+            placeholder="e.g. LOY-889901"
+            style={{ fontWeight: "700", color: "#0f172a" }}
+          />
+          <button
+            type="button"
+            onClick={generateLoyaltyId}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              background: "#ffffff",
+              fontWeight: "600",
+              cursor: "pointer",
+              fontSize: "12px",
+              whiteSpace: "nowrap",
+            }}
+            title="Generate new Loyalty ID"
+          >
+            ⚡ Auto Generate
+          </button>
+        </div>
       </div>
 
       <div className={styles.formGroup}>

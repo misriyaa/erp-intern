@@ -123,7 +123,7 @@ export default function BranchesPage() {
       setLoading(true);
       setError(null);
       const res = await getBranches();
-      const list = res?.success && Array.isArray(res.data) ? res.data : [];
+      const list = res?.success && Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : [];
       const filtered = list.filter((b) => {
         const isTex =
           b.isTextile === true ||
@@ -135,9 +135,9 @@ export default function BranchesPage() {
           b.name?.toLowerCase().includes("plant") ||
           b.code?.startsWith("MILL-") ||
           b.code?.startsWith("TEX-");
+
         if (isTextile) return isTex;
-        if (isGym) return b.type === "GYM" || b.code?.startsWith("GYM-") || b.name?.toLowerCase().includes("gym") || b.name?.toLowerCase().includes("fitness");
-        return !isTex && b.type !== "GYM" && !b.code?.startsWith("GYM-");
+        return true; // Show created branches in active mode
       });
       setBranches(filtered);
     } catch (err) {

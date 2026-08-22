@@ -393,6 +393,47 @@ export const getDashboardSummary = async (companyId) => {
     });
   });
 
+  // Calculate Total Outstanding from Customers
+  const totalOutstandingRes = await prisma.customer.aggregate({
+    where: companyWhere,
+    _sum: {
+      currentBalance: true,
+    },
+  }).catch(() => ({ _sum: { currentBalance: 0 } }));
+  const totalOutstanding = Math.round(Number(totalOutstandingRes?._sum?.currentBalance || 0));
+
+  // Calculate Top Categories by Product Count
+  const categoriesWithProducts = await prisma.category.findMany({
+    where: companyWhere,
+    include: {
+      _count: {
+        select: { products: true },
+      },
+    },
+    take: 6,
+    orderBy: {
+      products: {
+        _count: "desc",
+      },
+    },
+  }).catch(() => []);
+
+  const totalCatProducts = categoriesWithProducts.reduce((sum, c) => sum + (c._count?.products || 0), 0) || 1;
+  const colors = ["#3B4CCA", "#0F9D77", "#F5A623", "#E11D48", "#16A34A", "#8B5CF6"];
+  const topCategoriesData = categoriesWithProducts.map((c, i) => ({
+    name: c.name,
+    pct: Math.round(((c._count?.products || 0) / totalCatProducts) * 100),
+    color: colors[i % colors.length],
+  }));
+
+  // Deliveries / Purchases Live
+  const liveDeliveries = lastPurchases.map((p) => ({
+    title: `Supplier Restock — PO ${p.purchaseNo || p.id?.slice(0, 6)}`,
+    date: p.purchaseDate ? new Date(p.purchaseDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB"),
+    time: p.status || "IN_TRANSIT",
+    tone: p.status === "RECEIVED" ? "blue" : "rose",
+  }));
+
   activities.sort((a, b) => new Date(b.time) - new Date(a.time));
 
   return {
@@ -402,10 +443,13 @@ export const getDashboardSummary = async (companyId) => {
       lowStock: lowStockCount || lowStockProducts,
       totalValue: Math.round(totalValuation),
       totalEarnings: Math.round(totalEarnings),
+      totalOutstanding,
       inStock: inStockCount,
       outOfStock: outOfStockCount,
     },
     earningsChart: earningsChartData,
     recentActivities: activities.slice(0, 5),
+    topCategories: topCategoriesData,
+    deliveries: liveDeliveries,
   };
 };

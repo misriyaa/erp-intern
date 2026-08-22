@@ -188,7 +188,7 @@ export default function RestaurantMenuPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
         <div>
           <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", margin: 0 }}>Menu & Recipe Engineering</h1>
-          <p style={{ color: "#64748b", margin: "4px 0 0 0" }}>Manage categories, dishes, ingredients BOM & add-on modifiers.</p>
+          <p style={{ color: "#64748b", margin: "4px 0 0 0" }}>Manage categories, dishes, and ingredients BOM.</p>
         </div>
 
         {restaurants.length > 0 && (
@@ -210,7 +210,6 @@ export default function RestaurantMenuPage() {
           { key: "categories", label: "Menu Categories", icon: FiBox },
           { key: "items", label: "Menu Items / Dishes", icon: FiPackage },
           { key: "recipes", label: "Recipes / BOM Builder", icon: FiLayers },
-          { key: "modifiers", label: "Modifiers & Add-ons", icon: FiPlus },
         ].map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.key;
@@ -410,33 +409,7 @@ export default function RestaurantMenuPage() {
         </div>
       )}
 
-      {/* TAB 4: MODIFIERS */}
-      {activeTab === "modifiers" && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
-            <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: 0 }}>Modifier Groups & Add-ons</h3>
-            <button onClick={() => setShowModifierModal(true)} style={{ padding: "8px 16px", backgroundColor: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }}>
-              + Add Modifier Group
-            </button>
-          </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
-            {modifierGroups.map((g) => (
-              <div key={g.id} style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-                <h4 style={{ margin: "0 0 12px 0", fontSize: "18px", fontWeight: "700", color: "#0f172a" }}>{g.name}</h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {g.modifiers?.map((m) => (
-                    <div key={m.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", color: "#334155", padding: "4px 0", borderBottom: "1px dashed #f1f5f9" }}>
-                      <span>+ {m.name}</span>
-                      <span style={{ fontWeight: "700" }}>+₹{parseFloat(m.price).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Category Modal */}
       {showCategoryModal && (

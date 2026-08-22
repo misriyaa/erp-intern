@@ -282,19 +282,41 @@ export default function EditProductPage({ params }) {
   }, [id]);
 
   const fetchFormData = async () => {
+  const fetchBrands = async () => {
     try {
-      const [catRes, brandRes, unitRes, suppRes] = await Promise.allSettled([
+      let rawBrand = null;
+      try {
+        const res = await apiClient.get("/brands");
+        rawBrand = res.data;
+      } catch (e) {
+        const res = await axios.get("http://localhost:5000/api/brands");
+        rawBrand = res.data;
+      }
+      const brandList = Array.isArray(rawBrand?.data)
+        ? rawBrand.data
+        : Array.isArray(rawBrand)
+        ? rawBrand
+        : Array.isArray(rawBrand?.brands)
+        ? rawBrand.brands
+        : [];
+      setBrands(brandList);
+    } catch (err) {
+      console.error("Error fetching live brands:", err);
+      setBrands([]);
+    }
+  };
+
+  const fetchFormData = async () => {
+    try {
+      fetchBrands();
+      const [catRes, unitRes, suppRes] = await Promise.allSettled([
         apiClient.get("/categories"),
-        apiClient.get("/brands"),
         apiClient.get("/units"),
         apiClient.get("/suppliers"),
       ]);
 
       if (catRes.status === "fulfilled" && catRes.value.data?.data) {
         setCategories(catRes.value.data.data);
-      }
-      if (brandRes.status === "fulfilled" && brandRes.value.data?.data) {
-        setBrands(brandRes.value.data.data);
       }
       if (unitRes.status === "fulfilled" && unitRes.value.data?.data?.length > 0) {
         setUnits(unitRes.value.data.data);

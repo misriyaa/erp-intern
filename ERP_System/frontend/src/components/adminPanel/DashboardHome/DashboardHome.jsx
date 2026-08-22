@@ -305,12 +305,15 @@ export default function DashboardHome() {
     totalCategories: 0,
     totalValue: 0,
     totalEarnings: 0,
+    totalOutstanding: 0,
     inStock: 0,
     lowStock: 0,
     outOfStock: 0,
   });
   const [earningsChart, setEarningsChart] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
+  const [liveTopCategories, setLiveTopCategories] = useState([]);
+  const [liveDeliveriesData, setLiveDeliveriesData] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -323,10 +326,22 @@ export default function DashboardHome() {
       setLoading(true);
       const res = await apiClient.get("/reports/dashboard-summary");
       if (res.data?.success && res.data?.data) {
-        const { stats: fetchedStats, earningsChart: fetchedChart, recentActivities: fetchedActivities } = res.data.data;
-        setStats(fetchedStats);
-        setEarningsChart(fetchedChart);
-        setRecentActivities(fetchedActivities);
+        const {
+          stats: fetchedStats,
+          earningsChart: fetchedChart,
+          recentActivities: fetchedActivities,
+          topCategories: fetchedTopCats,
+          deliveries: fetchedDeliveries,
+        } = res.data.data;
+        setStats(fetchedStats || {});
+        setEarningsChart(fetchedChart || []);
+        setRecentActivities(fetchedActivities || []);
+        if (Array.isArray(fetchedTopCats) && fetchedTopCats.length > 0) {
+          setLiveTopCategories(fetchedTopCats);
+        }
+        if (Array.isArray(fetchedDeliveries) && fetchedDeliveries.length > 0) {
+          setLiveDeliveriesData(fetchedDeliveries);
+        }
       }
     } catch (err) {
       console.error("Dashboard stats fetch error:", err);
@@ -400,7 +415,7 @@ export default function DashboardHome() {
           {/* DELIVERY */}
           <div className={styles.card}>
             <div className={styles.deliveryList}>
-              {deliveries.map((delivery, index) => (
+              {(liveDeliveriesData.length > 0 ? liveDeliveriesData : deliveries).map((delivery, index) => (
                 <div
                   key={delivery.title}
                   className={`${styles.deliveryItem} ${
@@ -811,7 +826,7 @@ export default function DashboardHome() {
                 </p>
 
                 <p className={styles.outstandingValue}>
-                  KD 4,566
+                  ₹{(stats.totalOutstanding || 0).toLocaleString("en-IN")}
                 </p>
               </div>
 
@@ -859,7 +874,7 @@ export default function DashboardHome() {
             </div>
 
             <div className={styles.categoryList}>
-              {topCategories.map((category) => (
+              {(liveTopCategories.length > 0 ? liveTopCategories : topCategories).map((category) => (
                 <div
                   key={category.name}
                   className={styles.categoryRow}

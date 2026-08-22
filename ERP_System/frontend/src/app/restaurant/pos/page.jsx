@@ -349,19 +349,29 @@ function RestaurantPOSContent() {
             </select>
           )}
 
-          {/* Customer Picker */}
-          <select
-            value={selectedCustomerId}
-            onChange={(e) => setSelectedCustomerId(e.target.value)}
-            style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: "600" }}
-          >
-            <option value="">Walk-in Customer</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.phone})
-              </option>
-            ))}
-          </select>
+          {/* Customer Picker with Loyalty ID */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: "600" }}
+            >
+              <option value="">Walk-in Customer</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.loyaltyId ? `[Loyalty ID: ${c.loyaltyId}]` : c.phone ? `(${c.phone})` : ""}
+                </option>
+              ))}
+            </select>
+            {selectedCustomerId && (() => {
+              const cust = customers.find((c) => c.id === selectedCustomerId);
+              return cust?.loyaltyId ? (
+                <span style={{ fontSize: "12px", background: "#e0e7ff", color: "#3730a3", padding: "6px 10px", borderRadius: "6px", fontWeight: "700" }}>
+                  💳 Loyalty: {cust.loyaltyId}
+                </span>
+              ) : null;
+            })()}
+          </div>
 
           {/* Search Box */}
           <input

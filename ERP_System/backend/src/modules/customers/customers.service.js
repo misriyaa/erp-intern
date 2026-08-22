@@ -3,7 +3,6 @@ import repository from "./customers.repository.js";
 class CustomerService {
 
   async createCustomer(data) {
-
     const phone = await repository.findByPhone(data.phone);
 
     if (phone) {
@@ -11,13 +10,15 @@ class CustomerService {
     }
 
     if (data.email) {
-
       const email = await repository.findByEmail(data.email);
 
       if (email) {
         throw new Error("Email already exists");
       }
+    }
 
+    if (!data.loyaltyId) {
+      data.loyaltyId = `LOY-${Math.floor(100000 + Math.random() * 900000)}`;
     }
 
     return repository.create(data);

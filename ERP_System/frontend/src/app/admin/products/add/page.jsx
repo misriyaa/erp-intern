@@ -32,6 +32,15 @@ const DEFAULT_UNITS = [
   { id: "unit", name: "Unit", code: "unit" },
 ];
 
+const DEFAULT_BRANDS = [
+  { id: "b-apple", name: "Apple" },
+  { id: "b-samsung", name: "Samsung" },
+  { id: "b-sony", name: "Sony" },
+  { id: "b-nike", name: "Nike" },
+  { id: "b-adidas", name: "Adidas" },
+  { id: "b-generic", name: "Generic / Standard Brand" },
+];
+
 const initialProduct = {
   name: "",
   sku: "",
@@ -229,6 +238,69 @@ export default function AddRetailProductPage() {
     }));
   };
 
+  const [showAddBrandModal, setShowAddBrandModal] = useState(false);
+  const [newBrandName, setNewBrandName] = useState("");
+  const [creatingBrand, setCreatingBrand] = useState(false);
+
+  const fetchBrands = async () => {
+    try {
+      let rawBrand = null;
+      try {
+        const res = await apiClient.get("/brands");
+        rawBrand = res.data;
+      } catch (e) {
+        const res = await axios.get("http://localhost:5000/api/brands");
+        rawBrand = res.data;
+      }
+      const brandList = Array.isArray(rawBrand?.data)
+        ? rawBrand.data
+        : Array.isArray(rawBrand)
+        ? rawBrand
+        : Array.isArray(rawBrand?.brands)
+        ? rawBrand.brands
+        : [];
+      setBrands(brandList);
+    } catch (err) {
+      console.error("Error fetching live brands:", err);
+      setBrands([]);
+    }
+  };
+
+  const handleQuickAddBrand = async (e) => {
+    e.preventDefault();
+    if (!newBrandName.trim()) {
+      toast.error("Brand name is required");
+      return;
+    }
+    try {
+      setCreatingBrand(true);
+      let res = null;
+      try {
+        res = await apiClient.post("/brands", {
+          name: newBrandName.trim(),
+          status: "ACTIVE",
+        });
+      } catch (e) {
+        res = await axios.post("http://localhost:5000/api/brands", {
+          name: newBrandName.trim(),
+          status: "ACTIVE",
+        });
+      }
+      const createdBrand = res.data?.data || res.data;
+      toast.success(`Brand "${newBrandName.trim()}" created!`);
+      setNewBrandName("");
+      setShowAddBrandModal(false);
+      await fetchBrands();
+      if (createdBrand?.id) {
+        setProduct((prev) => ({ ...prev, brandId: createdBrand.id }));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to create brand");
+    } finally {
+      setCreatingBrand(false);
+    }
+  };
+
   useEffect(() => {
     fetchFormData();
     generateSKUAndCode();
@@ -236,9 +308,9 @@ export default function AddRetailProductPage() {
 
   const fetchFormData = async () => {
     try {
-      const [catRes, brandRes, unitRes, suppRes] = await Promise.allSettled([
+      fetchBrands();
+      const [catRes, unitRes, suppRes] = await Promise.allSettled([
         apiClient.get("/categories"),
-        apiClient.get("/brands"),
         apiClient.get("/units"),
         apiClient.get("/suppliers"),
       ]);
@@ -246,10 +318,6 @@ export default function AddRetailProductPage() {
       if (catRes.status === "fulfilled") {
         const catList = catRes.value.data?.data || catRes.value.data || [];
         setCategories(Array.isArray(catList) ? catList : []);
-      }
-      if (brandRes.status === "fulfilled") {
-        const brandList = brandRes.value.data?.data || brandRes.value.data || [];
-        setBrands(Array.isArray(brandList) ? brandList : []);
       }
       if (unitRes.status === "fulfilled") {
         const unitList = unitRes.value.data?.data || unitRes.value.data || [];
@@ -565,13 +633,40 @@ export default function AddRetailProductPage() {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Brand</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>Brand</label>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddBrandModal(true)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#4f46e5",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          padding: 0,
+                        }}
+                      >
+                        + Quick Add
+                      </button>
+                      <a
+                        href="/admin/brand"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", textDecoration: "underline" }}
+                      >
+                        Brands List ↗
+                      </a>
+                    </div>
+                  </div>
                   <select
                     name="brandId"
                     value={product.brandId}
                     onChange={handleChange}
                   >
-                    <option value="">Select Brand</option>
+                    <option value="">Select Brand ({brands.length} available)</option>
                     {brands.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
@@ -969,6 +1064,70 @@ export default function AddRetailProductPage() {
                 {isStarting ? "Accessing camera..." : "Point your camera at a barcode to scan"}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK ADD BRAND MODAL */}
+      {showAddBrandModal && (
+        <div className={styles.scannerOverlay} style={{ background: "rgba(15, 23, 42, 0.6)" }}>
+          <div className={styles.scannerModal} style={{ maxWidth: "450px", padding: "24px" }}>
+            <div className={styles.scannerHeader} style={{ marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700" }}>+ Add New Product Brand</h3>
+              <button
+                type="button"
+                className={styles.closeModalBtn}
+                onClick={() => setShowAddBrandModal(false)}
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickAddBrand} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className={styles.formGroup}>
+                <label style={{ fontSize: "13px", fontWeight: "600" }}>Brand Name *</label>
+                <input
+                  type="text"
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                  placeholder="e.g. Samsung, Nike, Apple"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddBrandModal(false)}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingBrand}
+                  style={{
+                    padding: "10px 20px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#4f46e5",
+                    color: "#ffffff",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  {creatingBrand ? "Saving..." : "Save Brand"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

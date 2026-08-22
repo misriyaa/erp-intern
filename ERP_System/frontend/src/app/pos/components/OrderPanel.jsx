@@ -138,7 +138,7 @@ export default function OrderPanel({
               <option value="">Walk-in Customer</option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ""}
+                  {c.name} {c.loyaltyId ? `[Loyalty: ${c.loyaltyId}]` : c.phone ? `(${c.phone})` : ""}
                 </option>
               ))}
             </select>

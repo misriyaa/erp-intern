@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import axios from "axios";
 import {
   FiUsers,
@@ -17,6 +18,7 @@ import {
   FiCalendar,
   FiUserCheck,
   FiAward,
+  FiMapPin,
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
 

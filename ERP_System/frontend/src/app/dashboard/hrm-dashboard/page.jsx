@@ -387,7 +387,7 @@ export default function Page() {
               <h2>Total Workforce</h2>
 
               <div className={styles.metricRow}>
-                <strong>{totalEmployeesCount ? `${totalEmployeesCount} Staff` : "1,284"}</strong>
+                <strong>{totalEmployeesCount ? `${totalEmployeesCount} Staff` : "0 Staff"}</strong>
 
                 <span className={styles.trend}>
                   ↗ 12 new this month

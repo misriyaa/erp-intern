@@ -1,14 +1,24 @@
 import * as brandRepository from "./brand.repository.js";
 
 export const createBrand = async (data) => {
- 
+  if (!data || !data.name) {
+    throw new Error("Brand name is required.");
+  }
+
   const existingBrand = await brandRepository.getBrandByName(data.name);
 
   if (existingBrand) {
-    throw new Error("Brand already exists.");
+    return existingBrand;
   }
 
-  return await brandRepository.createBrand(data);
+  const payload = {
+    name: String(data.name).trim(),
+    description: data.description || null,
+    status: data.status || "ACTIVE",
+    companyId: data.companyId || null,
+  };
+
+  return await brandRepository.createBrand(payload);
 };
 
 export const getAllBrands = async (companyId) => {

@@ -173,10 +173,10 @@ export default function SalesDashboard() {
       const openInvoicesCount = liveInvoices.filter((i) => i.status === "UNPAID" || i.status === "Pending").length || liveInvoices.length;
 
       setKpis({
-        revenue: totalRev > 0 ? formatRevenue(totalRev) : "12.8K",
-        openInvoices: openInvoicesCount || 28,
-        openOrders: liveSales.length || 156,
-        newCustomers: liveCustomers.length || 378,
+        revenue: totalRev > 0 ? `₹${totalRev.toLocaleString()}` : "₹0.00",
+        openInvoices: openInvoicesCount,
+        openOrders: liveSales.length,
+        newCustomers: liveCustomers.length,
       });
 
       // 3. Process Live Customers

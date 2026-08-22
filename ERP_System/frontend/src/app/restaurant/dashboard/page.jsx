@@ -72,11 +72,13 @@ export default function RestaurantDashboardPage() {
   // Metrics Calculations
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayOrders = orders.filter(
-    (o) => o.createdAt && o.createdAt.slice(0, 10) === todayStr
+    (o) => o.createdAt && new Date(o.createdAt).toISOString().slice(0, 10) === todayStr
   );
+  const completedOrders = orders.filter((o) => o.status === "COMPLETED");
   const todaySales = todayOrders
     .filter((o) => o.status === "COMPLETED")
     .reduce((sum, o) => sum + (parseFloat(o.totalAmount) || 0), 0);
+  const totalSales = completedOrders.reduce((sum, o) => sum + (parseFloat(o.totalAmount) || 0), 0);
 
   const availableTables = tables.filter((t) => t.status === "AVAILABLE").length;
   const occupiedTables = tables.filter((t) => t.status === "OCCUPIED").length;
@@ -87,8 +89,9 @@ export default function RestaurantDashboardPage() {
   const readyKOT = kitchenOrders.filter((k) => k.status === "READY").length;
 
   const todayWastageCost = wastages
-    .filter((w) => w.createdAt && w.createdAt.slice(0, 10) === todayStr)
+    .filter((w) => w.createdAt && new Date(w.createdAt).toISOString().slice(0, 10) === todayStr)
     .reduce((sum, w) => sum + (parseFloat(w.totalCost) || 0), 0);
+  const totalWastageCost = wastages.reduce((sum, w) => sum + (parseFloat(w.totalCost) || 0), 0);
 
   if (loading) {
     return (
@@ -205,10 +208,10 @@ export default function RestaurantDashboardPage() {
             <FiDollarSign size={20} color="#10b981" />
           </div>
           <div style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", marginTop: "8px" }}>
-            ₹{todaySales.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            ₹{(todaySales || totalSales).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-            {todayOrders.length} orders total today
+            {todaySales > 0 ? `${todayOrders.length} orders today` : `Total Revenue: ₹${totalSales.toLocaleString("en-IN", { minimumFractionDigits: 2 })} (${orders.length} orders)`}
           </div>
         </div>
 

@@ -31,9 +31,13 @@ export const getBrandById = async (id) => {
 };
 
 export const getBrandByName = async (name) => {
+  if (!name) return null;
   return await prisma.brand.findFirst({
     where: {
-      name,
+      name: {
+        equals: String(name).trim(),
+        mode: "insensitive",
+      },
     },
   });
 };
