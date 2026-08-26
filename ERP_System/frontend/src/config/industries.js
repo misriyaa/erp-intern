@@ -31,6 +31,8 @@ import {
   FiPieChart,
   FiTrash2,
   FiTrendingUp,
+  FiHeart,
+  FiActivity,
 } from "react-icons/fi";
 
 export const INDUSTRY_CODES = {
@@ -38,6 +40,8 @@ export const INDUSTRY_CODES = {
   GYM: "GYM",
   TEXTILE: "TEXTILE",
   RESTAURANT: "RESTAURANT",
+  LAUNDRY: "LAUNDRY",
+  MEDICAL_SHOP: "MEDICAL_SHOP",
 };
 
 export const ROUTE_MODULE_MAP = {
@@ -114,6 +118,31 @@ export const ROUTE_MODULE_MAP = {
   "/restaurant/wastage": "RESTAURANT",
   "/restaurant/food-cost": "RESTAURANT",
 
+  // Laundry Modules
+  "/laundry/dashboard": "LAUNDRY",
+  "/laundry/pos": "LAUNDRY",
+  "/laundry/orders": "LAUNDRY",
+  "/laundry/services": "LAUNDRY",
+  "/laundry/garments": "LAUNDRY",
+  "/laundry/processing": "LAUNDRY",
+  "/laundry/ready": "LAUNDRY",
+  "/laundry/pickup": "LAUNDRY",
+  "/laundry/delivery": "LAUNDRY",
+  "/laundry/reports": "LAUNDRY",
+
+  // Medical Shop / Pharmacy Modules
+  "/medical/dashboard": "MEDICAL_SHOP",
+  "/medical/pos": "MEDICAL_SHOP",
+  "/medical/medicines": "MEDICAL_SHOP",
+  "/medical/categories": "MEDICAL_SHOP",
+  "/medical/batches": "MEDICAL_SHOP",
+  "/medical/expiry": "MEDICAL_SHOP",
+  "/medical/prescriptions": "MEDICAL_SHOP",
+  "/medical/purchases": "MEDICAL_SHOP",
+  "/medical/inventory": "MEDICAL_SHOP",
+  "/medical/returns": "MEDICAL_SHOP",
+  "/medical/reports": "MEDICAL_SHOP",
+
   // Core Operations
   "/admin/expenses": "EXPENSES",
   "/admin/branches": "BRANCHES",
@@ -182,6 +211,30 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "RESTAURANT", label: "Food Costing", href: "/restaurant/food-cost", icon: FiTrendingUp, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Raw Materials / Ingredients", href: "/admin/products/view", icon: FiPackage, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Kitchen Stock & Transfers", href: "/warehouse/stock", icon: FiTruck, industry: "RESTAURANT" },
+
+  // Laundry Industry Modules
+  { moduleCode: "LAUNDRY", label: "Laundry Dashboard", href: "/laundry/dashboard", icon: FiGrid, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Laundry POS", href: "/laundry/pos", icon: FiMonitor, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Active Orders", href: "/laundry/orders", icon: FiShoppingCart, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Services & Categories", href: "/laundry/services", icon: FiBox, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Garment Tracking", href: "/laundry/garments", icon: FiTag, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Processing Queue", href: "/laundry/processing", icon: FiClock, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Ready Orders", href: "/laundry/ready", icon: FiCheckCircle, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Pickup / Deliveries", href: "/laundry/delivery", icon: FiTruck, industry: "LAUNDRY" },
+  { moduleCode: "LAUNDRY", label: "Laundry Reports", href: "/laundry/reports", icon: FiBarChart2, industry: "LAUNDRY" },
+
+  // Medical Shop Industry Modules
+  { moduleCode: "MEDICAL_SHOP", label: "Pharmacy Dashboard", href: "/medical/dashboard", icon: FiGrid, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Pharmacy POS", href: "/medical/pos", icon: FiMonitor, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Medicines List", href: "/medical/medicines", icon: FiActivity, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Medicine Categories", href: "/medical/categories", icon: FiBox, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Medicine Batches", href: "/medical/batches", icon: FiLayers, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Expiry Management", href: "/medical/expiry", icon: FiClock, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Prescriptions Log", href: "/medical/prescriptions", icon: FiFileText, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Medicine Purchases", href: "/medical/purchases", icon: FiShoppingCart, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Pharmacy Inventory", href: "/medical/inventory", icon: FiPackage, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Returned Medicines", href: "/medical/returns", icon: FiTrash2, industry: "MEDICAL_SHOP" },
+  { moduleCode: "MEDICAL_SHOP", label: "Pharmacy Reports", href: "/medical/reports", icon: FiBarChart2, industry: "MEDICAL_SHOP" },
 
   // Shared Core Operations
   { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck },

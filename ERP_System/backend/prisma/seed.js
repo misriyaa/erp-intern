@@ -31,7 +31,19 @@ async function main() {
     create: { code: "RESTAURANT", name: "Restaurant", status: true },
   });
 
-  console.log("✅ Industries Seeded:", retailIndustry.code, gymIndustry.code, textileIndustry.code, restaurantIndustry.code);
+  const laundryIndustry = await prisma.industry.upsert({
+    where: { code: "LAUNDRY" },
+    update: { name: "Laundry", status: true },
+    create: { code: "LAUNDRY", name: "Laundry", status: true },
+  });
+
+  const medicalIndustry = await prisma.industry.upsert({
+    where: { code: "MEDICAL_SHOP" },
+    update: { name: "Medical Shop / Pharmacy", status: true },
+    create: { code: "MEDICAL_SHOP", name: "Medical Shop / Pharmacy", status: true },
+  });
+
+  console.log("✅ Industries Seeded:", retailIndustry.code, gymIndustry.code, textileIndustry.code, restaurantIndustry.code, laundryIndustry.code, medicalIndustry.code);
 
   // 2. Seed Modules Catalog
   const moduleList = [
@@ -58,6 +70,8 @@ async function main() {
     { code: "PRODUCTION", name: "Production Tracking", description: "Textile batch processing & stage tracking" },
     { code: "QUALITY_CONTROL", name: "Quality Control", description: "Quality inspection and defect logging" },
     { code: "RESTAURANT", name: "Restaurant ERP", description: "Food POS, Tables, Recipes, KOT, & KDS" },
+    { code: "LAUNDRY", name: "Laundry Management", description: "Laundry POS, Service Categories, Services, Garments tracking, Processing queues, Deliveries" },
+    { code: "MEDICAL_SHOP", name: "Pharmacy Management", description: "Pharmacy POS, Medicine profile, Batches, Expiry tracking, Prescriptions, Purchases, Returns" },
   ];
 
   const createdModules = {};
@@ -88,6 +102,14 @@ async function main() {
     "DASHBOARD", "PRODUCTS", "RAW_MATERIALS", "PRODUCTION", "INVENTORY",
     "QUALITY_CONTROL", "SUPPLIERS", "SALES", "PAYMENTS", "EXPENSES",
     "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"
+  ];
+
+  const laundryModuleCodes = [
+    "DASHBOARD", "LAUNDRY", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"
+  ];
+
+  const medicalModuleCodes = [
+    "DASHBOARD", "MEDICAL_SHOP", "PRODUCTS", "CATEGORIES", "BRANDS", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"
   ];
 
   for (const code of retailModuleCodes) {
@@ -147,6 +169,44 @@ async function main() {
     }
   }
 
+  for (const code of laundryModuleCodes) {
+    if (createdModules[code]) {
+      await prisma.industryModule.upsert({
+        where: {
+          industryId_moduleId: {
+            industryId: laundryIndustry.id,
+            moduleId: createdModules[code].id,
+          },
+        },
+        update: { defaultEnabled: true },
+        create: {
+          industryId: laundryIndustry.id,
+          moduleId: createdModules[code].id,
+          defaultEnabled: true,
+        },
+      });
+    }
+  }
+
+  for (const code of medicalModuleCodes) {
+    if (createdModules[code]) {
+      await prisma.industryModule.upsert({
+        where: {
+          industryId_moduleId: {
+            industryId: medicalIndustry.id,
+            moduleId: createdModules[code].id,
+          },
+        },
+        update: { defaultEnabled: true },
+        create: {
+          industryId: medicalIndustry.id,
+          moduleId: createdModules[code].id,
+          defaultEnabled: true,
+        },
+      });
+    }
+  }
+
   console.log("✅ Industry Default Modules Mapped");
 
   // 4. Seed Roles, Companies & Default User Accounts
@@ -182,6 +242,26 @@ async function main() {
     },
   });
 
+  const laundryCompany = await prisma.company.upsert({
+    where: { id: "default-laundry-company-id" },
+    update: { name: "ABC Laundry & Dry Cleaning", industryId: laundryIndustry.id },
+    create: {
+      id: "default-laundry-company-id",
+      name: "ABC Laundry & Dry Cleaning",
+      industryId: laundryIndustry.id,
+    },
+  });
+
+  const medicalCompany = await prisma.company.upsert({
+    where: { id: "default-medical-company-id" },
+    update: { name: "ABC Pharmacy", industryId: medicalIndustry.id },
+    create: {
+      id: "default-medical-company-id",
+      name: "ABC Pharmacy",
+      industryId: medicalIndustry.id,
+    },
+  });
+
   const allModules = await prisma.module.findMany({ where: { status: true } });
   for (const mod of allModules) {
     if (retailModuleCodes.includes(mod.code)) {
@@ -197,6 +277,22 @@ async function main() {
         where: { companyId_moduleId: { companyId: gymCompany.id, moduleId: mod.id } },
         update: { enabled: true },
         create: { companyId: gymCompany.id, moduleId: mod.id, enabled: true },
+      });
+    }
+
+    if (laundryModuleCodes.includes(mod.code)) {
+      await prisma.companyModule.upsert({
+        where: { companyId_moduleId: { companyId: laundryCompany.id, moduleId: mod.id } },
+        update: { enabled: true },
+        create: { companyId: laundryCompany.id, moduleId: mod.id, enabled: true },
+      });
+    }
+
+    if (medicalModuleCodes.includes(mod.code)) {
+      await prisma.companyModule.upsert({
+        where: { companyId_moduleId: { companyId: medicalCompany.id, moduleId: mod.id } },
+        update: { enabled: true },
+        create: { companyId: medicalCompany.id, moduleId: mod.id, enabled: true },
       });
     }
   }

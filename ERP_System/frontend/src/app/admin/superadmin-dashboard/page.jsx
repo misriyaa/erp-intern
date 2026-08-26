@@ -487,6 +487,88 @@ export default function SuperAdminDashboard() {
                 {industryCode === "RESTAURANT" ? "Currently Simulating" : "Activate Restaurant View"}
               </button>
             </div>
+
+            {/* LAUNDRY CARD */}
+            <div className={`${styles.card} ${industryCode === "LAUNDRY" ? styles.cardActive : ""}`} style={{ borderColor: industryCode === "LAUNDRY" ? "#3b82f6" : "#e2e8f0" }}>
+              <div className={styles.cardIcon} style={{ background: "#dbeafe", color: "#2563eb" }}>
+                <FiLayers />
+              </div>
+              <h3>Laundry & Dry Cleaning</h3>
+              <p>Complete laundry workflow covering POS orders, garments tracking, service categories, washing queue processing, pickup and delivery.</p>
+              
+              <div className={styles.modulesList}>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#3b82f6" }} />
+                  <span>Laundry POS & Customer Order Creation</span>
+                </div>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#3b82f6" }} />
+                  <span>Individual Garment Tagging & Barcodes</span>
+                </div>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#3b82f6" }} />
+                  <span>Processing, Ready, & Delivery Queues</span>
+                </div>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#3b82f6" }} />
+                  <span>Service Analytics & Performance Reports</span>
+                </div>
+              </div>
+
+              <button 
+                className={styles.actionBtn}
+                style={{
+                  background: industryCode === "LAUNDRY" ? "#3b82f6" : "#dbeafe",
+                  color: industryCode === "LAUNDRY" ? "#ffffff" : "#2563eb",
+                  border: "none"
+                }}
+                onClick={() => changeIndustryOverride("LAUNDRY")}
+                disabled={industryCode === "LAUNDRY"}
+              >
+                {industryCode === "LAUNDRY" ? "Currently Simulating" : "Activate Laundry View"}
+              </button>
+            </div>
+
+            {/* MEDICAL SHOP CARD */}
+            <div className={`${styles.card} ${industryCode === "MEDICAL_SHOP" ? styles.cardActive : ""}`} style={{ borderColor: industryCode === "MEDICAL_SHOP" ? "#10b981" : "#e2e8f0" }}>
+              <div className={styles.cardIcon} style={{ background: "#d1fae5", color: "#059669" }}>
+                <FiActivity />
+              </div>
+              <h3>Medical Shop & Pharmacy</h3>
+              <p>Regulatory-compliant pharmacy system with FEFO batch management, expiry warnings, prescription tracking, and supplier return logs.</p>
+              
+              <div className={styles.modulesList}>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#10b981" }} />
+                  <span>Pharmacy POS with FEFO Batch Auto-Deduction</span>
+                </div>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#10b981" }} />
+                  <span>Medicine Database & Expiry Warning periods</span>
+                </div>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#10b981" }} />
+                  <span>Expiry & Low Stock Dashboard Alerts</span>
+                </div>
+                <div className={styles.moduleItem}>
+                  <span className={styles.moduleDot} style={{ background: "#10b981" }} />
+                  <span>Doctor Prescriptions & Batch Purchases</span>
+                </div>
+              </div>
+
+              <button 
+                className={styles.actionBtn}
+                style={{
+                  background: industryCode === "MEDICAL_SHOP" ? "#10b981" : "#d1fae5",
+                  color: industryCode === "MEDICAL_SHOP" ? "#ffffff" : "#059669",
+                  border: "none"
+                }}
+                onClick={() => changeIndustryOverride("MEDICAL_SHOP")}
+                disabled={industryCode === "MEDICAL_SHOP"}
+              >
+                {industryCode === "MEDICAL_SHOP" ? "Currently Simulating" : "Activate Medical View"}
+              </button>
+            </div>
           </div>
         </section>
       )}

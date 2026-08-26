@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings, logoUrl } = useSettings();
-  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, isRetail, industryCode, clearSession } = useCompany();
+  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, isLaundry, isMedical, isRetail, industryCode, clearSession } = useCompany();
 
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
@@ -145,6 +145,10 @@ export default function Sidebar({ isOpen, onClose }) {
             ? "TEXTILE ERP MODULES"
             : isRestaurant
             ? "RESTAURANT ERP MODULES"
+            : isLaundry
+            ? "LAUNDRY MODULES"
+            : isMedical
+            ? "MEDICAL SHOP MODULES"
             : "SUPERMARKET & RESTAURANT ERP"}
         </h4>
 

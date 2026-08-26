@@ -47,6 +47,8 @@ import reportsRoutes from "./modules/reports/reports.routes.js";
 import companyRoutes from "./modules/company/company.routes.js";
 import gymRoutes from "./modules/gym/gym.routes.js";
 import textileRoutes from "./modules/textile/textile.routes.js";
+import laundryRoutes from "./modules/laundry/laundry.routes.js";
+import medicalRoutes from "./modules/medical/medical.routes.js";
 import { tenantStorage } from "./config/prisma.js";
 
 import restaurantRoutes from "./modules/restaurants/restaurant.routes.js";
@@ -298,6 +300,8 @@ app.use(
 );
 
 app.use("/api/restaurants", restaurantRoutes);
+app.use("/api/laundry", laundryRoutes);
+app.use("/api/medical", medicalRoutes);
 app.use("/api/restaurant-areas", restaurantAreaRoutes);
 app.use("/api/restaurant-tables", restaurantTableRoutes);
 app.use("/api/menu-categories", menuCategoryRoutes);

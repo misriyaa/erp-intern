@@ -114,6 +114,10 @@ model Company {
   restaurantOrders   RestaurantOrder[]
   wastages           Wastage[]
 
+  laundries          Laundry[]
+  laundryOrders      LaundryOrder[]
+  medicines          Medicine[]
+
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
@@ -423,6 +427,8 @@ model Customer {
   payments Payment[]
   restaurantOrders RestaurantOrder[]
   reservations Reservation[]
+  laundryOrders LaundryOrder[]
+  prescriptions Prescription[]
 
   @@index([companyId])
   @@map("customers")
@@ -670,6 +676,9 @@ model Product {
 
   wastageItems WastageItem[]
 
+  medicine     Medicine?
+  medicineBatches MedicineBatch[]
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
@@ -787,6 +796,7 @@ model Supplier {
   purchases Purchase[]
 
   products Product[]
+  medicineBatches MedicineBatch[]
 
   createdAt DateTime @default(now())
 
@@ -836,6 +846,7 @@ model Warehouse {
   toTransfers StockTransfer[] @relation("ToWarehouse")
 
   wastages Wastage[]
+  medicineBatches MedicineBatch[]
 
   createdAt DateTime @default(now())
 
@@ -1199,6 +1210,9 @@ model Payment {
   restaurantOrderId String?          @map("restaurant_order_id")
   restaurantOrder   RestaurantOrder? @relation(fields: [restaurantOrderId], references: [id])
 
+  laundryOrderId    String?          @map("laundry_order_id")
+  laundryOrder      LaundryOrder?    @relation(fields: [laundryOrderId], references: [id])
+
   @@index([companyId])
   @@map("payments")
 }
@@ -1479,6 +1493,8 @@ model Branch {
   users User[]
 
   restaurants Restaurant[]
+  laundries   Laundry[]
+  laundryOrders LaundryOrder[]
 
   @@index([companyId])
 }
@@ -1519,6 +1535,7 @@ enum ProductType {
   RETAIL
   RAW_MATERIAL
   PACKAGING
+  MEDICINE
 }
 
 enum TableStatus {
@@ -1971,4 +1988,284 @@ model WastageItem {
   @@index([wastageId])
   @@index([productId])
   @@map("wastage_items")
+}
+
+// ==========================================
+// LAUNDRY ERP ENUMS & MODELS
+// ==========================================
+
+enum LaundryOrderStatus {
+  RECEIVED
+  INSPECTING
+  PROCESSING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum LaundryDeliveryStatus {
+  PENDING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+model Laundry {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories LaundryServiceCategory[]
+  services   LaundryService[]
+  orders     LaundryOrder[]
+
+  @@index([companyId])
+  @@index([branchId])
+}
+
+model LaundryServiceCategory {
+  id          String   @id @default(uuid())
+  laundryId   String
+  laundry     Laundry  @relation(fields: [laundryId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      Status   @default(ACTIVE)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  services    LaundryService[]
+
+  @@index([laundryId])
+}
+
+model LaundryService {
+  id            String                 @id @default(uuid())
+  laundryId     String
+  laundry       Laundry                @relation(fields: [laundryId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      LaundryServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  price         Decimal                @db.Decimal(18, 2)
+  estimatedTime Int?
+  status        Status                 @default(ACTIVE)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  orderItems    LaundryOrderItem[]
+
+  @@index([laundryId])
+  @@index([categoryId])
+}
+
+model LaundryOrder {
+  id                  String             @id @default(uuid())
+  laundryId           String
+  laundry             Laundry            @relation(fields: [laundryId], references: [id], onDelete: Cascade)
+  companyId           String?            @map("company_id")
+  company             Company?           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId            String
+  branch              Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customerId          String             @map("customer_id") @db.Uuid
+  customer            Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  orderNumber         String
+  status              LaundryOrderStatus @default(RECEIVED)
+  subtotal            Decimal            @db.Decimal(18, 2)
+  discountAmount      Decimal            @db.Decimal(18, 2)
+  taxAmount           Decimal            @db.Decimal(18, 2)
+  totalAmount         Decimal            @db.Decimal(18, 2)
+  paidAmount          Decimal            @db.Decimal(18, 2)
+  balanceAmount       Decimal            @db.Decimal(18, 2)
+  specialInstructions String?
+  receivedAt          DateTime           @default(now())
+  processingAt        DateTime?
+  readyAt             DateTime?
+  completedAt         DateTime?
+  createdBy           String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  items               LaundryOrderItem[]
+  statusHistory       LaundryStatusHistory[]
+  delivery            LaundryDelivery?
+  payments            Payment[]
+
+  @@index([laundryId])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([companyId])
+}
+
+model LaundryOrderItem {
+  id             String         @id @default(uuid())
+  orderId        String
+  order          LaundryOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  serviceId      String
+  service        LaundryService @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  garmentType    String
+  quantity       Int
+  unitPrice      Decimal        @db.Decimal(18, 2)
+  discountAmount Decimal        @default(0) @db.Decimal(18, 2)
+  taxAmount      Decimal        @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal        @db.Decimal(18, 2)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  garments       LaundryGarment[]
+
+  @@index([orderId])
+  @@index([serviceId])
+}
+
+model LaundryGarment {
+  id          String           @id @default(uuid())
+  orderItemId String
+  orderItem   LaundryOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  tagNumber   String?          @unique
+  barcode     String?
+  status      String
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([orderItemId])
+}
+
+model LaundryStatusHistory {
+  id        String       @id @default(uuid())
+  orderId   String
+  order     LaundryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  oldStatus String?
+  newStatus String
+  changedBy String?
+  timestamp DateTime     @default(now())
+  notes     String?
+
+  @@index([orderId])
+}
+
+model LaundryDelivery {
+  id              String                @id @default(uuid())
+  orderId         String                @unique
+  order           LaundryOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  deliveryAddress String
+  phone           String
+  deliveryDate    DateTime?
+  deliveryStatus  LaundryDeliveryStatus @default(PENDING)
+  deliveryNotes   String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+}
+
+// ==========================================
+// MEDICAL ERP ENUMS & MODELS
+// ==========================================
+
+enum DosageForm {
+  TABLET
+  CAPSULE
+  SYRUP
+  INJECTION
+  CREAM
+  OINTMENT
+  DROPS
+  INHALER
+  POWDER
+  OTHER
+}
+
+model Medicine {
+  id                   String     @id @default(uuid())
+  productId            String     @unique
+  product              Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  companyId            String?
+  company              Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  genericName          String
+  strength             String
+  dosageForm           DosageForm @default(TABLET)
+  prescriptionRequired Boolean    @default(false)
+  manufacturer         String?
+  status               Status     @default(ACTIVE)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  batches              MedicineBatch[]
+  prescriptionItems    PrescriptionItem[]
+
+  @@index([productId])
+  @@index([companyId])
+}
+
+model MedicineBatch {
+  id                String    @id @default(uuid())
+  medicineId        String
+  medicine          Medicine  @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchNumber       String
+  manufacturingDate DateTime?
+  expiryDate        DateTime
+  purchasePrice     Decimal   @db.Decimal(18, 2)
+  sellingPrice      Decimal   @db.Decimal(18, 2)
+  quantity          Int
+  supplierId        String?
+  supplier          Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  warehouseId       String?
+  warehouse         Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  status            String    @default("ACTIVE")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([medicineId])
+  @@index([productId])
+  @@index([supplierId])
+  @@index([warehouseId])
+}
+
+model Prescription {
+  id                 String             @id @default(uuid())
+  customerId         String             @map("customer_id") @db.Uuid
+  customer           Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  companyId          String?
+  doctorName         String
+  prescriptionNumber String
+  prescriptionDate   DateTime           @default(now())
+  notes              String?
+  status             String             @default("ACTIVE")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  items              PrescriptionItem[]
+
+  @@index([customerId])
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicineId     String
+  medicine       Medicine     @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+  dosage         String
+  frequency      String
+  duration       String
+  quantity       Int
+  instructions   String?
+
+  @@index([prescriptionId])
+  @@index([medicineId])
 }
