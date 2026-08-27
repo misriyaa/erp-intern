@@ -180,6 +180,7 @@ export function CompanyProvider({ children }) {
         "ATTENDANCE",
         "PAYMENTS",
         "RESTAURANT",
+        "LAUNDRY",
         "PRODUCTION",
         "RAW_MATERIALS",
       ];
