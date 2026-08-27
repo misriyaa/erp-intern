@@ -48,6 +48,14 @@ export default function AddAdminPage() {
 
   const [availableModules, setAvailableModules] = useState([]);
   const [selectedModules, setSelectedModules] = useState([]);
+  const [industries, setIndustries] = useState([
+    { id: "1", name: "Retail", code: "RETAIL" },
+    { id: "2", name: "Gym & Fitness", code: "GYM" },
+    { id: "3", name: "Textile ERP", code: "TEXTILE" },
+    { id: "4", name: "Restaurant ERP", code: "RESTAURANT" },
+    { id: "5", name: "Laundry Management", code: "LAUNDRY" },
+    { id: "6", name: "Pharmacy Management", code: "MEDICAL_SHOP" },
+  ]);
 
   const [formData, setFormData] = useState({
     companyName: "",
@@ -57,6 +65,30 @@ export default function AddAdminPage() {
     password: "",
     type: "RETAIL",
   });
+
+  // Fetch dynamic industries
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/companies/industries");
+        if (res.data.success && res.data.data) {
+          const filtered = res.data.data.filter(
+            (ind) => ind.code.toUpperCase() !== "MEDICAL"
+          );
+          setIndustries(filtered);
+          if (filtered.length > 0) {
+            setFormData((prev) => ({
+              ...prev,
+              type: prev.type || filtered[0].code,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load industries", err);
+      }
+    };
+    fetchIndustries();
+  }, []);
 
   // Fetch modules when business type changes
   useEffect(() => {
@@ -323,10 +355,11 @@ export default function AddAdminPage() {
                 onChange={handleChange}
                 style={errors.type ? { borderColor: "#ef4444" } : {}}
               >
-                <option value="RETAIL">Retail (RETAIL)</option>
-                <option value="GYM">Gym & Fitness (GYM)</option>
-                <option value="TEXTILE">Textile ERP (TEXTILE)</option>
-                <option value="RESTAURANT">Restaurant ERP (RESTAURANT)</option>
+                {industries.map((ind) => (
+                  <option key={ind.code} value={ind.code}>
+                    {ind.name} ({ind.code})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -506,10 +539,24 @@ export default function AddAdminPage() {
                 filteredAdmins.map((item) => {
                   const companyName = item.company?.name || `${item.fullName}'s Company`;
                   const adminName = item.fullName || item.name || "Admin User";
-                  const industryCode = item.company?.industry?.code || item.type || "RETAIL";
-                  const isGymClient = industryCode.toUpperCase().includes("GYM");
-                  const isTextileClient = industryCode.toUpperCase().includes("TEXTILE");
-                  const isRestaurantClient = industryCode.toUpperCase().includes("RESTAURANT");
+                  const industryCode = (item.company?.industry?.code || item.type || "RETAIL").toUpperCase();
+                  const isGymClient = industryCode.includes("GYM");
+                  const isTextileClient = industryCode.includes("TEXTILE");
+                  const isRestaurantClient = industryCode.includes("RESTAURANT");
+                  const isLaundryClient = industryCode.includes("LAUNDRY");
+                  const isMedicalClient = industryCode.includes("MEDICAL");
+
+                  const badgeStyle = isGymClient
+                    ? { bg: "#d1fae5", text: "#047857", icon: "🏋️", label: "GYM" }
+                    : isTextileClient
+                    ? { bg: "#ccfbf1", text: "#0f766e", icon: "🧵", label: "TEXTILE" }
+                    : isRestaurantClient
+                    ? { bg: "#fef3c7", text: "#92400e", icon: "🍽️", label: "RESTAURANT" }
+                    : isLaundryClient
+                    ? { bg: "#e0f2fe", text: "#0369a1", icon: "🧺", label: "LAUNDRY" }
+                    : isMedicalClient
+                    ? { bg: "#fee2e2", text: "#b91c1c", icon: "💊", label: "MEDICAL SHOP" }
+                    : { bg: "#e0e7ff", text: "#4338ca", icon: "🛒", label: industryCode };
 
                   return (
                     <tr key={item.id}>
@@ -543,29 +590,11 @@ export default function AddAdminPage() {
                             borderRadius: "12px",
                             fontSize: "12px",
                             fontWeight: "700",
-                            background: isGymClient
-                              ? "#d1fae5"
-                              : isTextileClient
-                              ? "#ccfbf1"
-                              : isRestaurantClient
-                              ? "#fef3c7"
-                              : "#e0e7ff",
-                            color: isGymClient
-                              ? "#047857"
-                              : isTextileClient
-                              ? "#0f766e"
-                              : isRestaurantClient
-                              ? "#92400e"
-                              : "#4338ca",
+                            background: badgeStyle.bg,
+                            color: badgeStyle.text,
                           }}
                         >
-                          {isGymClient
-                            ? "🏋️ GYM"
-                            : isTextileClient
-                            ? "🧵 TEXTILE"
-                            : isRestaurantClient
-                            ? "🍽️ RESTAURANT"
-                            : "🛒 RETAIL"}
+                          {badgeStyle.icon} {badgeStyle.label}
                         </span>
                       </td>
                       <td>

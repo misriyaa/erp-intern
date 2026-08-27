@@ -47,7 +47,11 @@ const loginService = async (login, password) => {
     ? "TEXTILE"
     : rawCodeUpper.includes("RESTAURANT")
     ? "RESTAURANT"
-    : "RETAIL";
+    : rawCodeUpper.includes("LAUNDRY")
+    ? "LAUNDRY"
+    : rawCodeUpper.includes("MEDICAL")
+    ? "MEDICAL_SHOP"
+    : rawCodeUpper;
 
   const companyModules =
     employee.company?.modules
@@ -95,13 +99,18 @@ const loginService = async (login, password) => {
       industry: {
         code: industryCodeUpper,
         name:
-          industryCodeUpper === "GYM"
+          employee.company?.industry?.name ||
+          (industryCodeUpper === "GYM"
             ? "Gym"
             : industryCodeUpper === "TEXTILE"
             ? "Textile"
             : industryCodeUpper === "RESTAURANT"
             ? "Restaurant"
-            : "Retail",
+            : industryCodeUpper === "LAUNDRY"
+            ? "Laundry"
+            : industryCodeUpper === "MEDICAL_SHOP"
+            ? "Medical Shop / Pharmacy"
+            : "Retail"),
       },
     },
     modules: enabledModuleCodes,
