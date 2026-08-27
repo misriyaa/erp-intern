@@ -281,7 +281,6 @@ export default function EditProductPage({ params }) {
     fetchProduct();
   }, [id]);
 
-  const fetchFormData = async () => {
   const fetchBrands = async () => {
     try {
       let rawBrand = null;

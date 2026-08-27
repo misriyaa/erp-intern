@@ -10,11 +10,12 @@ import { toast, Toaster } from "react-hot-toast";
 import styles from "./addEmployees.module.css";
 import { getRoles } from "@/services/roleService";
 import { getBranches } from "@/services/branchService";
+import { restaurantService } from "@/services/restaurantService";
 import { useCompany } from "@/context/CompanyContext";
 
 export default function AddEmployeePage() {
   const router = useRouter();
-  const { user, company, industryCode } = useCompany();
+  const { user, company, industryCode, isRestaurant } = useCompany();
 
   const [roles, setRoles] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -225,7 +226,7 @@ export default function AddEmployeePage() {
     }
 
     if (!formData.branchId) {
-      newErrors.branchId = "Branch is required";
+      newErrors.branchId = isRestaurant ? "Outlet is required" : "Branch is required";
     }
 
     if (!formData.password) {
@@ -313,27 +314,49 @@ export default function AddEmployeePage() {
       const rList = Array.isArray(restRes?.data) ? restRes.data : Array.isArray(restRes) ? restRes : (restRes?.data?.data || []);
       const lList = Array.isArray(lndRes?.data?.data) ? lndRes.data.data : Array.isArray(lndRes?.data) ? lndRes.data : [];
 
-      const combined = [...bList];
+      let combined = [];
 
-      rList.forEach((r) => {
-        if (r?.id && !combined.some((b) => b.id === r.id)) {
-          combined.push({
+      if (isRestaurant) {
+        if (rList.length > 0) {
+          combined = rList.map((r) => ({
             id: r.id,
-            name: `${r.name} (${r.code || "Outlet"})`,
+            branchId: r.branchId || r.id,
+            name: r.code ? `${r.name} (${r.code})` : r.name,
             code: r.code || "OUTLET",
-          });
+          }));
+        } else {
+          combined = bList.map((b) => ({
+            id: b.id,
+            branchId: b.id,
+            name: b.name,
+            code: b.code || "BRANCH",
+          }));
         }
-      });
+      } else {
+        combined = [...bList];
 
-      lList.forEach((l) => {
-        if (l?.id && !combined.some((b) => b.id === l.id)) {
-          combined.push({
-            id: l.id,
-            name: `${l.name} (${l.branch?.name || "Laundry"})`,
-            code: "LAUNDRY",
-          });
-        }
-      });
+        rList.forEach((r) => {
+          if (r?.id && !combined.some((b) => b.id === r.id || b.id === r.branchId)) {
+            combined.push({
+              id: r.id,
+              branchId: r.branchId || r.id,
+              name: `${r.name} (${r.code || "Outlet"})`,
+              code: r.code || "OUTLET",
+            });
+          }
+        });
+
+        lList.forEach((l) => {
+          if (l?.id && !combined.some((b) => b.id === l.id)) {
+            combined.push({
+              id: l.id,
+              branchId: l.id,
+              name: `${l.name} (${l.branch?.name || "Laundry"})`,
+              code: "LAUNDRY",
+            });
+          }
+        });
+      }
 
       setBranches(combined);
     } catch (err) {
@@ -634,7 +657,7 @@ export default function AddEmployeePage() {
                     <div className={styles.formGroup}>
 
                       <label className={styles.label}>
-                        Branch{" "}
+                        {isRestaurant ? "Outlet" : "Branch"}{" "}
                         <span className={styles.required}>
                           *
                         </span>
@@ -647,16 +670,16 @@ export default function AddEmployeePage() {
                         className={styles.input}
                         style={errors.branchId ? { borderColor: "#ef4444" } : {}}
                       >
-                        <option value="">Select Branch</option>
+                        <option value="">{isRestaurant ? "Select Outlet" : "Select Branch"}</option>
                         {branches.length > 0 ? (
                           branches.map((b) => (
                             <option key={b.id} value={b.id}>
-                              {b.name} {b.code ? `(${b.code})` : ""}
+                              {b.name}
                             </option>
                           ))
                         ) : (
                           <option value="" disabled>
-                            No branches available
+                            {isRestaurant ? "No outlets available" : "No branches available"}
                           </option>
                         )}
                       </select>
@@ -740,7 +763,7 @@ export default function AddEmployeePage() {
 
                     {formData.branchId && branches.length > 0 && (
                       <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
-                        📍 {branches.find((b) => b.id === formData.branchId)?.name || ""}
+                        📍 {branches.find((b) => b.id === formData.branchId || b.branchId === formData.branchId)?.name || ""}
                       </div>
                     )}
 

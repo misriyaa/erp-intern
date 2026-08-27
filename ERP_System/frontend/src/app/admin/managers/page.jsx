@@ -24,11 +24,14 @@ import {
 import { toast, Toaster } from "react-hot-toast";
 
 import { getBranches } from "@/services/branchService";
+import { restaurantService } from "@/services/restaurantService";
+import { useCompany } from "@/context/CompanyContext";
 import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
 import styles from "./managers.module.css";
 
 export default function ManagersPage() {
+  const { isRestaurant } = useCompany();
   const [managers, setManagers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,10 +60,45 @@ export default function ManagersPage() {
 
   const fetchBranches = async () => {
     try {
-      const res = await getBranches();
-      if (res.success && Array.isArray(res.data)) {
-        setBranches(res.data);
+      const [res, restRes] = await Promise.all([
+        getBranches().catch(() => []),
+        restaurantService.getRestaurants().catch(() => []),
+      ]);
+
+      const bList = res?.success && Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : [];
+      const rList = Array.isArray(restRes?.data) ? restRes.data : Array.isArray(restRes) ? restRes : [];
+
+      let combined = [];
+      if (isRestaurant) {
+        if (rList.length > 0) {
+          combined = rList.map((r) => ({
+            id: r.id,
+            branchId: r.branchId || r.id,
+            name: r.code ? `${r.name} (${r.code})` : r.name,
+            code: r.code || "OUTLET",
+          }));
+        } else {
+          combined = bList.map((b) => ({
+            id: b.id,
+            branchId: b.id,
+            name: b.name,
+            code: b.code || "BRANCH",
+          }));
+        }
+      } else {
+        combined = [...bList];
+        rList.forEach((r) => {
+          if (r?.id && !combined.some((b) => b.id === r.id || b.id === r.branchId)) {
+            combined.push({
+              id: r.id,
+              branchId: r.branchId || r.id,
+              name: `${r.name} (${r.code || "Outlet"})`,
+              code: r.code || "OUTLET",
+            });
+          }
+        });
       }
+      setBranches(combined);
     } catch (err) {
       console.error("Failed to fetch branches:", err);
     }
@@ -348,10 +386,10 @@ export default function ManagersPage() {
                 {errors.email && <span className={styles.errorText}>{errors.email}</span>}
               </div>
 
-              {/* Branch */}
+              {/* Branch / Outlet */}
               <div className={styles.formGroup}>
                 <label>
-                  Branch <span>*</span>
+                  {isRestaurant ? "Outlet" : "Branch"} <span>*</span>
                 </label>
                 <select
                   name="branchId"
@@ -360,16 +398,16 @@ export default function ManagersPage() {
                   className={styles.select}
                   style={errors.branchId ? { borderColor: "#ef4444" } : {}}
                 >
-                  <option value="">Select Branch</option>
+                  <option value="">{isRestaurant ? "Select Outlet" : "Select Branch"}</option>
                   {branches.length > 0 ? (
                     branches.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} {b.code ? `(${b.code})` : ""}
+                        {b.name}
                       </option>
                     ))
                   ) : (
                     <option value="" disabled>
-                      No branches found - create branch first
+                      {isRestaurant ? "No outlets found - create outlet first" : "No branches found - create branch first"}
                     </option>
                   )}
                 </select>

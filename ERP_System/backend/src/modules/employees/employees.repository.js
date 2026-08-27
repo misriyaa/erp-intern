@@ -7,8 +7,7 @@ const getAllEmployees = async (companyId, type) => {
   const where = {};
   if (companyId) {
     where.companyId = companyId;
-  }
-  if (type) {
+  } else if (type) {
     where.type = type;
   }
 

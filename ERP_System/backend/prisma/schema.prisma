@@ -650,6 +650,21 @@ model Product {
 
   hasVariants Boolean @default(false)
 
+  // Restaurant Raw Material & Ingredient Specific Fields
+  purchaseUnit           String?   @db.VarChar(50)
+  conversionFactor       Float?    @default(1)
+  reorderQuantity        Float?    @default(0)
+  averageCost            Decimal?  @default(0.00) @db.Decimal(18, 2)
+  lastPurchaseCost       Decimal?  @default(0.00) @db.Decimal(18, 2)
+  supplierReference      String?   @db.VarChar(100)
+  secondarySuppliers     Json?
+  restaurantOutletId     String?   @map("restaurant_outlet_id") @db.VarChar(100)
+  defaultStorageLocation String?   @db.VarChar(150)
+  storageType            String?   @db.VarChar(50)
+  isPerishable           Boolean?  @default(false)
+  isExpiryTracking       Boolean?  @default(false)
+  isBatchTracking        Boolean?  @default(false)
+
   unit Unit @relation(fields: [unitId], references: [id])
 
   category Category @relation(fields: [categoryId], references: [id])

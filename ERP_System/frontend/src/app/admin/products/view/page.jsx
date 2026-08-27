@@ -30,7 +30,7 @@ import { useRouter } from "next/navigation";
 
 export default function ProductsPage() {
   const router = useRouter();
-  const { isGym, isTextile } = useCompany();
+  const { isGym, isTextile, isRestaurant } = useCompany();
 
   /* =========================================================
      STATE
@@ -476,7 +476,12 @@ export default function ProductsPage() {
 
       <div className={styles.header}>
         <div>
-          <h1>Products</h1>
+          <h1>{isRestaurant ? "Raw Materials & Ingredients" : "Products"}</h1>
+          {isRestaurant && (
+            <p style={{ color: "#64748b", fontSize: "14px", margin: "4px 0 0" }}>
+              Manage kitchen raw materials, meat, poultry, vegetables, dairy, spices & store inventory.
+            </p>
+          )}
         </div>
 
         <div className={styles.headerActions}>
@@ -518,7 +523,7 @@ export default function ProductsPage() {
           >
             <FiPlus />
 
-            <span>Add New</span>
+            <span>{isRestaurant ? "Add Raw Material / Ingredient" : "Add New"}</span>
           </button>
         </div>
       </div>
@@ -532,7 +537,7 @@ export default function ProductsPage() {
 
         <div className={styles.statCard}>
           <div>
-            <p>Total Products</p>
+            <p>{isRestaurant ? "Total Ingredients" : "Total Products"}</p>
 
             <h2>{totalProducts}</h2>
 

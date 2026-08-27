@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Edit2, Trash2, X, Users, Loader2, Plus, CreditCard, Mail, Phone, Building2 } from "lucide-react";
@@ -11,6 +11,7 @@ import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import { getRoles } from "@/services/roleService";
 import { getBranches } from "@/services/branchService";
+import { restaurantService } from "@/services/restaurantService";
 import apiClient from "@/services/apiClient";
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
@@ -48,6 +49,95 @@ export default function EmployeePage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [filterType, setFilterType] = useState("all");
+  const [selectedModules, setSelectedModules] = useState([]);
+
+  const availableModules = useMemo(() => {
+    const isTex = Boolean(industryCode?.includes("TEXTILE"));
+    const isGymMode = Boolean(industryCode?.includes("GYM"));
+    const isRest = Boolean(industryCode?.includes("RESTAURANT"));
+    const isLnd = Boolean(industryCode?.includes("LAUNDRY"));
+
+    if (isLnd) {
+      return [
+        { code: "DASHBOARD", name: "Laundry Dashboard", description: "Washing operations summary & charts" },
+        { code: "LAUNDRY", name: "Laundry POS & Operations", description: "Garment tracking, active orders & queue" },
+        { code: "BRANCHES", name: "Outlets & Branches", description: "Laundry outlets & branch locations" },
+        { code: "SERVICES", name: "Services & Categories", description: "Washing & dry cleaning catalog" },
+        { code: "CUSTOMERS", name: "Customers", description: "Client profiles & phone directory" },
+        { code: "EMPLOYEES", name: "Employees & Staff", description: "Washer, presser & driver team" },
+        { code: "REPORTS", name: "Laundry Reports", description: "Revenue & garment delivery analytics" },
+      ];
+    } else if (isGymMode) {
+      return [
+        { code: "DASHBOARD", name: "Dashboard", description: "Business statistics & charts" },
+        { code: "MEMBERS", name: "Members", description: "Manage gym member accounts" },
+        { code: "MEMBERSHIP_PLANS", name: "Membership Plans", description: "Configure membership packages" },
+        { code: "TRAINERS", name: "Trainers", description: "Gym instructors & schedules" },
+        { code: "ATTENDANCE", name: "Attendance", description: "Daily gym check-ins logs" },
+        { code: "PAYMENTS", name: "Payments", description: "Financial receipts & invoices" },
+        { code: "EMPLOYEES", name: "Employees", description: "Manage staff & team permissions" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor catalog & logistics" },
+        { code: "REPORTS", name: "Reports & Analytics", description: "Visual operations summaries" },
+      ];
+    } else if (isTex) {
+      return [
+        { code: "DASHBOARD", name: "Dashboard", description: "Industrial performance summary" },
+        { code: "PRODUCTS", name: "Products Setup", description: "Manage product listings" },
+        { code: "CATEGORIES", name: "Product Categories", description: "Configure category filters" },
+        { code: "BRANDS", name: "Product Brands", description: "Configure product brand tags" },
+        { code: "UNITS", name: "Units of Measure", description: "Configure units of measure (UoM)" },
+        { code: "RAW_MATERIALS", name: "Raw Materials", description: "Weaving yarn & mill supplies" },
+        { code: "PRODUCTION", name: "Production Run", description: "Textile manufacturing tracking" },
+        { code: "INVENTORY", name: "Inventory", description: "Raw & finished product stocks" },
+        { code: "WAREHOUSE", name: "Warehouse", description: "Storage mills & stock depots" },
+        { code: "QUALITY_CONTROL", name: "Quality Control", description: "Fabric inspection sheets" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Supplier records & bulk orders" },
+        { code: "SALES", name: "Sales Orders", description: "Client sales & invoices" },
+        { code: "PAYMENTS", name: "Payments", description: "Transactional records ledger" },
+        { code: "EMPLOYEES", name: "Employees", description: "Manage workers & mill supervisors" },
+        { code: "REPORTS", name: "Industrial Reports", description: "Factory output summaries" },
+      ];
+    } else if (isRest) {
+      return [
+        { code: "DASHBOARD", name: "Restaurant Dashboard", description: "Food sales charts & analytics" },
+        { code: "RESTAURANT", name: "Restaurant POS & Floor", description: "POS terminal, KOT, tables & costing" },
+        { code: "PRODUCTS", name: "Menu & Ingredients", description: "Manage raw ingredients & recipes" },
+        { code: "CATEGORIES", name: "Menu Categories", description: "Configure menu categories" },
+        { code: "BRANDS", name: "Ingredient Brands", description: "Configure ingredient brands" },
+        { code: "UNITS", name: "Units of Measure", description: "Configure recipe units of measure" },
+        { code: "INVENTORY", name: "Kitchen Inventory", description: "Stock control of kitchen supplies" },
+        { code: "WAREHOUSE", name: "Outlets / Storage", description: "Store storage rooms & pantries" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details for food orders" },
+        { code: "PURCHASES", name: "Food Purchases", description: "Supplier ingredients procurement" },
+        { code: "EMPLOYEES", name: "Staff Management", description: "Waiters, kitchen & cashier accounts" },
+        { code: "REPORTS", name: "Analytics & Reports", description: "Restaurant operations overview" },
+      ];
+    } else {
+      return [
+        { code: "DASHBOARD", name: "Dashboard", description: "Live metrics & charts" },
+        { code: "PRODUCTS", name: "Products Setup", description: "Manage product listings" },
+        { code: "CATEGORIES", name: "Product Categories", description: "Configure category filters" },
+        { code: "BRANDS", name: "Product Brands", description: "Configure product brand tags" },
+        { code: "UNITS", name: "Units of Measure", description: "Configure units of measure (UoM)" },
+        { code: "INVENTORY", name: "Inventory", description: "Current stock catalogs" },
+        { code: "WAREHOUSE", name: "Warehouse", description: "Store depots & physical logs" },
+        { code: "STOCK_TRANSFER", name: "Stock Transfer", description: "Inter-branch product transfers" },
+        { code: "CUSTOMERS", name: "Customers", description: "Client database & profiles" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details & catalog" },
+        { code: "PURCHASES", name: "Purchases", description: "Supplier purchase logs" },
+        { code: "SALES", name: "Sales Orders", description: "Store sales & invoices" },
+        { code: "REPORTS", name: "Reports & Analytics", description: "Operations summaries" },
+        { code: "INVOICES", name: "Invoices", description: "Generate receipt documents" },
+        { code: "EMPLOYEES", name: "Employees / Team", description: "Manage branch staff accounts" },
+      ];
+    }
+  }, [industryCode]);
+
+  const handleModuleToggle = (code) => {
+    setSelectedModules((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -91,6 +181,10 @@ export default function EmployeePage() {
       if (!phoneRegex.test(formData.phone.trim())) {
         newErrors.phone = "Enter a valid phone number (7-20 digits)";
       }
+    }
+
+    if (!formData.branchId) {
+      newErrors.branchId = isRestaurant ? "Outlet is required" : "Branch is required";
     }
 
     setErrors(newErrors);
@@ -149,16 +243,37 @@ export default function EmployeePage() {
       const bList = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : (res?.data?.data || []);
       const rList = Array.isArray(restRes?.data) ? restRes.data : Array.isArray(restRes) ? restRes : (restRes?.data?.data || []);
 
-      const combined = [...bList];
-      rList.forEach((r) => {
-        if (r?.id && !combined.some((b) => b.id === r.id)) {
-          combined.push({
+      let combined = [];
+
+      if (isRestaurant) {
+        if (rList.length > 0) {
+          combined = rList.map((r) => ({
             id: r.id,
-            name: `${r.name} (${r.code || "Outlet"})`,
+            branchId: r.branchId || r.id,
+            name: r.code ? `${r.name} (${r.code})` : r.name,
             code: r.code || "OUTLET",
-          });
+          }));
+        } else {
+          combined = bList.map((b) => ({
+            id: b.id,
+            branchId: b.id,
+            name: b.name,
+            code: b.code || "BRANCH",
+          }));
         }
-      });
+      } else {
+        combined = [...bList];
+        rList.forEach((r) => {
+          if (r?.id && !combined.some((b) => b.id === r.id || b.id === r.branchId)) {
+            combined.push({
+              id: r.id,
+              branchId: r.branchId || r.id,
+              name: `${r.name} (${r.code || "Outlet"})`,
+              code: r.code || "OUTLET",
+            });
+          }
+        });
+      }
 
       setBranches(combined);
     } catch (err) {
@@ -193,33 +308,33 @@ export default function EmployeePage() {
       }
 
       const filteredList = baseList.filter((emp) => {
+        if (emp.type && industryCode && emp.type.toUpperCase() === industryCode.toUpperCase()) {
+          return true;
+        }
+
         const isTex =
           emp.type === "TEXTILE" ||
-          (!emp.type && (
-            emp.employeeId?.startsWith("EMP-TEX") ||
-            emp.role?.toLowerCase().includes("loom") ||
-            emp.role?.toLowerCase().includes("weaving") ||
-            emp.role?.toLowerCase().includes("spinning") ||
-            emp.role?.toLowerCase().includes("dyeing") ||
-            emp.role?.toLowerCase().includes("textile") ||
-            emp.role?.toLowerCase().includes("mill")
-          ));
+          emp.employeeId?.startsWith("EMP-TEX") ||
+          emp.role?.toLowerCase().includes("loom") ||
+          emp.role?.toLowerCase().includes("weaving") ||
+          emp.role?.toLowerCase().includes("spinning") ||
+          emp.role?.toLowerCase().includes("dyeing") ||
+          emp.role?.toLowerCase().includes("textile") ||
+          emp.role?.toLowerCase().includes("mill");
 
         const isGymEmp =
           emp.type === "GYM" ||
-          (!emp.type && (
-            emp.employeeId?.startsWith("EMP-GYM") ||
-            emp.role?.toLowerCase().includes("trainer") ||
-            emp.role?.toLowerCase().includes("nutrition") ||
-            emp.role?.toLowerCase().includes("fitness") ||
-            emp.role?.toLowerCase().includes("desk") ||
-            emp.role?.toLowerCase().includes("check-in") ||
-            emp.role?.toLowerCase().includes("receptionist")
-          ));
+          emp.employeeId?.startsWith("EMP-GYM") ||
+          emp.role?.toLowerCase().includes("trainer") ||
+          emp.role?.toLowerCase().includes("nutrition") ||
+          emp.role?.toLowerCase().includes("fitness") ||
+          emp.role?.toLowerCase().includes("desk") ||
+          emp.role?.toLowerCase().includes("check-in") ||
+          emp.role?.toLowerCase().includes("receptionist");
 
-        if (isTextile) return isTex;
-        if (isGym) return isGymEmp;
-        return !isTex && !isGymEmp;
+        if (isTextile) return isTex || !emp.type;
+        if (isGym) return isGymEmp || !emp.type;
+        return true;
       });
 
       setEmployees(filteredList);
@@ -262,13 +377,29 @@ export default function EmployeePage() {
     setCurrentEmployee(employee);
     setErrors({});
 
+    const matchingOption = branches.find(
+      (b) => b.id === employee.branchId || b.branchId === employee.branchId || b.id === employee.branch?.id
+    );
+
+    let existingPerms = [];
+    if (employee.permissions) {
+      try {
+        existingPerms = typeof employee.permissions === "string" ? JSON.parse(employee.permissions) : employee.permissions;
+      } catch (e) {
+        if (typeof employee.permissions === "string") {
+          existingPerms = employee.permissions.split(",").map((s) => s.trim().toUpperCase());
+        }
+      }
+    }
+    setSelectedModules(Array.isArray(existingPerms) && existingPerms.length > 0 ? existingPerms : availableModules.map((m) => m.code));
+
     setFormData({
       fullName: employee.fullName || "",
       email: employee.email || "",
       phone: employee.phone || "",
       employeeId: employee.employeeId || "",
-      role: employee.role?.name || "Admin",
-      branchId: employee.branchId || employee.branch?.id || "",
+      role: employee.role?.name || employee.role || "Admin",
+      branchId: matchingOption?.id || employee.branchId || employee.branch?.id || "",
     });
 
     setIsModalOpen(true);
@@ -317,7 +448,10 @@ export default function EmployeePage() {
     setSubmitting(true);
 
     try {
-      const updateData = { ...formData };
+      const updateData = {
+        ...formData,
+        permissions: selectedModules,
+      };
 
       const response = await apiClient.put(
         `/employees/${currentEmployee.id}`,
@@ -877,7 +1011,7 @@ export default function EmployeePage() {
                             <Building2 size={13} />
 
                             <span>
-                              Branch
+                              {isRestaurant ? "Outlet" : "Branch"}
                             </span>
 
                           </div>
@@ -1190,7 +1324,7 @@ export default function EmployeePage() {
                       }
                       htmlFor="branchId"
                     >
-                      Branch
+                      {isRestaurant ? "Outlet" : "Branch"}
                     </label>
 
                     <select
@@ -1201,16 +1335,16 @@ export default function EmployeePage() {
                       className={styles.input}
                       style={errors.branchId ? { borderColor: "#ef4444" } : {}}
                     >
-                      <option value="">Select Branch</option>
+                      <option value="">{isRestaurant ? "Select Outlet" : "Select Branch"}</option>
                       {branches.length > 0 ? (
                         branches.map((b) => (
                           <option key={b.id} value={b.id}>
-                            {b.name} {b.code ? `(${b.code})` : ""}
+                            {b.name}
                           </option>
                         ))
                       ) : (
                         <option value="" disabled>
-                          No branches available
+                          {isRestaurant ? "No outlets available" : "No branches available"}
                         </option>
                       )}
                     </select>
@@ -1307,7 +1441,45 @@ export default function EmployeePage() {
                   </div>
 
 
-
+                  {/* MODULE ACCESS PERMISSIONS */}
+                  <div style={{ gridColumn: "1 / -1", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #334155" }}>
+                    <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#f8fafc", marginBottom: "4px" }}>
+                      Module Access Permissions
+                    </h3>
+                    <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "12px" }}>
+                      Select which modules this employee can access.
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
+                      {availableModules.map((mod) => {
+                        const isSelected = selectedModules.includes(mod.code);
+                        return (
+                          <label
+                            key={mod.code}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 10px",
+                              borderRadius: "6px",
+                              backgroundColor: isSelected ? "rgba(79, 70, 229, 0.1)" : "#1e293b",
+                              border: `1px solid ${isSelected ? "#4f46e5" : "#334155"}`,
+                              cursor: "pointer",
+                              fontSize: "12px",
+                              color: "#f8fafc",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleModuleToggle(mod.code)}
+                              style={{ width: "14px", height: "14px", accentColor: "#4f46e5" }}
+                            />
+                            <span>{mod.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
 
 
                   {/* =================================================

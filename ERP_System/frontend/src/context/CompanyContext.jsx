@@ -137,13 +137,34 @@ export function CompanyProvider({ children }) {
   const isRetail = !isGym && !isTextile && !isRestaurant && !isLaundry && !isMedical;
 
   const isModuleEnabled = (moduleCode) => {
-    const roleUpper = (user?.role || "").toUpperCase().replace(/\s+/g, "_");
-    if (roleUpper.includes("SUPER") || roleUpper.includes("ADMIN")) return true;
-
     if (!moduleCode) return true;
     const codeUpper = moduleCode.toUpperCase();
+    const roleUpper = (user?.role || "").toUpperCase().replace(/\s+/g, "_");
 
-    // 1. Role-based overrides/filters
+    // Super Admin always gets full access
+    if (roleUpper.includes("SUPER")) return true;
+
+    // 1. If explicit module permissions are set for this employee/user
+    if (Array.isArray(modules) && modules.length > 0 && !roleUpper.includes("ADMIN")) {
+      const formattedModules = modules.map((m) => (m || "").toUpperCase());
+      const hasDirectAccess = formattedModules.some((mUpper) => {
+        if (mUpper === codeUpper) return true;
+        if (mUpper === "WAREHOUSE" && (codeUpper === "WAREHOUSES" || codeUpper === "INVENTORY" || codeUpper === "STOCK_TRANSFER" || codeUpper === "STOCK-TRANSFER")) return true;
+        if (mUpper === "WAREHOUSES" && (codeUpper === "WAREHOUSE" || codeUpper === "INVENTORY")) return true;
+        if (mUpper === "STOCK_TRANSFER" && codeUpper === "STOCK-TRANSFER") return true;
+        if (mUpper === "STOCK-TRANSFER" && codeUpper === "STOCK_TRANSFER") return true;
+        if (mUpper === "MEDICAL" && codeUpper === "MEDICAL_SHOP") return true;
+        if (mUpper === "MEDICAL_SHOP" && codeUpper === "MEDICAL") return true;
+        if (mUpper === "RESTAURANT" && codeUpper.startsWith("RESTAURANT")) return true;
+        if (mUpper === "LAUNDRY" && codeUpper.startsWith("LAUNDRY")) return true;
+        return false;
+      });
+      return hasDirectAccess;
+    }
+
+    if (roleUpper.includes("ADMIN")) return true;
+
+    // 2. Role-based overrides/filters
     if (roleUpper.includes("CASHIER")) {
       const allowed = ["SALES", "POS", "DASHBOARD", "RESTAURANT", "LAUNDRY", "MEDICAL_SHOP", "MEDICAL", "CUSTOMERS", "INVOICES"];
       if (!allowed.includes(codeUpper)) {
@@ -194,7 +215,7 @@ export function CompanyProvider({ children }) {
       }
     }
 
-    // 2. Industry checks
+    // 3. Industry checks
     if (isRetail && ["DASHBOARD", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS", "RESTAURANT"].includes(codeUpper)) {
       return true;
     }
@@ -214,7 +235,7 @@ export function CompanyProvider({ children }) {
       return true;
     }
 
-    return modules.length === 0 || modules.includes(codeUpper);
+    return true;
   };
 
   return (

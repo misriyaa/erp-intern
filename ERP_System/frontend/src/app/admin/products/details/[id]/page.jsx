@@ -24,10 +24,12 @@ import {
 import { Loader2 } from "lucide-react";
 
 import styles from "../details.module.css";
+import { useCompany } from "@/context/CompanyContext";
 
 export default function ProductDetailsPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
+  const { isRestaurant } = useCompany();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -118,6 +120,320 @@ export default function ProductDetailsPage({ params }) {
   };
 
   const imageUrl = getImageUrl(product.image);
+
+  if (isRestaurant) {
+    const costPrice = parseFloat(product.costPrice || 0);
+    const stockQty = parseFloat(product.initialStock || product.inventories?.[0]?.quantity || 0);
+    const stockVal = stockQty * costPrice;
+    const baseUnitName = product.unit?.name || product.stockUnit || "KG";
+
+    return (
+      <div className={styles.container}>
+        <Toaster position="top-right" />
+        {/* Header */}
+        <div className={styles.header}>
+          <div className={styles.headerLeft}>
+            <Link href="/admin/products/view" className={styles.backButton}>
+              <FiArrowLeft />
+            </Link>
+            <div>
+              <div className={styles.breadcrumb}>
+                Raw Materials <span>/</span> Ingredient Details
+              </div>
+              <h1>{product.name}</h1>
+              <p>Kitchen raw material specs, unit conversion, cost analysis, supplier & storage locations.</p>
+            </div>
+          </div>
+
+          <div className={styles.headerActions}>
+            <button className={styles.secondaryButton} onClick={handlePrint}>
+              <FiPrinter /> Print
+            </button>
+            <Link href={`/admin/products/edit/${product.id}`} className={styles.editButton}>
+              <FiEdit /> Edit Ingredient
+            </Link>
+            <button className={styles.deleteButton} onClick={handleDelete}>
+              <FiTrash2 />
+            </button>
+          </div>
+        </div>
+
+        {/* Product Overview Header Card */}
+        <div className={styles.productCard}>
+          <div className={styles.productImageWrapper}>
+            <div className={styles.productImage}>
+              {imageUrl ? (
+                <img src={imageUrl} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
+              ) : (
+                <FiPackage />
+              )}
+            </div>
+          </div>
+
+          <div className={styles.productMainInfo}>
+            <div className={styles.titleRow}>
+              <div>
+                <h2>{product.name}</h2>
+                <div className={styles.productMeta}>
+                  <span>SKU: {product.sku}</span>
+                  {product.barcode && <span>Barcode: {product.barcode}</span>}
+                  <span>Type: RAW MATERIAL</span>
+                </div>
+              </div>
+              <span className={styles.activeBadge}>
+                <span></span>
+                {product.status || "ACTIVE"}
+              </span>
+            </div>
+
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <span>Category</span>
+                <strong>{product.category?.name || "General"}</strong>
+              </div>
+              <div className={styles.infoItem}>
+                <span>Base Unit</span>
+                <strong>{baseUnitName}</strong>
+              </div>
+              <div className={styles.infoItem}>
+                <span>Purchase Unit</span>
+                <strong>{product.purchaseUnit ? `${product.purchaseUnit} (1 ${product.purchaseUnit} = ${product.conversionFactor || 1} ${baseUnitName})` : "N/A"}</strong>
+              </div>
+              <div className={styles.infoItem}>
+                <span>Storage Location</span>
+                <strong>{product.defaultStorageLocation || product.warehouseLocation || "Main Store"} ({product.storageType || "Dry Storage"})</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats KPI Cards */}
+        <div className={styles.statsGrid}>
+          <div className={styles.statCard}>
+            <div className={`${styles.statIcon} ${styles.blue}`}>
+              <FiDollarSign />
+            </div>
+            <div>
+              <span>Purchase Cost</span>
+              <h3>{formatPrice(costPrice)} / {baseUnitName}</h3>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={`${styles.statIcon} ${styles.green}`}>
+              <FiBox />
+            </div>
+            <div>
+              <span>Current Stock</span>
+              <h3>{stockQty} {baseUnitName}</h3>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={`${styles.statIcon} ${styles.orange}`}>
+              <FiTag />
+            </div>
+            <div>
+              <span>Total Stock Value</span>
+              <h3>{formatPrice(stockVal)}</h3>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={`${styles.statIcon} ${styles.purple}`}>
+              <FiBarChart2 />
+            </div>
+            <div>
+              <span>Min Stock Level</span>
+              <h3>{product.minimumStock || 0} {baseUnitName}</h3>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Section Cards Grid */}
+        <div className={styles.contentGrid}>
+          <div className={styles.leftColumn}>
+            {/* 1. BASIC & INVENTORY SPECIFICATIONS */}
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardTitle}>
+                  <div className={styles.titleIcon}>
+                    <FiLayers />
+                  </div>
+                  <div>
+                    <h3>1. Basic & Unit Specifications</h3>
+                    <p>Ingredient identification, category, unit conversions and stock thresholds</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.detailsGrid}>
+                <div>
+                  <span>Ingredient Name</span>
+                  <strong>{product.name}</strong>
+                </div>
+                <div>
+                  <span>SKU / Item Code</span>
+                  <strong>{product.sku}</strong>
+                </div>
+                <div>
+                  <span>Category</span>
+                  <strong>{product.category?.name || "Uncategorized"}</strong>
+                </div>
+                <div>
+                  <span>Brand</span>
+                  <strong>{product.brand?.name || "N/A"}</strong>
+                </div>
+                <div>
+                  <span>Base Unit</span>
+                  <strong>{baseUnitName}</strong>
+                </div>
+                <div>
+                  <span>Purchase Unit</span>
+                  <strong>{product.purchaseUnit || "N/A"}</strong>
+                </div>
+                <div>
+                  <span>Conversion Factor</span>
+                  <strong>{product.conversionFactor ? `1 ${product.purchaseUnit} = ${product.conversionFactor} ${baseUnitName}` : "N/A"}</strong>
+                </div>
+                <div>
+                  <span>Minimum Stock</span>
+                  <strong>{product.minimumStock || 0} {baseUnitName}</strong>
+                </div>
+                <div>
+                  <span>Maximum Stock</span>
+                  <strong>{product.maximumStock || 0} {baseUnitName}</strong>
+                </div>
+                <div>
+                  <span>Reorder Quantity</span>
+                  <strong>{product.reorderQuantity || 0} {baseUnitName}</strong>
+                </div>
+              </div>
+            </section>
+
+            {/* 2. STORAGE & TRACKING INFORMATION */}
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardTitle}>
+                  <div className={styles.titleIcon}>
+                    <FiTruck />
+                  </div>
+                  <div>
+                    <h3>2. Storage & Quality Tracking</h3>
+                    <p>Outlet assignment, default store location, perishable and batch tracking settings</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.detailsGrid}>
+                <div>
+                  <span>Restaurant Outlet</span>
+                  <strong>{product.restaurantOutlet?.name || "Main Outlet"}</strong>
+                </div>
+                <div>
+                  <span>Default Storage Location</span>
+                  <strong>{product.defaultStorageLocation || product.warehouseLocation || "Main Store"}</strong>
+                </div>
+                <div>
+                  <span>Storage Type</span>
+                  <strong>{product.storageType || "Dry Storage"}</strong>
+                </div>
+                <div>
+                  <span>Perishable Item</span>
+                  <strong style={{ color: product.isPerishable ? "#ef4444" : "#64748b" }}>
+                    {product.isPerishable ? "Yes (Perishable)" : "No"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Expiry Tracking</span>
+                  <strong style={{ color: product.isExpiryTracking ? "#4f46e5" : "#64748b" }}>
+                    {product.isExpiryTracking ? "Enabled (Batch Expiry Active)" : "Disabled"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Batch Tracking</span>
+                  <strong style={{ color: product.isBatchTracking ? "#4f46e5" : "#64748b" }}>
+                    {product.isBatchTracking ? "Enabled" : "Disabled"}
+                  </strong>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column */}
+          <div className={styles.rightColumn}>
+            {/* 3. COST & SUPPLIER INFORMATION */}
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardTitle}>
+                  <div className={styles.titleIcon}>
+                    <FiDollarSign />
+                  </div>
+                  <div>
+                    <h3>3. Cost & Supplier Information</h3>
+                    <p>Purchase pricing, tax, average cost & supplier reference</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.detailsGrid} style={{ gridTemplateColumns: "1fr" }}>
+                <div>
+                  <span>Purchase Cost</span>
+                  <strong>{formatPrice(costPrice)} / {baseUnitName}</strong>
+                </div>
+                <div>
+                  <span>Average Cost</span>
+                  <strong>{formatPrice(product.averageCost || costPrice)} / {baseUnitName}</strong>
+                </div>
+                <div>
+                  <span>Last Purchase Cost</span>
+                  <strong>{formatPrice(product.lastPurchaseCost || costPrice)} / {baseUnitName}</strong>
+                </div>
+                <div>
+                  <span>Tax Rate</span>
+                  <strong>{product.taxRate ? `${product.taxRate}%` : "0%"}</strong>
+                </div>
+                <div>
+                  <span>Preferred Supplier</span>
+                  <strong>{product.supplier?.companyName || product.supplier?.name || "N/A"}</strong>
+                </div>
+                <div>
+                  <span>Supplier Reference</span>
+                  <strong>{product.supplierReference || product.supplierProductCode || "N/A"}</strong>
+                </div>
+              </div>
+            </section>
+
+            {/* 4. AUDIT TIMELINE */}
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardTitle}>
+                  <div className={styles.titleIcon}>
+                    <FiCalendar />
+                  </div>
+                  <div>
+                    <h3>Record Audit</h3>
+                    <p>System creation and update logs</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.timeline}>
+                <div>
+                  <span>Created Date</span>
+                  <strong>{new Date(product.createdAt).toLocaleDateString()}</strong>
+                </div>
+                <div>
+                  <span>Last Modified</span>
+                  <strong>{new Date(product.updatedAt).toLocaleDateString()}</strong>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

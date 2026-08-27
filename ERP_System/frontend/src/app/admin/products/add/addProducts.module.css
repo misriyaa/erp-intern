@@ -455,15 +455,85 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* =========================================
+   FULL RESPONSIVE DESIGN & MOBILE STYLES
+========================================= */
+
 @media (max-width: 1024px) {
+  .container {
+    padding: 16px;
+  }
   .formLayout {
     grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .heroBanner, .textileHeroBanner {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+  .heroTitle {
+    font-size: 22px;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .heroBanner, .textileHeroBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .heroActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
   .row {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .stepperNav {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .stepItem {
+    padding: 6px 10px;
+  }
+  .cardHeader {
+    padding: 16px 18px;
+  }
+  .cardBody {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px 8px;
+  }
+  .heroBanner, .textileHeroBanner {
+    padding: 18px 16px;
+  }
+  .heroTitle {
+    font-size: 19px;
+  }
+  .heroSubtitle {
+    font-size: 13px;
+  }
+  .heroActions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .cancelBtn, .saveBtn, .textileSaveBtn {
+    width: 100%;
+    justify-content: center;
+  }
+  .card input[type="text"],
+  .card input[type="number"],
+  .card input[type="email"],
+  .card input[type="date"],
+  .card select,
+  .card textarea {
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }
 

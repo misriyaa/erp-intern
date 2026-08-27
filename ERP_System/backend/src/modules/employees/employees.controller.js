@@ -10,8 +10,8 @@ import {
 // Get all employees
 const getEmployees = async (req, res, next) => {
   try {
-    const companyId = req.user?.companyId || req.query.companyId;
-    const type = req.user?.type || req.query.type;
+    const companyId = req.query.companyId || req.user?.companyId;
+    const type = req.query.type || req.user?.type;
 
     const result = await fetchAllEmployees(companyId, type);
 

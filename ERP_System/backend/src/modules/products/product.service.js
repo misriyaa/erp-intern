@@ -99,6 +99,20 @@ export const createProduct = async (data) => {
     leadTime: data.leadTime ? parseInt(data.leadTime) : null,
     hasVariants: Boolean(data.hasVariants || (Array.isArray(variants) && variants.length > 0)),
     variants: Array.isArray(variants) ? variants : [],
+
+    // Restaurant Raw Material Details
+    purchaseUnit: data.purchaseUnit || null,
+    conversionFactor: data.conversionFactor ? parseFloat(data.conversionFactor) : 1,
+    reorderQuantity: data.reorderQuantity ? parseFloat(data.reorderQuantity) : 0,
+    averageCost: data.averageCost !== undefined ? parseFloat(data.averageCost) : (data.costPrice ? parseFloat(data.costPrice) : 0),
+    lastPurchaseCost: data.lastPurchaseCost !== undefined ? parseFloat(data.lastPurchaseCost) : (data.costPrice ? parseFloat(data.costPrice) : 0),
+    supplierReference: data.supplierReference || data.supplierProductCode || null,
+    restaurantOutletId: data.restaurantOutletId || data.restaurantId || null,
+    defaultStorageLocation: data.defaultStorageLocation || data.warehouseLocation || null,
+    storageType: data.storageType || null,
+    isPerishable: data.isPerishable !== undefined ? Boolean(data.isPerishable) : false,
+    isExpiryTracking: data.isExpiryTracking !== undefined ? Boolean(data.isExpiryTracking) : false,
+    isBatchTracking: data.isBatchTracking !== undefined ? Boolean(data.isBatchTracking) : false,
   };
 
   const product = await productRepository.createProduct(cleanData);
@@ -224,6 +238,20 @@ export const updateProduct = async (id, data) => {
     ...(data.leadTime !== undefined && { leadTime: data.leadTime ? parseInt(data.leadTime) : null }),
     ...(data.hasVariants !== undefined && { hasVariants: Boolean(data.hasVariants) }),
     ...(variants !== undefined && { variants: Array.isArray(variants) ? variants : [] }),
+
+    // Restaurant Raw Material Details
+    ...(data.purchaseUnit !== undefined && { purchaseUnit: data.purchaseUnit }),
+    ...(data.conversionFactor !== undefined && { conversionFactor: data.conversionFactor ? parseFloat(data.conversionFactor) : 1 }),
+    ...(data.reorderQuantity !== undefined && { reorderQuantity: data.reorderQuantity ? parseFloat(data.reorderQuantity) : 0 }),
+    ...(data.averageCost !== undefined && { averageCost: data.averageCost ? parseFloat(data.averageCost) : 0 }),
+    ...(data.lastPurchaseCost !== undefined && { lastPurchaseCost: data.lastPurchaseCost ? parseFloat(data.lastPurchaseCost) : 0 }),
+    ...(data.supplierReference !== undefined && { supplierReference: data.supplierReference }),
+    ...(data.restaurantOutletId !== undefined && { restaurantOutletId: data.restaurantOutletId }),
+    ...(data.defaultStorageLocation !== undefined && { defaultStorageLocation: data.defaultStorageLocation }),
+    ...(data.storageType !== undefined && { storageType: data.storageType }),
+    ...(data.isPerishable !== undefined && { isPerishable: Boolean(data.isPerishable) }),
+    ...(data.isExpiryTracking !== undefined && { isExpiryTracking: Boolean(data.isExpiryTracking) }),
+    ...(data.isBatchTracking !== undefined && { isBatchTracking: Boolean(data.isBatchTracking) }),
   };
 
   return await productRepository.updateProduct(id, cleanUpdate);
