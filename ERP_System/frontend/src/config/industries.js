@@ -216,6 +216,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "LAUNDRY", label: "Laundry Dashboard", href: "/laundry/dashboard", icon: FiGrid, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Laundry POS", href: "/laundry/pos", icon: FiMonitor, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Active Orders", href: "/laundry/orders", icon: FiShoppingCart, industry: "LAUNDRY" },
+  { moduleCode: "BRANCHES", label: "Laundry Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Services & Categories", href: "/laundry/services", icon: FiBox, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Garment Tracking", href: "/laundry/garments", icon: FiTag, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Processing Queue", href: "/laundry/processing", icon: FiClock, industry: "LAUNDRY" },
