@@ -191,15 +191,45 @@ export default function BranchesPage() {
     return result;
   }, [branches, search, sortOrder]);
 
-  /* =========================
-     FORM HANDLERS
-  ========================= */
+  const handleOpenAddModal = () => {
+    setEditingId(null);
+    setErrors({});
+    const prefix = isGym ? "GYM-" : isTextile ? "MILL-" : "BR-";
+    const nextNum = String(branches.length + 1).padStart(3, "0");
+    setFormData({
+      name: "",
+      code: `${prefix}${nextNum}`,
+      address: "",
+      city: "",
+      state: "",
+      phone: "",
+      email: "",
+      isActive: true,
+    });
+    setShowAdd(true);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      // Auto-update branch code if typing branch name and code was default
+      if (name === "name" && !editingId) {
+        const prefix = isGym ? "GYM-" : isTextile ? "MILL-" : "BR-";
+        const cleanWords = value.trim().split(/\s+/).filter(Boolean);
+        if (cleanWords.length > 0) {
+          const initials = cleanWords.map((w) => w[0].toUpperCase()).join("");
+          const nextNum = String(branches.length + 1).padStart(3, "0");
+          updated.code = `${prefix}${initials}-${nextNum}`;
+        }
+      }
+
+      return updated;
+    });
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -347,7 +377,7 @@ export default function BranchesPage() {
             className={styles.addButton}
             onClick={() => {
               if (showAdd) handleCancel();
-              else setShowAdd(true);
+              else handleOpenAddModal();
             }}
           >
             {showAdd ? <FiX size={17} /> : <FiPlus size={17} />}

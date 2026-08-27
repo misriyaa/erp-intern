@@ -3,7 +3,7 @@
 import DashboardHome from "@/components/adminPanel/DashboardHome/DashboardHome";
 import GymDashboard from "@/components/gym/GymDashboard";
 import TextileDashboard from "@/components/textile/TextileDashboard";
-import RestaurantDashboardPage from "@/app/restaurant/dashboard/page";
+import SingleRestaurantDashboard from "@/components/restaurant/SingleRestaurantDashboard";
 import LaundryDashboardPage from "@/app/laundry/dashboard/page";
 import MedicalDashboardPage from "@/app/medical/dashboard/page";
 import { useCompany } from "@/context/CompanyContext";
@@ -12,7 +12,7 @@ const DASHBOARD_REGISTRY = {
   RETAIL: DashboardHome,
   GYM: GymDashboard,
   TEXTILE: TextileDashboard,
-  RESTAURANT: RestaurantDashboardPage,
+  RESTAURANT: SingleRestaurantDashboard,
   LAUNDRY: LaundryDashboardPage,
   MEDICAL_SHOP: MedicalDashboardPage,
   MEDICAL: MedicalDashboardPage,

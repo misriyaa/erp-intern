@@ -78,7 +78,10 @@ export default function LaundryPOS() {
         setSelectedLaundryId(lndList[0].id);
       }
 
-      setCustomers(custRes.data || custRes || []);
+      const rawCustList = custRes.data || custRes || [];
+      const walkInObj = { id: "WALK_IN", name: "🚶 Walk-in Customer", phone: "N/A" };
+      setCustomers([walkInObj, ...rawCustList]);
+      setSelectedCustomerId("WALK_IN");
     } catch (err) {
       console.error(err);
     } finally {

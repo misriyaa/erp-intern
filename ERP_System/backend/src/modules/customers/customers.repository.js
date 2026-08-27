@@ -8,7 +8,7 @@ class CustomerRepository {
   }
 
   async findAll(companyId) {
-    const where = companyId ? { companyId } : {};
+    const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
     return prisma.customer.findMany({
       where,
       orderBy: {

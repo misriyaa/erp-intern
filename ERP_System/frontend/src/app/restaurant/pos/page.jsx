@@ -100,7 +100,10 @@ function RestaurantPOSContent() {
         setSelectedRestaurantId(restList[0].id);
       }
 
-      setCustomers(custRes.data || custRes || []);
+      const rawCustList = custRes.data || custRes || [];
+      const walkInObj = { id: "WALK_IN", name: "🚶 Walk-in Customer", phone: "N/A" };
+      setCustomers([walkInObj, ...rawCustList]);
+      setSelectedCustomerId("WALK_IN");
       const whList = whRes.data || [];
       setWarehouses(whList);
       if (whList.length > 0) {

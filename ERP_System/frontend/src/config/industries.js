@@ -199,7 +199,6 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL, MEDICAL_SHOP" },
 
   // Restaurant Industry Modules
-  { moduleCode: "RESTAURANT", label: "Restaurant Dashboard", href: "/restaurant/dashboard", icon: FiGrid, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Restaurant Outlets Setup", href: "/restaurant/manage", icon: FiMapPin, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Restaurant POS", href: "/restaurant/pos", icon: FiMonitor, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Floor & Tables", href: "/restaurant/tables", icon: FiCoffee, industry: "RESTAURANT" },
