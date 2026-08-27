@@ -28,18 +28,25 @@ export const requireModuleAccess = (moduleCode) => {
         return next();
       }
 
-      // If user has companyId, perform a fallback database check
+      // If user has companyId, perform fallback database check against company modules & industry
       if (req.user.companyId) {
-        const companyModule = await prisma.companyModule.findFirst({
-          where: {
-            companyId: req.user.companyId,
-            module: { code: { in: codesToCheck } },
-            enabled: true,
-          },
+        const company = await prisma.company.findUnique({
+          where: { id: req.user.companyId },
+          include: { industry: true, modules: { include: { module: true } } },
         });
 
-        if (companyModule) {
-          return next();
+        if (company) {
+          const indCode = (company.industry?.code || "").toUpperCase();
+          if (codesToCheck.some((c) => indCode.includes(c) || c.includes(indCode))) {
+            return next();
+          }
+
+          const companyModule = company.modules?.find(
+            (cm) => cm.enabled && codesToCheck.includes((cm.module?.code || "").toUpperCase())
+          );
+          if (companyModule) {
+            return next();
+          }
         }
       }
 

@@ -144,8 +144,8 @@ export function CompanyProvider({ children }) {
     const codeUpper = moduleCode.toUpperCase();
 
     // 1. Role-based overrides/filters
-    if (roleUpper === "CASHIER") {
-      const allowed = ["SALES", "POS", "DASHBOARD", "RESTAURANT"];
+    if (roleUpper.includes("CASHIER")) {
+      const allowed = ["SALES", "POS", "DASHBOARD", "RESTAURANT", "LAUNDRY", "MEDICAL_SHOP", "MEDICAL", "CUSTOMERS", "INVOICES"];
       if (!allowed.includes(codeUpper)) {
         return false;
       }
