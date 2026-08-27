@@ -18,10 +18,16 @@ export const createCategory = async (data) => {
     categoryCode = `${categoryCode.slice(0, 15)}-${suffix}`;
   }
 
-  return await categoryRepository.createCategory({
-    ...data,
+  const cleanData = {
+    name: data.name,
+    description: data.description,
+    image: data.image,
+    status: data.status,
+    companyId: data.companyId,
     code: categoryCode,
-  });
+  };
+
+  return await categoryRepository.createCategory(cleanData);
 };
 
 
@@ -60,7 +66,15 @@ export const updateCategory = async (id, data) => {
     }
   }
 
-  return await categoryRepository.updateCategory(id, data);
+  const cleanData = {};
+  const allowedFields = ["name", "description", "image", "status", "companyId", "code"];
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      cleanData[field] = data[field];
+    }
+  }
+
+  return await categoryRepository.updateCategory(id, cleanData);
 };
 
 export const deleteCategory = async (id) => {

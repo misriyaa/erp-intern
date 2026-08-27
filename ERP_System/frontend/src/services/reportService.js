@@ -1,18 +1,10 @@
-import axios from "axios";
-import API_URL from "@/config/api";
-
-const reportsAPI = axios.create({
-  baseURL: `${API_URL}/reports`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+import apiClient from "./apiClient";
 
 /**
  * Fetch Sales Report with parameters (startDate, endDate, groupBy, customerId)
  */
 export const getSalesReport = async (params) => {
-  const response = await reportsAPI.get("/sales", { params });
+  const response = await apiClient.get("/reports/sales", { params });
   return response.data;
 };
 
@@ -20,7 +12,7 @@ export const getSalesReport = async (params) => {
  * Fetch Purchase Report with parameters (startDate, endDate, groupBy, supplierId)
  */
 export const getPurchaseReport = async (params) => {
-  const response = await reportsAPI.get("/purchases", { params });
+  const response = await apiClient.get("/reports/purchases", { params });
   return response.data;
 };
 
@@ -28,7 +20,7 @@ export const getPurchaseReport = async (params) => {
  * Fetch Inventory Report with parameters (warehouseId)
  */
 export const getInventoryReport = async (params) => {
-  const response = await reportsAPI.get("/inventory", { params });
+  const response = await apiClient.get("/reports/inventory", { params });
   return response.data;
 };
 
@@ -36,6 +28,6 @@ export const getInventoryReport = async (params) => {
  * Fetch Report filter options (customers, suppliers, warehouses)
  */
 export const getReportFilters = async () => {
-  const response = await reportsAPI.get("/filters");
+  const response = await apiClient.get("/reports/filters");
   return response.data;
 };

@@ -34,11 +34,11 @@ export default function MedicineCategories() {
     if (!name.trim()) return;
 
     try {
-      const slug = name.trim().toLowerCase().replace(/\s+/g, "-");
+      const code = name.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 20);
       const res = await apiClient.post("/categories", {
         name: name.trim(),
         description: desc.trim() || undefined,
-        slug,
+        code,
         status: "ACTIVE"
       });
 
