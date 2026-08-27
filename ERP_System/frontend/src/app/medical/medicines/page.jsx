@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { medicalService } from "@/services/medicalService";
-import { productService } from "@/services/productService"; // wait, let's check if productService exists
+import * as productService from "@/services/productService"; // wait, let's check if productService exists
 import {
   FiActivity,
   FiPlus,

@@ -48,6 +48,15 @@ export default function AddAdminPage() {
 
   const [availableModules, setAvailableModules] = useState([]);
   const [selectedModules, setSelectedModules] = useState([]);
+  const [industries, setIndustries] = useState([
+    { id: "1", name: "Retail", code: "RETAIL" },
+    { id: "2", name: "Gym & Fitness", code: "GYM" },
+    { id: "3", name: "Textile ERP", code: "TEXTILE" },
+    { id: "4", name: "Restaurant ERP", code: "RESTAURANT" },
+    { id: "5", name: "Laundry Management", code: "LAUNDRY" },
+    { id: "6", name: "Pharmacy Management (Shop)", code: "MEDICAL_SHOP" },
+    { id: "7", name: "Medical (General)", code: "MEDICAL" },
+  ]);
 
   const [formData, setFormData] = useState({
     companyName: "",
@@ -57,6 +66,28 @@ export default function AddAdminPage() {
     password: "",
     type: "RETAIL",
   });
+
+  // Fetch dynamic industries
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/companies/industries");
+        if (res.data.success && res.data.data) {
+          // Include ALL laundry and medical business types without filtering!
+          setIndustries(res.data.data);
+          if (res.data.data.length > 0) {
+            setFormData((prev) => ({
+              ...prev,
+              type: prev.type || res.data.data[0].code,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load industries", err);
+      }
+    };
+    fetchIndustries();
+  }, []);
 
   // Fetch modules when business type changes
   useEffect(() => {
@@ -323,10 +354,11 @@ export default function AddAdminPage() {
                 onChange={handleChange}
                 style={errors.type ? { borderColor: "#ef4444" } : {}}
               >
-                <option value="RETAIL">Retail (RETAIL)</option>
-                <option value="GYM">Gym & Fitness (GYM)</option>
-                <option value="TEXTILE">Textile ERP (TEXTILE)</option>
-                <option value="RESTAURANT">Restaurant ERP (RESTAURANT)</option>
+                {industries.map((ind) => (
+                  <option key={ind.id} value={ind.code}>
+                    {ind.name} ({ind.code})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -506,10 +538,13 @@ export default function AddAdminPage() {
                 filteredAdmins.map((item) => {
                   const companyName = item.company?.name || `${item.fullName}'s Company`;
                   const adminName = item.fullName || item.name || "Admin User";
-                  const industryCode = item.company?.industry?.code || item.type || "RETAIL";
-                  const isGymClient = industryCode.toUpperCase().includes("GYM");
-                  const isTextileClient = industryCode.toUpperCase().includes("TEXTILE");
-                  const isRestaurantClient = industryCode.toUpperCase().includes("RESTAURANT");
+                  const industryCode = (item.company?.industry?.code || item.type || "RETAIL").toUpperCase();
+                  const isGymClient = industryCode.includes("GYM");
+                  const isTextileClient = industryCode.includes("TEXTILE");
+                  const isRestaurantClient = industryCode.includes("RESTAURANT");
+                  const isLaundryClient = industryCode.includes("LAUNDRY");
+                  const isMedicalShop = industryCode === "MEDICAL_SHOP";
+                  const isMedicalGeneral = industryCode === "MEDICAL";
 
                   return (
                     <tr key={item.id}>
@@ -549,6 +584,12 @@ export default function AddAdminPage() {
                               ? "#ccfbf1"
                               : isRestaurantClient
                               ? "#fef3c7"
+                              : isLaundryClient
+                              ? "#f3e8ff"
+                              : isMedicalShop
+                              ? "#d1fae5"
+                              : isMedicalGeneral
+                              ? "#e0f2fe"
                               : "#e0e7ff",
                             color: isGymClient
                               ? "#047857"
@@ -556,6 +597,12 @@ export default function AddAdminPage() {
                               ? "#0f766e"
                               : isRestaurantClient
                               ? "#92400e"
+                              : isLaundryClient
+                              ? "#7e22ce"
+                              : isMedicalShop
+                              ? "#065f46"
+                              : isMedicalGeneral
+                              ? "#0369a1"
                               : "#4338ca",
                           }}
                         >
@@ -565,6 +612,12 @@ export default function AddAdminPage() {
                             ? "🧵 TEXTILE"
                             : isRestaurantClient
                             ? "🍽️ RESTAURANT"
+                            : isLaundryClient
+                            ? "🧺 LAUNDRY"
+                            : isMedicalShop
+                            ? "💊 MEDICAL SHOP"
+                            : isMedicalGeneral
+                            ? "🏥 MEDICAL"
                             : "🛒 RETAIL"}
                         </span>
                       </td>
