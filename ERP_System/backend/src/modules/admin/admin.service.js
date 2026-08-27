@@ -41,33 +41,49 @@ export const createAdminService = async ({
 
   // Find or determine Industry
   const typeUpper = (type || "RETAIL").toUpperCase();
-  const industryCodeUpper = typeUpper.includes("GYM")
-    ? "GYM"
-    : typeUpper.includes("TEXTILE")
-    ? "TEXTILE"
-    : typeUpper.includes("RESTAURANT")
-    ? "RESTAURANT"
-    : "RETAIL";
-
   let industry = await prisma.industry.findUnique({
-    where: { code: industryCodeUpper },
+    where: { code: typeUpper },
   });
 
+  let industryCodeUpper = typeUpper;
+
   if (!industry) {
-    industry = await prisma.industry.create({
-      data: {
-        code: industryCodeUpper,
-        name:
-          industryCodeUpper === "GYM"
-            ? "Gym"
-            : industryCodeUpper === "TEXTILE"
-            ? "Textile"
-            : industryCodeUpper === "RESTAURANT"
-            ? "Restaurant"
-            : "Retail",
-        status: true,
-      },
+    industryCodeUpper = typeUpper.includes("GYM")
+      ? "GYM"
+      : typeUpper.includes("TEXTILE")
+      ? "TEXTILE"
+      : typeUpper.includes("RESTAURANT")
+      ? "RESTAURANT"
+      : typeUpper.includes("LAUNDRY")
+      ? "LAUNDRY"
+      : typeUpper.includes("MEDICAL")
+      ? "MEDICAL_SHOP"
+      : "RETAIL";
+
+    industry = await prisma.industry.findUnique({
+      where: { code: industryCodeUpper },
     });
+
+    if (!industry) {
+      industry = await prisma.industry.create({
+        data: {
+          code: industryCodeUpper,
+          name:
+            industryCodeUpper === "GYM"
+              ? "Gym"
+              : industryCodeUpper === "TEXTILE"
+              ? "Textile"
+              : industryCodeUpper === "RESTAURANT"
+              ? "Restaurant"
+              : industryCodeUpper === "LAUNDRY"
+              ? "Laundry"
+              : industryCodeUpper === "MEDICAL_SHOP"
+              ? "Medical Shop / Pharmacy"
+              : "Retail",
+          status: true,
+        },
+      });
+    }
   }
 
   // Create Company

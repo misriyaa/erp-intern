@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { medicalService } from "@/services/medicalService";
-import { productService } from "@/services/productService"; // wait, let's check if productService exists
+import * as productService from "@/services/productService"; // wait, let's check if productService exists
 import {
   FiActivity,
   FiPlus,
@@ -19,7 +19,7 @@ export default function MedicinesCatalog() {
   const [loading, setLoading] = useState(true);
 
   // New Medicine Inputs
-  const [selectedProductId, setSelectedProductId] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("mock-id");
   const [genericName, setGenericName] = useState("");
   const [strength, setStrength] = useState("");
   const [dosageForm, setDosageForm] = useState("TABLET");
@@ -35,15 +35,21 @@ export default function MedicinesCatalog() {
       setLoading(true);
       const [medRes, prodRes] = await Promise.all([
         medicalService.getMedicines(),
-        productService?.getProducts ? productService.getProducts() : Promise.resolve({ data: [] })
+        productService?.getProducts ? productService.getProducts() : Promise.resolve([])
       ]);
       setMedicines(medRes.data || []);
-      setProducts(prodRes.data || prodRes || []);
-      if (prodRes?.data?.length > 0) {
-        setSelectedProductId(prodRes.data[0].id);
+      
+      const loadedProducts = prodRes.data || prodRes || [];
+      setProducts(loadedProducts);
+      
+      if (loadedProducts.length > 0) {
+        setSelectedProductId(loadedProducts[0].id);
+      } else {
+        setSelectedProductId("mock-id");
       }
     } catch (err) {
       console.error(err);
+      setSelectedProductId("mock-id");
     } finally {
       setLoading(false);
     }
@@ -129,13 +135,12 @@ export default function MedicinesCatalog() {
                 onChange={(e) => setSelectedProductId(e.target.value)}
                 style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               >
-                {products.length === 0 ? (
-                  <option value="mock-id">Panadol 500mg (Auto Mock)</option>
-                ) : (
-                  products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (SKU: {p.sku})</option>
-                  ))
+                {selectedProductId === "mock-id" && (
+                  <option value="mock-id">Select a product (Auto Mock)...</option>
                 )}
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} (SKU: {p.sku})</option>
+                ))}
               </select>
             </div>
 

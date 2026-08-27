@@ -530,7 +530,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             {/* MEDICAL SHOP CARD */}
-            <div className={`${styles.card} ${industryCode === "MEDICAL_SHOP" ? styles.cardActive : ""}`} style={{ borderColor: industryCode === "MEDICAL_SHOP" ? "#10b981" : "#e2e8f0" }}>
+            <div className={`${styles.card} ${(industryCode === "MEDICAL_SHOP" || industryCode === "MEDICAL") ? styles.cardActive : ""}`} style={{ borderColor: (industryCode === "MEDICAL_SHOP" || industryCode === "MEDICAL") ? "#10b981" : "#e2e8f0" }}>
               <div className={styles.cardIcon} style={{ background: "#d1fae5", color: "#059669" }}>
                 <FiActivity />
               </div>
@@ -559,14 +559,14 @@ export default function SuperAdminDashboard() {
               <button 
                 className={styles.actionBtn}
                 style={{
-                  background: industryCode === "MEDICAL_SHOP" ? "#10b981" : "#d1fae5",
-                  color: industryCode === "MEDICAL_SHOP" ? "#ffffff" : "#059669",
+                  background: (industryCode === "MEDICAL_SHOP" || industryCode === "MEDICAL") ? "#10b981" : "#d1fae5",
+                  color: (industryCode === "MEDICAL_SHOP" || industryCode === "MEDICAL") ? "#ffffff" : "#059669",
                   border: "none"
                 }}
                 onClick={() => changeIndustryOverride("MEDICAL_SHOP")}
-                disabled={industryCode === "MEDICAL_SHOP"}
+                disabled={industryCode === "MEDICAL_SHOP" || industryCode === "MEDICAL"}
               >
-                {industryCode === "MEDICAL_SHOP" ? "Currently Simulating" : "Activate Medical View"}
+                {(industryCode === "MEDICAL_SHOP" || industryCode === "MEDICAL") ? "Currently Simulating" : "Activate Medical View"}
               </button>
             </div>
           </div>
