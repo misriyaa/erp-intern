@@ -8,7 +8,8 @@ import {
   FiLayers,
   FiPackage,
   FiTrendingUp,
-  FiRefreshCw
+  FiRefreshCw,
+  FiClock
 } from "react-icons/fi";
 
 export default function PharmacyDashboard() {
