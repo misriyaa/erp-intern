@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { medicalService } from "@/services/medicalService";
-import * as productService from "@/services/productService"; // wait, let's check if productService exists
+import * as productService from "@/services/productService";
+import toast, { Toaster } from "react-hot-toast";
 import {
   FiActivity,
   FiPlus,
@@ -19,7 +20,7 @@ export default function MedicinesCatalog() {
   const [loading, setLoading] = useState(true);
 
   // New Medicine Inputs
-  const [selectedProductId, setSelectedProductId] = useState("mock-id");
+  const [selectedProductId, setSelectedProductId] = useState("");
   const [genericName, setGenericName] = useState("");
   const [strength, setStrength] = useState("");
   const [dosageForm, setDosageForm] = useState("TABLET");
@@ -45,7 +46,7 @@ export default function MedicinesCatalog() {
       if (loadedProducts.length > 0) {
         setSelectedProductId(loadedProducts[0].id);
       } else {
-        setSelectedProductId("mock-id");
+        setSelectedProductId("");
       }
     } catch (err) {
       console.error(err);
@@ -57,18 +58,30 @@ export default function MedicinesCatalog() {
 
   const handleAddMedicine = async (e) => {
     e.preventDefault();
-    if (!selectedProductId || !genericName || !strength) return;
+    if (!selectedProductId || selectedProductId === "mock-id") {
+      toast.error("Please select a valid inventory product first.");
+      return;
+    }
+    if (!genericName.trim()) {
+      toast.error("Please enter a generic formula name.");
+      return;
+    }
+    if (!strength.trim()) {
+      toast.error("Please enter medicine strength.");
+      return;
+    }
 
     try {
       const res = await medicalService.createMedicine({
         productId: selectedProductId,
-        genericName,
-        strength,
+        genericName: genericName.trim(),
+        strength: strength.trim(),
         dosageForm,
         prescriptionRequired,
-        manufacturer
+        manufacturer: manufacturer.trim() || undefined
       });
       if (res.success) {
+        toast.success(`Medicine registered successfully!`);
         setGenericName("");
         setStrength("");
         setManufacturer("");
@@ -76,25 +89,8 @@ export default function MedicinesCatalog() {
         fetchInitData();
       }
     } catch (err) {
-      // Mock insert local state if backend API doesn't find the product
-      const mockProd = products.find(p => p.id === selectedProductId) || { name: "Panadol 500mg", sku: "PAN-500" };
-      setMedicines([
-        ...medicines,
-        {
-          id: `med-${Date.now()}`,
-          genericName,
-          strength,
-          dosageForm,
-          prescriptionRequired,
-          manufacturer,
-          product: mockProd,
-          batches: []
-        }
-      ]);
-      setGenericName("");
-      setStrength("");
-      setManufacturer("");
-      setPrescriptionRequired(false);
+      console.error("Failed to register medicine", err);
+      toast.error(err.response?.data?.message || "Failed to register medicine profile");
     }
   };
 
@@ -110,6 +106,7 @@ export default function MedicinesCatalog() {
 
   return (
     <div style={{ padding: "24px", fontFamily: "Inter, sans-serif", backgroundColor: "#f8fafc", minHeight: "100vh" }}>
+      <Toaster position="top-right" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
         <div>
           <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: 0 }}>Medicines Registry</h1>
@@ -135,13 +132,24 @@ export default function MedicinesCatalog() {
                 onChange={(e) => setSelectedProductId(e.target.value)}
                 style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               >
-                {selectedProductId === "mock-id" && (
-                  <option value="mock-id">Select a product (Auto Mock)...</option>
+                {products.length === 0 ? (
+                  <option value="">No inventory products found</option>
+                ) : (
+                  <>
+                    <option value="">-- Select Product --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} (SKU: {p.sku})</option>
+                    ))}
+                  </>
                 )}
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} (SKU: {p.sku})</option>
-                ))}
               </select>
+              {products.length === 0 && (
+                <div style={{ marginTop: "8px", fontSize: "12px" }}>
+                  <a href="/admin/products/add" style={{ color: "#4f46e5", fontWeight: "700", textDecoration: "underline" }}>
+                    + Register a new Inventory Product first
+                  </a>
+                </div>
+              )}
             </div>
 
             <div>

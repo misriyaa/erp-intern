@@ -31,7 +31,7 @@ const initialForm = {
 };
 
 export default function CategoriesPage() {
-  const { isGym, isTextile } = useCompany();
+  const { isGym, isTextile, isMedical } = useCompany();
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,12 +39,16 @@ export default function CategoriesPage() {
     ? "Gym Membership & Service Categories"
     : isTextile
     ? "Textile Fabric & Yarn Categories"
+    : isMedical
+    ? "Medicine & Pharmacy Categories"
     : "Retail Product Categories";
 
   const pageSub = isGym
     ? "Manage fitness memberships, personal training packages, and nutritional supplement categories."
     : isTextile
     ? "Manage cotton, synthetic yarn, woven fabric, and chemical dye classifications."
+    : isMedical
+    ? "Manage medicine classifications, prescription drugs, over-the-counter formulas, and healthcare categories."
     : "Manage groceries, beverages, personal care, and merchandise categories.";
 
   const [search, setSearch] = useState("");
@@ -60,7 +64,7 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, [isGym, isTextile]);
+  }, [isGym, isTextile, isMedical]);
 
   const fetchCategories = async () => {
     setIsLoading(true);
@@ -83,6 +87,12 @@ export default function CategoriesPage() {
             { id: "cat-gym-2", name: "Personal Training Packages", slug: "personal-training", status: "ACTIVE" },
             { id: "cat-gym-3", name: "Whey & Nutrition Supplements", slug: "nutrition-supplements", status: "ACTIVE" },
             { id: "cat-gym-4", name: "Gym Gear & Fitness Accessories", slug: "gym-gear", status: "ACTIVE" },
+          ]);
+        } else if (isMedical) {
+          setCategories([
+            { id: "cat-med-1", name: "Analgesics", slug: "analgesics", status: "ACTIVE" },
+            { id: "cat-med-2", name: "Antibiotics", slug: "antibiotics", status: "ACTIVE" },
+            { id: "cat-med-3", name: "Antihistamines", status: "ACTIVE", slug: "antihistamines" },
           ]);
         } else {
           setCategories([
