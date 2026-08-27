@@ -133,7 +133,7 @@ export function CompanyProvider({ children }) {
   const isTextile = industryCode.includes("TEXTILE");
   const isRestaurant = industryCode.includes("RESTAURANT");
   const isLaundry = industryCode.includes("LAUNDRY");
-  const isMedical = industryCode.includes("MEDICAL_SHOP");
+  const isMedical = industryCode.includes("MEDICAL");
   const isRetail = !isGym && !isTextile && !isRestaurant && !isLaundry && !isMedical;
 
   const isModuleEnabled = (moduleCode) => {
@@ -209,7 +209,7 @@ export function CompanyProvider({ children }) {
     if (isLaundry && ["DASHBOARD", "LAUNDRY", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
       return true;
     }
-    if (isMedical && ["DASHBOARD", "MEDICAL_SHOP", "PRODUCTS", "CATEGORIES", "BRANDS", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
+    if (isMedical && ["DASHBOARD", "MEDICAL", "MEDICAL_SHOP", "PRODUCTS", "CATEGORIES", "BRANDS", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
       return true;
     }
 

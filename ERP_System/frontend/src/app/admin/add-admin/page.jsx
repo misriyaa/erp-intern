@@ -54,8 +54,7 @@ export default function AddAdminPage() {
     { id: "3", name: "Textile ERP", code: "TEXTILE" },
     { id: "4", name: "Restaurant ERP", code: "RESTAURANT" },
     { id: "5", name: "Laundry Management", code: "LAUNDRY" },
-    { id: "6", name: "Pharmacy Management (Shop)", code: "MEDICAL_SHOP" },
-    { id: "7", name: "Medical (General)", code: "MEDICAL" },
+    { id: "6", name: "Pharmacy Management", code: "MEDICAL_SHOP" },
   ]);
 
   const [formData, setFormData] = useState({
@@ -73,12 +72,14 @@ export default function AddAdminPage() {
       try {
         const res = await axios.get("http://localhost:5000/api/companies/industries");
         if (res.data.success && res.data.data) {
-          // Include ALL laundry and medical business types without filtering!
-          setIndustries(res.data.data);
-          if (res.data.data.length > 0) {
+          const filtered = res.data.data.filter(
+            (ind) => ind.code.toUpperCase() !== "MEDICAL"
+          );
+          setIndustries(filtered);
+          if (filtered.length > 0) {
             setFormData((prev) => ({
               ...prev,
-              type: prev.type || res.data.data[0].code,
+              type: prev.type || filtered[0].code,
             }));
           }
         }
@@ -355,7 +356,7 @@ export default function AddAdminPage() {
                 style={errors.type ? { borderColor: "#ef4444" } : {}}
               >
                 {industries.map((ind) => (
-                  <option key={ind.id} value={ind.code}>
+                  <option key={ind.code} value={ind.code}>
                     {ind.name} ({ind.code})
                   </option>
                 ))}
@@ -543,8 +544,19 @@ export default function AddAdminPage() {
                   const isTextileClient = industryCode.includes("TEXTILE");
                   const isRestaurantClient = industryCode.includes("RESTAURANT");
                   const isLaundryClient = industryCode.includes("LAUNDRY");
-                  const isMedicalShop = industryCode === "MEDICAL_SHOP";
-                  const isMedicalGeneral = industryCode === "MEDICAL";
+                  const isMedicalClient = industryCode.includes("MEDICAL");
+
+                  const badgeStyle = isGymClient
+                    ? { bg: "#d1fae5", text: "#047857", icon: "🏋️", label: "GYM" }
+                    : isTextileClient
+                    ? { bg: "#ccfbf1", text: "#0f766e", icon: "🧵", label: "TEXTILE" }
+                    : isRestaurantClient
+                    ? { bg: "#fef3c7", text: "#92400e", icon: "🍽️", label: "RESTAURANT" }
+                    : isLaundryClient
+                    ? { bg: "#e0f2fe", text: "#0369a1", icon: "🧺", label: "LAUNDRY" }
+                    : isMedicalClient
+                    ? { bg: "#fee2e2", text: "#b91c1c", icon: "💊", label: "MEDICAL SHOP" }
+                    : { bg: "#e0e7ff", text: "#4338ca", icon: "🛒", label: industryCode };
 
                   return (
                     <tr key={item.id}>
@@ -578,47 +590,11 @@ export default function AddAdminPage() {
                             borderRadius: "12px",
                             fontSize: "12px",
                             fontWeight: "700",
-                            background: isGymClient
-                              ? "#d1fae5"
-                              : isTextileClient
-                              ? "#ccfbf1"
-                              : isRestaurantClient
-                              ? "#fef3c7"
-                              : isLaundryClient
-                              ? "#f3e8ff"
-                              : isMedicalShop
-                              ? "#d1fae5"
-                              : isMedicalGeneral
-                              ? "#e0f2fe"
-                              : "#e0e7ff",
-                            color: isGymClient
-                              ? "#047857"
-                              : isTextileClient
-                              ? "#0f766e"
-                              : isRestaurantClient
-                              ? "#92400e"
-                              : isLaundryClient
-                              ? "#7e22ce"
-                              : isMedicalShop
-                              ? "#065f46"
-                              : isMedicalGeneral
-                              ? "#0369a1"
-                              : "#4338ca",
+                            background: badgeStyle.bg,
+                            color: badgeStyle.text,
                           }}
                         >
-                          {isGymClient
-                            ? "🏋️ GYM"
-                            : isTextileClient
-                            ? "🧵 TEXTILE"
-                            : isRestaurantClient
-                            ? "🍽️ RESTAURANT"
-                            : isLaundryClient
-                            ? "🧺 LAUNDRY"
-                            : isMedicalShop
-                            ? "💊 MEDICAL SHOP"
-                            : isMedicalGeneral
-                            ? "🏥 MEDICAL"
-                            : "🛒 RETAIL"}
+                          {badgeStyle.icon} {badgeStyle.label}
                         </span>
                       </td>
                       <td>

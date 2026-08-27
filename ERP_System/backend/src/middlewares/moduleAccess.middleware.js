@@ -19,8 +19,12 @@ export const requireModuleAccess = (moduleCode) => {
         return next();
       }
 
-      // Check if moduleCode is in user's enabledModules list
-      if (req.user.enabledModules && req.user.enabledModules.includes(moduleCode)) {
+      const codesToCheck = [moduleCode];
+      if (moduleCode === "MEDICAL_SHOP") codesToCheck.push("MEDICAL");
+      if (moduleCode === "MEDICAL") codesToCheck.push("MEDICAL_SHOP");
+
+      // Check if any code is in user's enabledModules list
+      if (req.user.enabledModules && codesToCheck.some(code => req.user.enabledModules.includes(code))) {
         return next();
       }
 
@@ -29,7 +33,7 @@ export const requireModuleAccess = (moduleCode) => {
         const companyModule = await prisma.companyModule.findFirst({
           where: {
             companyId: req.user.companyId,
-            module: { code: moduleCode },
+            module: { code: { in: codesToCheck } },
             enabled: true,
           },
         });

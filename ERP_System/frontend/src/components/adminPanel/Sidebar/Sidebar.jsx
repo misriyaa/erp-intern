@@ -85,7 +85,7 @@ export default function Sidebar({ isOpen, onClose }) {
     if (item.industry) {
       const codeUpper = (industryCode || "").toUpperCase();
       const itemInd = (item.industry || "").toUpperCase();
-      if (codeUpper !== itemInd && !codeUpper.includes(itemInd)) {
+      if (codeUpper !== itemInd && !codeUpper.includes(itemInd) && !itemInd.includes(codeUpper)) {
         return false;
       }
     }

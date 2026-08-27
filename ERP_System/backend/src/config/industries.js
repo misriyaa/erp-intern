@@ -4,7 +4,6 @@ export const INDUSTRY_CODES = {
   TEXTILE: "TEXTILE",
   RESTAURANT: "RESTAURANT",
   LAUNDRY: "LAUNDRY",
-  MEDICAL: "MEDICAL",
   MEDICAL_SHOP: "MEDICAL_SHOP",
 };
 
@@ -83,25 +82,6 @@ export const DEFAULT_INDUSTRY_MODULES = {
     "WAREHOUSE",
     "CUSTOMERS",
     "SUPPLIERS",
-    "PAYMENTS",
-    "EXPENSES",
-    "BRANCHES",
-    "EMPLOYEES",
-    "REPORTS",
-    "SETTINGS",
-  ],
-
-  MEDICAL: [
-    "DASHBOARD",
-    "MEDICAL",
-    "PRODUCTS",
-    "CATEGORIES",
-    "BRANDS",
-    "INVENTORY",
-    "WAREHOUSE",
-    "CUSTOMERS",
-    "SUPPLIERS",
-    "PURCHASES",
     "PAYMENTS",
     "EXPENSES",
     "BRANCHES",
