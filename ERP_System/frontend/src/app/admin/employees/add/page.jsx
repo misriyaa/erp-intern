@@ -245,6 +245,7 @@ export default function AddEmployeePage() {
     const isTex = Boolean(industryCode?.includes("TEXTILE"));
     const isGymMode = Boolean(industryCode?.includes("GYM"));
     const isRestMode = Boolean(industryCode?.includes("RESTAURANT"));
+    const isLndMode = Boolean(industryCode?.includes("LAUNDRY"));
 
     let combined = [];
 
@@ -252,7 +253,6 @@ export default function AddEmployeePage() {
       combined = [
         { id: "Manager", name: "Manager" },
         { id: "Trainer", name: "Trainer" },
-        { id: "Data Entry", name: "Data Entry" },
       ];
     } else if (isTex) {
       combined = [
@@ -260,7 +260,6 @@ export default function AddEmployeePage() {
         { id: "Weaver", name: "Weaver" },
         { id: "Dyer", name: "Dyer" },
         { id: "Quality Inspector", name: "Quality Inspector" },
-        { id: "Data Entry", name: "Data Entry" },
       ];
     } else if (isRestMode) {
       combined = [
@@ -268,7 +267,13 @@ export default function AddEmployeePage() {
         { id: "Cashier", name: "Cashier" },
         { id: "Waiter", name: "Waiter" },
         { id: "Kitchen Staff", name: "Kitchen Staff" },
-        { id: "Data Entry", name: "Data Entry" },
+      ];
+    } else if (isLndMode) {
+      combined = [
+        { id: "Manager", name: "Manager" },
+        { id: "Cashier", name: "Cashier" },
+        { id: "Processing Staff", name: "Processing Staff" },
+        { id: "Delivery Driver", name: "Delivery Driver" },
       ];
     } else {
       // Retail / default
@@ -276,7 +281,6 @@ export default function AddEmployeePage() {
         { id: "Manager", name: "Manager" },
         { id: "Cashier", name: "Cashier" },
         { id: "Inventory Manager", name: "Inventory Manager" },
-        { id: "Data Entry", name: "Data Entry" },
       ];
     }
 
@@ -284,63 +288,44 @@ export default function AddEmployeePage() {
   };
 
   const fetchBranches = async () => {
-    let dbBranches = [];
     try {
-      const [branchRes, restRes] = await Promise.all([
+      const [branchRes, restRes, lndRes] = await Promise.all([
         getBranches().catch(() => []),
         restaurantService.getRestaurants().catch(() => []),
+        apiClient.get("/laundries").catch(() => ({ data: [] })),
       ]);
 
       const bList = Array.isArray(branchRes?.data) ? branchRes.data : Array.isArray(branchRes) ? branchRes : (branchRes?.data?.data || []);
       const rList = Array.isArray(restRes?.data) ? restRes.data : Array.isArray(restRes) ? restRes : (restRes?.data?.data || []);
+      const lList = Array.isArray(lndRes?.data?.data) ? lndRes.data.data : Array.isArray(lndRes?.data) ? lndRes.data : [];
 
-      dbBranches = [...bList];
+      const combined = [...bList];
 
       rList.forEach((r) => {
-        if (r?.id && !dbBranches.some((b) => b.id === r.id)) {
-          dbBranches.push({
+        if (r?.id && !combined.some((b) => b.id === r.id)) {
+          combined.push({
             id: r.id,
             name: `${r.name} (${r.code || "Outlet"})`,
             code: r.code || "OUTLET",
           });
         }
       });
+
+      lList.forEach((l) => {
+        if (l?.id && !combined.some((b) => b.id === l.id)) {
+          combined.push({
+            id: l.id,
+            name: `${l.name} (${l.branch?.name || "Laundry"})`,
+            code: "LAUNDRY",
+          });
+        }
+      });
+
+      setBranches(combined);
     } catch (err) {
       console.error("Failed to fetch branches/outlets:", err);
+      setBranches([]);
     }
-
-    const isTex = Boolean(industryCode?.includes("TEXTILE"));
-    const isGymMode = Boolean(industryCode?.includes("GYM"));
-    const isRestMode = Boolean(industryCode?.includes("RESTAURANT"));
-
-    const defaultBranches = isTex
-      ? [
-          { id: "b-tex-1", name: "Weaving Mill #1", code: "MILL-01" },
-          { id: "b-tex-2", name: "Dyeing & Finishing Unit", code: "MILL-02" },
-          { id: "b-tex-3", name: "Spinning Plant A", code: "MILL-03" },
-        ]
-      : isGymMode
-      ? [
-          { id: "b-gym-1", name: "Downtown Fitness Club", code: "GYM-01" },
-          { id: "b-gym-2", name: "Uptown Health Hub", code: "GYM-02" },
-        ]
-      : isRestMode
-      ? [
-          { id: "b-rest-1", name: "Main Dining Restaurant Outlet", code: "RST-01" },
-          { id: "b-rest-2", name: "Central Kitchen Outlet", code: "RST-02" },
-        ]
-      : [
-          { id: "b-ret-1", name: "Central Supermarket Outlet", code: "RET-01" },
-          { id: "b-ret-2", name: "Westside Retail Depot", code: "RET-02" },
-        ];
-
-    const combined = [...dbBranches];
-
-    if (combined.length === 0) {
-      defaultBranches.forEach((b) => combined.push(b));
-    }
-
-    setBranches(combined);
   };
 
 

@@ -75,22 +75,46 @@ export default function LaundryServicesConfig() {
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    if (!newCatName || !selectedLaundryId) return;
+    if (!newCatName.trim()) {
+      alert("Please enter a category name.");
+      return;
+    }
+
+    let targetLaundryId = selectedLaundryId || (laundries[0]?.id);
+
+    if (!targetLaundryId) {
+      try {
+        const createLnd = await laundryService.createLaundry({
+          name: "Main Laundry Outlet",
+          phone: "0000000000",
+          address: "Main City Center",
+        });
+        targetLaundryId = createLnd.data?.id || createLnd.id;
+        if (targetLaundryId) {
+          setSelectedLaundryId(targetLaundryId);
+          fetchInitData();
+        }
+      } catch (err) {
+        alert("Please create a Laundry Outlet first in Laundry Outlets & Branches before adding categories.");
+        return;
+      }
+    }
 
     try {
       const res = await laundryService.createCategory({
-        laundryId: selectedLaundryId,
-        name: newCatName,
-        description: newCatDesc,
+        laundryId: targetLaundryId,
+        name: newCatName.trim(),
+        description: newCatDesc.trim(),
         sortOrder: 0
       });
-      if (res.success) {
+      if (res.success || res.data) {
         setNewCatName("");
         setNewCatDesc("");
-        fetchServiceCatalog(selectedLaundryId);
+        fetchServiceCatalog(targetLaundryId);
+        alert("Service category created successfully!");
       }
     } catch (err) {
-      alert("Failed to add category: " + err.message);
+      alert("Failed to add category: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -100,30 +124,35 @@ export default function LaundryServicesConfig() {
       await laundryService.deleteCategory(id);
       fetchServiceCatalog(selectedLaundryId);
     } catch (err) {
-      alert("Failed to delete category: " + err.message);
+      alert("Failed to delete category: " + (err.response?.data?.message || err.message));
     }
   };
 
   const handleAddService = async (e) => {
     e.preventDefault();
-    if (!newSerName || !newSerPrice || !newSerCatId || !selectedLaundryId) return;
+    let targetLaundryId = selectedLaundryId || (laundries[0]?.id);
+    if (!newSerName.trim() || !newSerPrice || !newSerCatId || !targetLaundryId) {
+      alert("Please fill in Service Name, Category, and Price.");
+      return;
+    }
 
     try {
       const res = await laundryService.createService({
-        laundryId: selectedLaundryId,
+        laundryId: targetLaundryId,
         categoryId: newSerCatId,
-        name: newSerName,
-        description: newSerDesc,
+        name: newSerName.trim(),
+        description: newSerDesc.trim(),
         price: parseFloat(newSerPrice)
       });
-      if (res.success) {
+      if (res.success || res.data) {
         setNewSerName("");
         setNewSerDesc("");
         setNewSerPrice("");
-        fetchServiceCatalog(selectedLaundryId);
+        fetchServiceCatalog(targetLaundryId);
+        alert("Laundry service created successfully!");
       }
     } catch (err) {
-      alert("Failed to add service: " + err.message);
+      alert("Failed to add service: " + (err.response?.data?.message || err.message));
     }
   };
 
