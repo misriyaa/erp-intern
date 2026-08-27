@@ -194,11 +194,12 @@ function RestaurantPOSContent() {
       let orderId = activeOrder?.id;
 
       if (!orderId) {
+        const validCustomerId = (selectedCustomerId && selectedCustomerId !== "WALK_IN") ? selectedCustomerId : null;
         const createRes = await restaurantService.createOrder({
           restaurantId: selectedRestaurantId,
           branchId,
           tableId: orderType === "DINE_IN" ? selectedTableId : null,
-          customerId: selectedCustomerId || null,
+          customerId: validCustomerId,
           orderType,
           items: cart,
           subtotal,
@@ -224,11 +225,12 @@ function RestaurantPOSContent() {
             const selectedRest = restaurants.find((r) => r.id === selectedRestaurantId);
             let orderId = activeOrder?.id;
             if (!orderId) {
+              const validCustomerId = (selectedCustomerId && selectedCustomerId !== "WALK_IN") ? selectedCustomerId : null;
               const createRes = await restaurantService.createOrder({
                 restaurantId: selectedRestaurantId,
                 branchId: selectedRest?.branchId,
                 tableId: orderType === "DINE_IN" ? selectedTableId : null,
-                customerId: selectedCustomerId || null,
+                customerId: validCustomerId,
                 orderType,
                 items: cart,
                 subtotal,
@@ -263,11 +265,12 @@ function RestaurantPOSContent() {
       let orderId = activeOrder?.id;
       if (!orderId) {
         const selectedRest = restaurants.find((r) => r.id === selectedRestaurantId);
+        const validCustomerId = (selectedCustomerId && selectedCustomerId !== "WALK_IN") ? selectedCustomerId : null;
         const createRes = await restaurantService.createOrder({
           restaurantId: selectedRestaurantId,
           branchId: selectedRest?.branchId,
           tableId: orderType === "DINE_IN" ? selectedTableId : null,
-          customerId: selectedCustomerId || null,
+          customerId: validCustomerId,
           orderType,
           items: cart,
           subtotal,

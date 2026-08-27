@@ -77,9 +77,13 @@ export const createOrder = async (data) => {
     const taxAmount = parseFloat(orderData.taxAmount) || totalTax;
     const totalAmount = subtotal - discountAmount + taxAmount;
 
+    const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+    const cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+
     const order = await tx.restaurantOrder.create({
       data: {
         ...orderData,
+        customerId: cleanCustomerId,
         orderNumber,
         subtotal,
         discountAmount,

@@ -131,13 +131,16 @@ export const createOrderRepo = async (companyId, orderData, itemsData, paymentDa
     });
     const orderNumber = `LND-${(count + 1).toString().padStart(4, "0")}`;
 
+    const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+    const cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+
     // Create the Order
     const order = await tx.laundryOrder.create({
       data: {
         companyId,
         laundryId: orderData.laundryId,
         branchId: orderData.branchId,
-        customerId: orderData.customerId,
+        customerId: cleanCustomerId,
         orderNumber,
         status: orderData.status || "RECEIVED",
         subtotal: orderData.subtotal,

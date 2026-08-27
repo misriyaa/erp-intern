@@ -265,104 +265,10 @@ export default function Header({ toggleSidebar }) {
               : "🛒 RETAIL ERP MODE"}
           </span>
         </div>
-
-        {/* Dynamic Search Container */}
-        <div className={styles.searchContainer}>
-          <div className={styles.searchBox}>
-            <FiSearch className={styles.searchIcon} />
-            <input
-              type="text"
-              placeholder={`Search ${settings?.companyName ? settings.companyName + "..." : "ERP..."}`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-            />
-            {searchQuery && (
-              <button
-                className={styles.clearSearchBtn}
-                onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
-              >
-                <FiX />
-              </button>
-            )}
-          </div>
-
-          {/* Dynamic Search Results Dropdown */}
-          {isSearchFocused && searchQuery.trim().length > 0 && (
-            <div className={styles.searchResultsDropdown}>
-              <div className={styles.dropdownHeader}>
-                <span>Search Results</span>
-                <span className={styles.resultCount}>{filteredSearch.length} found</span>
-              </div>
-              {filteredSearch.length > 0 ? (
-                <div className={styles.searchResultsList}>
-                  {filteredSearch.map((item) => {
-                    const IconComp = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={styles.searchResultItem}
-                        onClick={() => {
-                          setIsSearchFocused(false);
-                          setSearchQuery("");
-                        }}
-                      >
-                        <div className={styles.resultIconWrapper}>
-                          <IconComp />
-                        </div>
-                        <div className={styles.resultDetails}>
-                          <span className={styles.resultTitle}>{item.label}</span>
-                          <span className={styles.resultCategory}>{item.category}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className={styles.noResults}>
-                  <p>No matches found for "{searchQuery}"</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Right Section */}
       <div className={styles.right}>
-        {/* Cashier / POS Quick Terminal in Top Nav Bar */}
-        {(roleUpper === "CASHIER" || isRetail || isRestaurant || isLaundry || isMedical) && (
-          <Link
-            href={isRestaurant ? "/restaurant/pos" : isLaundry ? "/laundry/pos" : isMedical ? "/medical/pos" : "/pos"}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "7px 16px",
-              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-              color: "#ffffff",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: "700",
-              textDecoration: "none",
-              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
-              marginRight: "6px",
-              transition: "transform 0.15s ease",
-            }}
-            title="Open Cashier POS Counter"
-          >
-            <FiShoppingCart size={16} />
-            <span>{roleUpper === "CASHIER" ? "Cashier Counter" : "POS Terminal"}</span>
-          </Link>
-        )}
-
-        {/* Settings Quick Link */}
-        <Link href="/admin/settings" className={styles.iconBtn} title="Settings">
-          <FiSettings />
-        </Link>
-
         {/* Dynamic Profile & User Dropdown */}
         <div className={styles.dropdownWrapper}>
           <div
