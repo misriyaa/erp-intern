@@ -4,6 +4,8 @@ import DashboardHome from "@/components/adminPanel/DashboardHome/DashboardHome";
 import GymDashboard from "@/components/gym/GymDashboard";
 import TextileDashboard from "@/components/textile/TextileDashboard";
 import RestaurantDashboardPage from "@/app/restaurant/dashboard/page";
+import LaundryDashboardPage from "@/app/laundry/dashboard/page";
+import MedicalDashboardPage from "@/app/medical/dashboard/page";
 import { useCompany } from "@/context/CompanyContext";
 
 const DASHBOARD_REGISTRY = {
@@ -11,6 +13,9 @@ const DASHBOARD_REGISTRY = {
   GYM: GymDashboard,
   TEXTILE: TextileDashboard,
   RESTAURANT: RestaurantDashboardPage,
+  LAUNDRY: LaundryDashboardPage,
+  MEDICAL_SHOP: MedicalDashboardPage,
+  MEDICAL: MedicalDashboardPage,
 };
 
 export default function DashboardPage() {

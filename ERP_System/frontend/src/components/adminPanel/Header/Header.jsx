@@ -63,6 +63,8 @@ export default function Header({ toggleSidebar }) {
     isGym,
     isTextile,
     isRestaurant,
+    isLaundry,
+    isMedical,
     isRetail,
     industryCode,
     companyOverride,
@@ -235,6 +237,10 @@ export default function Header({ toggleSidebar }) {
               ? "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
               : isRestaurant
               ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+              : isLaundry
+              ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
+              : isMedical
+              ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"
               : "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
             color: "#ffffff",
             borderRadius: "20px",
@@ -252,6 +258,10 @@ export default function Header({ toggleSidebar }) {
               ? "🧵 TEXTILE ERP MODE"
               : isRestaurant
               ? "🍽️ RESTAURANT ERP MODE"
+              : isLaundry
+              ? "🧺 LAUNDRY ERP MODE"
+              : isMedical
+              ? "💊 PHARMACY ERP MODE"
               : "🛒 RETAIL ERP MODE"}
           </span>
         </div>
@@ -323,9 +333,9 @@ export default function Header({ toggleSidebar }) {
       {/* Right Section */}
       <div className={styles.right}>
         {/* Cashier / POS Quick Terminal in Top Nav Bar */}
-        {(roleUpper === "CASHIER" || isRetail || isRestaurant) && (
+        {(roleUpper === "CASHIER" || isRetail || isRestaurant || isLaundry || isMedical) && (
           <Link
-            href={isRestaurant ? "/restaurant/pos" : "/pos"}
+            href={isRestaurant ? "/restaurant/pos" : isLaundry ? "/laundry/pos" : isMedical ? "/medical/pos" : "/pos"}
             style={{
               display: "flex",
               alignItems: "center",
