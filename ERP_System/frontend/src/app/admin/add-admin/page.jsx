@@ -66,29 +66,7 @@ export default function AddAdminPage() {
     type: "RETAIL",
   });
 
-  // Fetch dynamic industries
-  useEffect(() => {
-    const fetchIndustries = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/companies/industries");
-        if (res.data.success && res.data.data) {
-          const filtered = res.data.data.filter(
-            (ind) => ind.code.toUpperCase() !== "MEDICAL"
-          );
-          setIndustries(filtered);
-          if (filtered.length > 0) {
-            setFormData((prev) => ({
-              ...prev,
-              type: prev.type || filtered[0].code,
-            }));
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load industries", err);
-      }
-    };
-    fetchIndustries();
-  }, []);
+
 
   // Fetch modules when business type changes
   useEffect(() => {
