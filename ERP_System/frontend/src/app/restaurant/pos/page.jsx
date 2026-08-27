@@ -426,36 +426,64 @@ function RestaurantPOSContent() {
         </div>
 
         {/* Menu Items Grid */}
-        <div style={{ flex: 1, padding: "20px", overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "16px", alignContent: "start" }}>
-          {filteredMenuItems.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleAddToCart(item)}
-              style={{
-                backgroundColor: "#fff",
-                border: "1px solid #e2e8f0",
-                borderRadius: "12px",
-                padding: "16px",
-                cursor: "pointer",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
-                display: "flex",
-                flexDirection: "column",
-                justify: "space-between",
-                transition: "transform 0.1s ease",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", marginBottom: "4px" }}>{item.name}</div>
-                <div style={{ fontSize: "12px", color: "#64748b" }}>{item.category?.name}</div>
-              </div>
-              <div style={{ marginTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "16px", fontWeight: "800", color: "#059669" }}>₹{parseFloat(item.sellingPrice).toFixed(2)}</span>
-                <span style={{ backgroundColor: "#2563eb", color: "#fff", width: "26px", height: "26px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FiPlus size={16} />
-                </span>
-              </div>
+        <div style={{ flex: 1, padding: "20px", overflowY: "auto" }}>
+          {restaurants.length === 0 ? (
+            <div style={{ padding: "48px 20px", textAlign: "center", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+              <FiShoppingBag size={48} color="#94a3b8" style={{ marginBottom: "12px" }} />
+              <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: "0 0 6px 0" }}>No Restaurant Outlets Found</h3>
+              <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 20px 0" }}>Create a restaurant outlet first to launch POS operations.</p>
+              <button
+                onClick={() => router.push("/restaurant/manage")}
+                style={{ padding: "10px 20px", backgroundColor: "#2563eb", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
+              >
+                + Create Outlet
+              </button>
             </div>
-          ))}
+          ) : filteredMenuItems.length === 0 ? (
+            <div style={{ padding: "48px 20px", textAlign: "center", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+              <FiShoppingBag size={48} color="#94a3b8" style={{ marginBottom: "12px" }} />
+              <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: "0 0 6px 0" }}>No Menu Items Available</h3>
+              <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 20px 0" }}>Create menu categories & items to start placing orders.</p>
+              <button
+                onClick={() => router.push("/restaurant/menu")}
+                style={{ padding: "10px 20px", backgroundColor: "#2563eb", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
+              >
+                Go to Menu & Recipes →
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "16px", alignContent: "start" }}>
+              {filteredMenuItems.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleAddToCart(item)}
+                  style={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    padding: "16px",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justify: "space-between",
+                    transition: "transform 0.1s ease",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", marginBottom: "4px" }}>{item.name}</div>
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>{item.category?.name}</div>
+                  </div>
+                  <div style={{ marginTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "16px", fontWeight: "800", color: "#059669" }}>₹{parseFloat(item.sellingPrice).toFixed(2)}</span>
+                    <span style={{ backgroundColor: "#2563eb", color: "#fff", width: "26px", height: "26px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <FiPlus size={16} />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -53,28 +53,6 @@ function RestaurantTablesContent() {
       const res = await restaurantService.getRestaurants();
       let list = res.data || [];
       
-      // Auto create a default restaurant if none exists
-      if (list.length === 0) {
-        try {
-          const branchRes = await getBranches();
-          const branchList = branchRes.data || branchRes || [];
-          const branchId = branchList.length > 0 ? branchList[0].id : null;
-
-          if (branchId) {
-            const newRest = await restaurantService.createRestaurant({
-              name: "Main Restaurant",
-              code: "RST-01",
-              branchId,
-            });
-            if (newRest.data) {
-              list = [newRest.data];
-            }
-          }
-        } catch (e) {
-          console.error("Auto restaurant creation failed:", e);
-        }
-      }
-
       setRestaurants(list);
       if (list.length > 0) {
         const initialId = queryRestaurantId && list.some(r => r.id === queryRestaurantId) 
@@ -290,10 +268,19 @@ function RestaurantTablesContent() {
 
       {/* Floor Plan Display grouped by Areas */}
       {areas.length === 0 ? (
-        <div style={{ backgroundColor: "#fff", padding: "48px", borderRadius: "12px", textAlign: "center" }}>
-          <FiCoffee size={48} color="#94a3b8" />
-          <h3 style={{ color: "#334155", marginTop: "16px" }}>No Dining Areas Created Yet</h3>
-          <p style={{ color: "#64748b" }}>Click "Add Area" to create sections like Ground Floor, Terrace, VIP, etc.</p>
+        <div style={{ backgroundColor: "#fff", padding: "48px", borderRadius: "12px", textAlign: "center", border: "1px solid #e2e8f0" }}>
+          <FiCoffee size={48} color="#94a3b8" style={{ marginBottom: "12px" }} />
+          <h3 style={{ color: "#0f172a", fontSize: "18px", fontWeight: "700", margin: "0 0 6px 0" }}>No floors or areas found</h3>
+          <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 20px 0" }}>Create your first floor or dining section to configure tables.</p>
+          <button
+            onClick={() => {
+              setModalRestaurantId(selectedRestaurantId || (restaurants[0]?.id || ""));
+              setShowAddAreaModal(true);
+            }}
+            style={{ padding: "10px 20px", backgroundColor: "#2563eb", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
+          >
+            + Add Area
+          </button>
         </div>
       ) : (
         areas.map((area) => {
@@ -309,7 +296,18 @@ function RestaurantTablesContent() {
               </h2>
 
               {areaTables.length === 0 ? (
-                <p style={{ color: "#94a3b8", fontStyle: "italic" }}>No tables added in this area.</p>
+                <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "10px", border: "1px border #e2e8f0", textAlign: "center" }}>
+                  <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 12px 0" }}>No tables found in this area</p>
+                  <button
+                    onClick={() => {
+                      setTableForm((prev) => ({ ...prev, areaId: area.id }));
+                      setShowAddTableModal(true);
+                    }}
+                    style={{ padding: "8px 16px", backgroundColor: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
+                  >
+                    + Add Table
+                  </button>
+                </div>
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "16px" }}>
                   {areaTables.map((tbl) => {

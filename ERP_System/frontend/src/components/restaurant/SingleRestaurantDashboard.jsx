@@ -688,26 +688,44 @@ export default function SingleRestaurantDashboard() {
           {/* Outlet Filter */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "13px", fontWeight: "700", color: "#334155" }}>Outlet:</span>
-            <select
-              value={selectedOutletId}
-              onChange={(e) => setSelectedOutletId(e.target.value)}
-              style={{
-                padding: "8px 14px",
-                borderRadius: "8px",
-                border: "1px solid #cbd5e1",
-                backgroundColor: "#ffffff",
-                fontWeight: "700",
-                color: "#1e293b",
-                fontSize: "13px",
-              }}
-            >
-              <option value="ALL">🏢 All Outlets ({restaurants.length})</option>
-              {restaurants.map((r) => (
-                <option key={r.id} value={r.id}>
-                  🏬 {r.name} ({r.code || "OUTLET"})
-                </option>
-              ))}
-            </select>
+            {restaurants.length === 0 ? (
+              <button
+                onClick={() => router.push("/restaurant/manage")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  backgroundColor: "#fee2e2",
+                  border: "1px solid #fca5a5",
+                  color: "#991b1b",
+                  fontWeight: "700",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                ⚠️ No restaurant outlet found (+ Create Outlet)
+              </button>
+            ) : (
+              <select
+                value={selectedOutletId}
+                onChange={(e) => setSelectedOutletId(e.target.value)}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  backgroundColor: "#ffffff",
+                  fontWeight: "700",
+                  color: "#1e293b",
+                  fontSize: "13px",
+                }}
+              >
+                <option value="ALL">🏢 All Outlets ({restaurants.length})</option>
+                {restaurants.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    🏬 {r.name} ({r.code || "OUTLET"})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Date Range Filter */}

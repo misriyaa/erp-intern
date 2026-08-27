@@ -182,10 +182,20 @@ export default function RestaurantManagePage() {
 
       {/* Restaurant List Grid */}
       {restaurants.length === 0 ? (
-        <div style={{ backgroundColor: "#fff", padding: "48px", borderRadius: "12px", textAlign: "center" }}>
-          <FiCoffee size={48} color="#94a3b8" />
-          <h3 style={{ color: "#334155", marginTop: "16px" }}>No Restaurant Outlets Created Yet</h3>
-          <p style={{ color: "#64748b" }}>Click "Add Restaurant Outlet" to set up your first restaurant location.</p>
+        <div style={{ backgroundColor: "#fff", padding: "48px", borderRadius: "12px", textAlign: "center", border: "1px solid #e2e8f0" }}>
+          <FiCoffee size={48} color="#94a3b8" style={{ marginBottom: "12px" }} />
+          <h3 style={{ color: "#0f172a", fontSize: "18px", fontWeight: "700", margin: "0 0 6px 0" }}>No restaurant outlets found</h3>
+          <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 20px 0" }}>Create your first restaurant outlet location to begin operations.</p>
+          <button
+            onClick={() => {
+              setEditingRestaurant(null);
+              setForm({ name: "", code: "", branchId: branches[0]?.id || "", phone: "", address: "" });
+              setShowAddModal(true);
+            }}
+            style={{ padding: "10px 20px", backgroundColor: "#2563eb", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
+          >
+            + Create Outlet
+          </button>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" }}>
