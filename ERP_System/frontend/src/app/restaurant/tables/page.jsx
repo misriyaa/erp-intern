@@ -148,6 +148,29 @@ function RestaurantTablesContent() {
     router.push(`/restaurant/pos?tableId=${table.id}&restaurantId=${selectedRestaurantId}`);
   };
 
+  const handleDeleteArea = async (areaId) => {
+    if (!confirm("Are you sure you want to delete this dining area?")) return;
+    try {
+      await restaurantService.deleteArea(areaId);
+      fetchFloorPlan(selectedRestaurantId);
+      alert("Dining area deleted successfully!");
+    } catch (err) {
+      alert("Failed to delete area: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleDeleteTable = async (tableId, e) => {
+    if (e) e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this table?")) return;
+    try {
+      await restaurantService.deleteTable(tableId);
+      fetchFloorPlan(selectedRestaurantId);
+      alert("Table deleted successfully!");
+    } catch (err) {
+      alert("Failed to delete table: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   if (loading) {
     return <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>Loading Floor Plan...</div>;
   }
@@ -288,15 +311,25 @@ function RestaurantTablesContent() {
 
           return (
             <div key={area.id} style={{ marginBottom: "32px" }}>
-              <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>{area.name}</span>
-                <span style={{ fontSize: "13px", fontWeight: "500", color: "#64748b", backgroundColor: "#f1f5f9", padding: "2px 10px", borderRadius: "12px" }}>
-                  {areaTables.length} tables
-                </span>
-              </h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span>{area.name}</span>
+                  <span style={{ fontSize: "13px", fontWeight: "500", color: "#64748b", backgroundColor: "#f1f5f9", padding: "2px 10px", borderRadius: "12px" }}>
+                    {areaTables.length} tables
+                  </span>
+                </h2>
+
+                <button
+                  onClick={() => handleDeleteArea(area.id)}
+                  style={{ padding: "6px 12px", backgroundColor: "#fee2e2", color: "#991b1b", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                  title="Delete Area"
+                >
+                  <FiTrash2 size={14} /> Delete Area
+                </button>
+              </div>
 
               {areaTables.length === 0 ? (
-                <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "10px", border: "1px border #e2e8f0", textAlign: "center" }}>
+                <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "10px", border: "1px solid #e2e8f0", textAlign: "center" }}>
                   <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 12px 0" }}>No tables found in this area</p>
                   <button
                     onClick={() => {
@@ -309,7 +342,7 @@ function RestaurantTablesContent() {
                   </button>
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "16px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "16px" }}>
                   {areaTables.map((tbl) => {
                     const isOccupied = tbl.status === "OCCUPIED";
                     const isReserved = tbl.status === "RESERVED";
@@ -339,7 +372,16 @@ function RestaurantTablesContent() {
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <span style={{ fontSize: "18px", fontWeight: "800", color: textColor }}>{tbl.tableNumber}</span>
-                          <span style={{ fontSize: "12px", color: textColor, fontWeight: "600" }}>{tbl.capacity} Seats</span>
+                          <button
+                            onClick={(e) => handleDeleteTable(tbl.id, e)}
+                            style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "4px", padding: "4px 6px", cursor: "pointer", display: "flex", alignItems: "center" }}
+                            title="Delete Table"
+                          >
+                            <FiTrash2 size={13} />
+                          </button>
+                        </div>
+                        <div style={{ fontSize: "12px", color: textColor, fontWeight: "600", marginTop: "4px" }}>
+                          {tbl.capacity} Seats
                         </div>
 
                         <div style={{ marginTop: "12px" }}>

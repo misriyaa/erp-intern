@@ -106,6 +106,15 @@ export default function RestaurantMenuPage() {
     } catch (err) { alert(err.message); }
   };
 
+  const handleDeleteCategory = async (id) => {
+    if (!confirm("Are you sure you want to delete this menu category?")) return;
+    try {
+      await restaurantService.deleteMenuCategory(id);
+      loadTabData();
+      alert("Category deleted successfully!");
+    } catch (err) { alert(err.response?.data?.message || err.message); }
+  };
+
   // Item Handlers
   const handleSaveMenuItem = async (e) => {
     e.preventDefault();
@@ -122,6 +131,15 @@ export default function RestaurantMenuPage() {
       setItemForm({ name: "", categoryId: "", sellingPrice: "", description: "" });
       loadTabData();
     } catch (err) { alert(err.message); }
+  };
+
+  const handleDeleteMenuItem = async (id) => {
+    if (!confirm("Are you sure you want to delete this menu item?")) return;
+    try {
+      await restaurantService.deleteMenuItem(id);
+      loadTabData();
+      alert("Menu item deleted successfully!");
+    } catch (err) { alert(err.response?.data?.message || err.message); }
   };
 
   // Recipe BOM Handlers
@@ -163,6 +181,19 @@ export default function RestaurantMenuPage() {
     } catch (err) { alert(err.message); }
   };
 
+  const handleDeleteRecipe = async (recipeId) => {
+    if (!confirm("Are you sure you want to delete this recipe BOM?")) return;
+    try {
+      if (recipeId) {
+        await restaurantService.deleteRecipe(recipeId);
+      }
+      setRecipeIngredients([]);
+      setSelectedMenuItemForRecipe(null);
+      loadTabData();
+      alert("Recipe deleted successfully!");
+    } catch (err) { alert(err.response?.data?.message || err.message); }
+  };
+
   // Modifier Handlers
   const handleSaveModifierGroup = async (e) => {
     e.preventDefault();
@@ -176,6 +207,15 @@ export default function RestaurantMenuPage() {
       setModifierGroupForm({ name: "", modifiers: [{ name: "", price: 0 }] });
       loadTabData();
     } catch (err) { alert(err.message); }
+  };
+
+  const handleDeleteModifierGroup = async (id) => {
+    if (!confirm("Are you sure you want to delete this modifier group?")) return;
+    try {
+      await restaurantService.deleteModifierGroup(id);
+      loadTabData();
+      alert("Modifier group deleted successfully!");
+    } catch (err) { alert(err.response?.data?.message || err.message); }
   };
 
   if (loading) {
@@ -251,9 +291,14 @@ export default function RestaurantMenuPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px" }}>
             {categories.map((c) => (
-              <div key={c.id} style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", borderLeft: "4px solid #3b82f6" }}>
-                <h4 style={{ margin: "0 0 4px 0", fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>{c.name}</h4>
-                <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{c.menuItems?.length || 0} menu items</p>
+              <div key={c.id} style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", borderLeft: "4px solid #3b82f6", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <h4 style={{ margin: "0 0 4px 0", fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>{c.name}</h4>
+                  <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{c.menuItems?.length || 0} menu items</p>
+                </div>
+                <button onClick={() => handleDeleteCategory(c.id)} style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer" }} title="Delete Category">
+                  <FiTrash2 size={14} />
+                </button>
               </div>
             ))}
           </div>
@@ -294,9 +339,14 @@ export default function RestaurantMenuPage() {
 
                 <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", color: "#64748b" }}>
                   <span>Recipe Cost: ₹{parseFloat(item.costPrice || 0).toFixed(2)}</span>
-                  <button onClick={() => handleOpenRecipeBuilder(item)} style={{ padding: "4px 10px", backgroundColor: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }}>
-                    {item.recipe ? "Edit Recipe" : "+ Add Recipe"}
-                  </button>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <button onClick={() => handleDeleteMenuItem(item.id)} style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer" }} title="Delete Item">
+                      <FiTrash2 size={14} />
+                    </button>
+                    <button onClick={() => handleOpenRecipeBuilder(item)} style={{ padding: "4px 10px", backgroundColor: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }}>
+                      {item.recipe ? "Edit Recipe" : "+ Add Recipe"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -313,12 +363,21 @@ export default function RestaurantMenuPage() {
 
           {selectedMenuItemForRecipe ? (
             <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", maxWidth: "800px" }}>
-              <h4 style={{ fontSize: "20px", fontWeight: "700", color: "#0f172a", marginBottom: "4px" }}>
-                Recipe for: {selectedMenuItemForRecipe.name}
-              </h4>
-              <p style={{ color: "#64748b", margin: "0 0 20px 0" }}>
-                Specify exact raw material ingredient quantities consumed per portion.
-              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+                <div>
+                  <h4 style={{ fontSize: "20px", fontWeight: "700", color: "#0f172a", marginBottom: "4px" }}>
+                    Recipe for: {selectedMenuItemForRecipe.name}
+                  </h4>
+                  <p style={{ color: "#64748b", margin: 0 }}>
+                    Specify exact raw material ingredient quantities consumed per portion.
+                  </p>
+                </div>
+                {selectedMenuItemForRecipe.recipe?.id && (
+                  <button onClick={() => handleDeleteRecipe(selectedMenuItemForRecipe.recipe.id)} style={{ padding: "6px 12px", backgroundColor: "#fee2e2", color: "#991b1b", border: "none", borderRadius: "6px", fontWeight: "700", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <FiTrash2 size={14} /> Delete Recipe
+                  </button>
+                )}
+              </div>
 
               {recipeIngredients.map((ing, idx) => (
                 <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 40px", gap: "12px", marginBottom: "12px", alignItems: "center" }}>

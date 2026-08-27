@@ -46,8 +46,9 @@ export const deleteLaundryRepo = async (companyId, id) => {
 // ==========================================
 
 export const createCategoryRepo = async (data) => {
+  const { companyId, ...cleanData } = data;
   return await prisma.laundryServiceCategory.create({
-    data,
+    data: cleanData,
   });
 };
 
@@ -65,9 +66,10 @@ export const getCategoryByIdRepo = async (id) => {
 };
 
 export const updateCategoryRepo = async (id, data) => {
+  const { companyId, ...cleanData } = data;
   return await prisma.laundryServiceCategory.update({
     where: { id },
-    data,
+    data: cleanData,
   });
 };
 
@@ -82,8 +84,9 @@ export const deleteCategoryRepo = async (id) => {
 // ==========================================
 
 export const createServiceRepo = async (data) => {
+  const { companyId, ...cleanData } = data;
   return await prisma.laundryService.create({
-    data,
+    data: cleanData,
   });
 };
 
@@ -107,9 +110,10 @@ export const getServiceByIdRepo = async (id) => {
 };
 
 export const updateServiceRepo = async (id, data) => {
+  const { companyId, ...cleanData } = data;
   return await prisma.laundryService.update({
     where: { id },
-    data,
+    data: cleanData,
   });
 };
 

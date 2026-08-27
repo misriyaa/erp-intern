@@ -35,8 +35,19 @@ export default function AddEmployeePage() {
     const isTex = Boolean(industryCode?.includes("TEXTILE"));
     const isGymMode = Boolean(industryCode?.includes("GYM"));
     const isRest = Boolean(industryCode?.includes("RESTAURANT"));
+    const isLnd = Boolean(industryCode?.includes("LAUNDRY"));
 
-    if (isGymMode) {
+    if (isLnd) {
+      return [
+        { code: "DASHBOARD", name: "Laundry Dashboard", description: "Washing operations summary & charts" },
+        { code: "LAUNDRY", name: "Laundry POS & Operations", description: "Garment tracking, active orders & queue" },
+        { code: "BRANCHES", name: "Outlets & Branches", description: "Laundry outlets & branch locations" },
+        { code: "SERVICES", name: "Services & Categories", description: "Washing & dry cleaning catalog" },
+        { code: "CUSTOMERS", name: "Customers", description: "Client profiles & phone directory" },
+        { code: "EMPLOYEES", name: "Employees & Staff", description: "Washer, presser & driver team" },
+        { code: "REPORTS", name: "Laundry Reports", description: "Revenue & garment delivery analytics" },
+      ];
+    } else if (isGymMode) {
       return [
         { code: "DASHBOARD", name: "Dashboard", description: "Business statistics & charts" },
         { code: "MEMBERS", name: "Members", description: "Manage gym member accounts" },
@@ -117,18 +128,27 @@ export default function AddEmployeePage() {
         "REPORTS",
         "INVOICES",
         "EMPLOYEES",
+        "LAUNDRY",
+        "BRANCHES",
+        "SERVICES",
       ];
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultManagerModules.includes(c));
-      setSelectedModules(valid);
+      setSelectedModules(valid.length > 0 ? valid : availableModules.map((m) => m.code));
     } else if (formData.role === "Admin") {
       setSelectedModules(availableModules.map((m) => m.code));
     } else if (formData.role === "Cashier") {
-      const defaultCashierModules = ["SALES", "POS", "DASHBOARD", "RESTAURANT"];
+      const defaultCashierModules = ["SALES", "POS", "DASHBOARD", "RESTAURANT", "LAUNDRY"];
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultCashierModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Processing Staff" || formData.role === "Delivery Driver") {
+      const defaultProcModules = ["LAUNDRY", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultProcModules.includes(c));
       setSelectedModules(valid);
     } else if (formData.role === "Inventory Manager") {
       const defaultInvModules = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "DASHBOARD", "STOCK-TRANSFER"];
@@ -153,12 +173,6 @@ export default function AddEmployeePage() {
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultKitchenModules.includes(c));
-      setSelectedModules(valid);
-    } else if (formData.role === "Data Entry") {
-      const defaultDataEntryModules = ["PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "RAW_MATERIALS", "DASHBOARD"];
-      const valid = availableModules
-        .map((m) => m.code)
-        .filter((c) => defaultDataEntryModules.includes(c));
       setSelectedModules(valid);
     } else {
       if (formData.role) {

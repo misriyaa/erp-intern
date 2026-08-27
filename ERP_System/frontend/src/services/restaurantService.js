@@ -99,6 +99,11 @@ export const restaurantService = {
     return res.data;
   },
 
+  deleteRestaurant: async (id) => {
+    const res = await apiClient.delete(`/restaurants/${id}`);
+    return res.data;
+  },
+
   // Recipes
   getRecipes: async (restaurantId) => {
     const res = await apiClient.get("/recipes", { params: { restaurantId } });
@@ -110,6 +115,10 @@ export const restaurantService = {
   },
   saveRecipe: async (menuItemId, data) => {
     const res = await apiClient.post(`/recipes/item/${menuItemId}`, data);
+    return res.data;
+  },
+  deleteRecipe: async (id) => {
+    const res = await apiClient.delete(`/recipes/${id}`);
     return res.data;
   },
 
@@ -124,6 +133,10 @@ export const restaurantService = {
   },
   updateModifierGroup: async (id, data) => {
     const res = await apiClient.put(`/modifiers/${id}`, data);
+    return res.data;
+  },
+  deleteModifierGroup: async (id) => {
+    const res = await apiClient.delete(`/modifiers/${id}`);
     return res.data;
   },
 
@@ -188,6 +201,10 @@ export const restaurantService = {
     const res = await apiClient.patch(`/reservations/${id}/status`, { status });
     return res.data;
   },
+  deleteReservation: async (id) => {
+    const res = await apiClient.delete(`/reservations/${id}`);
+    return res.data;
+  },
 
   // Wastage
   getWastages: async (restaurantId, warehouseId) => {
@@ -196,6 +213,10 @@ export const restaurantService = {
   },
   createWastage: async (data) => {
     const res = await apiClient.post("/wastage", data);
+    return res.data;
+  },
+  deleteWastage: async (id) => {
+    const res = await apiClient.delete(`/wastage/${id}`);
     return res.data;
   },
 

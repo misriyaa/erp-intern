@@ -96,6 +96,17 @@ export default function RestaurantWastagePage() {
     }
   };
 
+  const handleDeleteWastage = async (id) => {
+    if (!confirm("Are you sure you want to delete this wastage record?")) return;
+    try {
+      await restaurantService.deleteWastage(id);
+      fetchWastages();
+      alert("Wastage record deleted successfully!");
+    } catch (err) {
+      alert(err.response?.data?.message || err.message);
+    }
+  };
+
   if (loading) {
     return <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>Loading Wastage Logs...</div>;
   }
@@ -151,6 +162,7 @@ export default function RestaurantWastagePage() {
                 <th style={{ padding: "14px 20px" }}>Items Wasted</th>
                 <th style={{ padding: "14px 20px" }}>Total Cost</th>
                 <th style={{ padding: "14px 20px" }}>Date</th>
+                <th style={{ padding: "14px 20px", textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -171,6 +183,15 @@ export default function RestaurantWastagePage() {
                   </td>
                   <td style={{ padding: "16px 20px", color: "#64748b", fontSize: "13px" }}>
                     {w.wastageDate ? new Date(w.wastageDate).toLocaleDateString() : ""}
+                  </td>
+                  <td style={{ padding: "16px 20px", textAlign: "right" }}>
+                    <button
+                      onClick={() => handleDeleteWastage(w.id)}
+                      style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "4px", padding: "6px 10px", cursor: "pointer" }}
+                      title="Delete Wastage Record"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}
