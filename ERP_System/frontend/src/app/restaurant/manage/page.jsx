@@ -3,13 +3,21 @@
 import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
 import { getBranches, createBranch } from "@/services/branchService";
-import { FiPlus, FiEdit, FiTrash2, FiMapPin, FiPhone, FiCoffee, FiAlertCircle } from "react-icons/fi";
+import { useCompany } from "@/context/CompanyContext";
+import { useRouter } from "next/navigation";
+import { FiPlus, FiEdit, FiTrash2, FiMapPin, FiPhone, FiCoffee, FiAlertCircle, FiShield } from "react-icons/fi";
 
 export default function RestaurantManagePage() {
+  const router = useRouter();
+  const { user } = useCompany();
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState([]);
   const [branches, setBranches] = useState([]);
   const [creatingBranch, setCreatingBranch] = useState(false);
+
+  const roleUpper = (user?.role || "").toUpperCase();
+  const isSuperAdmin = roleUpper.includes("SUPER");
+  const isAdmin = isSuperAdmin || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
 
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -146,6 +154,24 @@ export default function RestaurantManagePage() {
 
   if (loading) {
     return <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>Loading Restaurants...</div>;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div style={{ padding: "48px 24px", textAlign: "center", maxWidth: "600px", margin: "40px auto", backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #cbd5e1", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+        <FiShield size={48} style={{ color: "#ef4444", marginBottom: "16px" }} />
+        <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#0f172a", margin: "0 0 8px 0" }}>Access Restricted — Outlet Setup</h2>
+        <p style={{ color: "#64748b", fontSize: "14px", lineHeight: "1.5" }}>
+          Restaurant Outlet Configuration & Setup is restricted to Super Admin & Main Admin accounts only. Restaurant Managers work within their assigned outlet.
+        </p>
+        <button
+          onClick={() => router.push("/restaurant/dashboard")}
+          style={{ marginTop: "20px", padding: "10px 20px", backgroundColor: "#2563eb", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+        >
+          Go to Restaurant Dashboard
+        </button>
+      </div>
+    );
   }
 
   return (

@@ -376,6 +376,69 @@ export default function AddRetailProductPage() {
     }
   };
 
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+  const [supplierForm, setSupplierForm] = useState({
+    companyName: "",
+    contactPerson: "",
+    phone: "",
+    email: "",
+    address: "",
+    status: "ACTIVE",
+  });
+  const [creatingSupplier, setCreatingSupplier] = useState(false);
+
+  const fetchSuppliersList = async () => {
+    try {
+      const res = await apiClient.get("/suppliers");
+      const rawSupp = res.data?.data || res.data || [];
+      const suppArray = Array.isArray(rawSupp) ? rawSupp : [];
+      setSuppliers(suppArray);
+    } catch (err) {
+      console.error("Error fetching suppliers:", err);
+    }
+  };
+
+  const handleQuickAddSupplier = async (e) => {
+    e.preventDefault();
+    if (!supplierForm.companyName.trim() || !supplierForm.phone.trim()) {
+      toast.error("Supplier Name and Phone Number are required.");
+      return;
+    }
+    try {
+      setCreatingSupplier(true);
+      const res = await apiClient.post("/suppliers", {
+        companyName: supplierForm.companyName.trim(),
+        contactPerson: supplierForm.contactPerson.trim() || supplierForm.companyName.trim(),
+        phone: supplierForm.phone.trim(),
+        email: supplierForm.email.trim() || null,
+        address: supplierForm.address.trim() || null,
+        status: supplierForm.status || "ACTIVE",
+      });
+
+      const created = res.data?.data || res.data;
+      toast.success(`Supplier "${supplierForm.companyName.trim()}" created successfully!`);
+      
+      setSupplierForm({
+        companyName: "",
+        contactPerson: "",
+        phone: "",
+        email: "",
+        address: "",
+        status: "ACTIVE",
+      });
+      setShowAddSupplierModal(false);
+
+      await fetchSuppliersList();
+      if (created?.id) {
+        setProduct((prev) => ({ ...prev, supplierId: created.id }));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to create supplier");
+    } finally {
+      setCreatingSupplier(false);
+    }
+  };
+
   useEffect(() => {
     fetchFormData();
     generateSKUAndCode();
@@ -717,16 +780,7 @@ export default function AddRetailProductPage() {
                     />
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <div>
-                    <label className={styles.label}>Category</label>
-                    <select name="categoryId" value={product.categoryId} onChange={handleChange} className={styles.select}>
-                      <option value="">Select Category</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
                   <div>
                     <label className={styles.label}>Status *</label>
                     <select name="status" value={product.status} onChange={handleChange} className={styles.select}>
@@ -842,11 +896,20 @@ export default function AddRetailProductPage() {
                     />
                   </div>
                   <div>
-                    <label className={styles.label}>Preferred Supplier</label>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                      <label className={styles.label} style={{ margin: 0 }}>Preferred Supplier</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddSupplierModal(true)}
+                        style={{ background: "none", border: "none", color: "#4f46e5", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                      >
+                        + Add Supplier
+                      </button>
+                    </div>
                     <select name="supplierId" value={product.supplierId} onChange={handleChange} className={styles.select}>
                       <option value="">Select Supplier</option>
                       {suppliers.map((sup) => (
-                        <option key={sup.id} value={sup.id}>{sup.name}</option>
+                        <option key={sup.id} value={sup.id}>{sup.companyName || sup.name || sup.contactPerson}</option>
                       ))}
                     </select>
                   </div>
@@ -1723,6 +1786,86 @@ export default function AddRetailProductPage() {
                   }}
                 >
                   {creatingUnit ? "Saving..." : "Save Unit"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* QUICK ADD SUPPLIER MODAL */}
+      {showAddSupplierModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
+          <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", width: "100%", maxWidth: "500px", padding: "24px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: "#0f172a" }}>+ Add New Supplier</h3>
+              <button type="button" onClick={() => setShowAddSupplierModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}>
+                <FiX size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleQuickAddSupplier}>
+              <div style={{ display: "grid", gap: "12px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "4px", color: "#334155" }}>Supplier Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={supplierForm.companyName}
+                    onChange={(e) => setSupplierForm({ ...supplierForm, companyName: e.target.value })}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                    placeholder="e.g. Fresh Foods Ltd"
+                  />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "4px", color: "#334155" }}>Phone Number *</label>
+                    <input
+                      type="text"
+                      required
+                      value={supplierForm.phone}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                      placeholder="e.g. 9876543210"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "4px", color: "#334155" }}>Status *</label>
+                    <select
+                      value={supplierForm.status}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, status: e.target.value })}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                    >
+                      <option value="ACTIVE">Active</option>
+                      <option value="INACTIVE">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "4px", color: "#334155" }}>Email (Optional)</label>
+                  <input
+                    type="email"
+                    value={supplierForm.email}
+                    onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                    placeholder="supplier@email.com"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "4px", color: "#334155" }}>Address (Optional)</label>
+                  <textarea
+                    rows={2}
+                    value={supplierForm.address}
+                    onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                    placeholder="Vendor location/address..."
+                  />
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+                <button type="button" onClick={() => setShowAddSupplierModal(false)} style={{ padding: "8px 16px", borderRadius: "6px", border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer" }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={creatingSupplier} style={{ padding: "8px 16px", borderRadius: "6px", background: "#2563eb", color: "#fff", border: "none", fontWeight: "600", cursor: "pointer" }}>
+                  {creatingSupplier ? "Saving..." : "Save Supplier"}
                 </button>
               </div>
             </form>

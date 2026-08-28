@@ -211,9 +211,9 @@ function RestaurantPOSContent() {
         orderId = createRes.data?.id;
       }
 
-      // Check & Confirm Order, send KOT, deduct inventory
-      const confirmRes = await restaurantService.confirmOrderAndSendKOT(orderId, selectedWarehouseId, false);
-      alert(`KOT Generated: ${confirmRes.data?.kot?.kotNumber}. Stock deducted according to recipe.`);
+      // Check & Confirm Order, send KOT
+      const confirmRes = await restaurantService.confirmOrderAndSendKOT(orderId, null, false);
+      alert(`KOT Generated: ${confirmRes.data?.kot?.kotNumber || "Success"}. Order sent to kitchen.`);
       
       // Reload menu & tables
       loadMenuData(selectedRestaurantId);

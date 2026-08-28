@@ -42,6 +42,8 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Latest");
+  const [perishableFilter, setPerishableFilter] = useState("All");
+  const [storageTypeFilter, setStorageTypeFilter] = useState("All");
 
   const {
     showSuccess,
@@ -204,6 +206,18 @@ export default function ProductsPage() {
       });
     }
 
+    if (isRestaurant) {
+      if (perishableFilter === "Perishable") {
+        result = result.filter((p) => p.isPerishable === true);
+      } else if (perishableFilter === "Non-Perishable") {
+        result = result.filter((p) => !p.isPerishable);
+      }
+
+      if (storageTypeFilter !== "All") {
+        result = result.filter((p) => p.storageType === storageTypeFilter);
+      }
+    }
+
     /* -------------------------
        SORT
     ------------------------- */
@@ -249,6 +263,9 @@ export default function ProductsPage() {
     search,
     statusFilter,
     sortBy,
+    perishableFilter,
+    storageTypeFilter,
+    isRestaurant,
     productsData,
   ]);
 
@@ -665,7 +682,7 @@ export default function ProductsPage() {
               }
             >
               <option value="All">
-                Filter
+                Stock Status
               </option>
 
               <option value="In Stock">
@@ -680,6 +697,33 @@ export default function ProductsPage() {
                 No Stock
               </option>
             </select>
+
+            {isRestaurant && (
+              <>
+                <select
+                  className={styles.filterButton}
+                  value={storageTypeFilter}
+                  onChange={(e) => setStorageTypeFilter(e.target.value)}
+                >
+                  <option value="All">Storage Type</option>
+                  <option value="Dry Storage">Dry Storage</option>
+                  <option value="Refrigerated">Refrigerated</option>
+                  <option value="Freezer">Freezer</option>
+                  <option value="Cold Storage">Cold Storage</option>
+                  <option value="Kitchen Storage">Kitchen Storage</option>
+                </select>
+
+                <select
+                  className={styles.filterButton}
+                  value={perishableFilter}
+                  onChange={(e) => setPerishableFilter(e.target.value)}
+                >
+                  <option value="All">Perishability</option>
+                  <option value="Perishable">Perishable Only</option>
+                  <option value="Non-Perishable">Non-Perishable</option>
+                </select>
+              </>
+            )}
 
             {/* SORT */}
 
@@ -757,29 +801,34 @@ export default function ProductsPage() {
               ================================================= */}
 
               <thead>
-                <tr>
-                  <th>Code</th>
-
-                  <th>Product</th>
-
-                  <th>SKU</th>
-
-                  <th>Category</th>
-
-                  <th>Brand</th>
-
-                  <th>Unit</th>
-
-                  <th>Quantity</th>
-
-                  <th>Status</th>
-
-                  <th>Selling Price</th>
-
-                  <th>Purchase Price</th>
-
-                  <th>Action</th>
-                </tr>
+                {isRestaurant ? (
+                  <tr>
+                    <th>Ingredient Name</th>
+                    <th>Code / SKU</th>
+                    <th>Base Unit</th>
+                    <th>Current Stock</th>
+                    <th>Min Stock</th>
+                    <th>Stock Status</th>
+                    <th>Purchase Cost</th>
+                    <th>Preferred Supplier</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th>Code</th>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Brand</th>
+                    <th>Unit</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Selling Price</th>
+                    <th>Purchase Price</th>
+                    <th>Action</th>
+                  </tr>
+                )}
               </thead>
 
               {/* =================================================
@@ -807,6 +856,64 @@ export default function ProductsPage() {
                             .inventories?.[0]
                             ?.quantity || 0
                         );
+
+                      if (isRestaurant) {
+                        return (
+                          <tr
+                            key={product.id}
+                            className={styles.productRow}
+                            onClick={() => {
+                              window.location.href = `/admin/products/details/${product.id}`;
+                            }}
+                          >
+                            <td style={{ fontWeight: "700", color: "#0f172a" }}>{product.name || "N/A"}</td>
+                            <td className={styles.code}>{product.sku || product.code || `#${String(product.id || "").substring(0, 6)}`}</td>
+                            <td>{product.unit?.name || product.stockUnit || product.purchaseUnit || "KG"}</td>
+                            <td style={{ fontWeight: "800", color: "#0f172a" }}>{quantity}</td>
+                            <td>{product.minimumStock || product.reorderLevel || 0}</td>
+                            <td>
+                              <span className={`${styles.status} ${getStatusClass(status)}`}>
+                                {status}
+                              </span>
+                            </td>
+                            <td className={styles.price} style={{ color: "#16a34a", fontWeight: "700" }}>
+                              ₹{Number(product.costPrice || 0).toFixed(2)}
+                            </td>
+                            <td>{product.supplier?.companyName || product.supplier?.contactPerson || "N/A"}</td>
+                            <td>
+                              <span style={{ fontSize: "12px", fontWeight: "700", padding: "3px 10px", borderRadius: "12px", backgroundColor: product.status === "ACTIVE" ? "#d1fae5" : "#fee2e2", color: product.status === "ACTIVE" ? "#065f46" : "#991b1b" }}>
+                                {product.status || "ACTIVE"}
+                              </span>
+                            </td>
+                            <td className={styles.actionCell}>
+                              <div className={styles.actionButtons}>
+                                <button
+                                  type="button"
+                                  title="Edit"
+                                  className={`${styles.actionIconButton} ${styles.editButton}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.location.href = `/admin/products/edit/${product.id}`;
+                                  }}
+                                >
+                                  <FiEdit2 />
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Delete"
+                                  className={`${styles.actionIconButton} ${styles.deleteButton}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(product.id);
+                                  }}
+                                >
+                                  <FiTrash2 />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
 
                       return (
                         <tr

@@ -79,9 +79,13 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const roleUpper = (user?.role || "").toUpperCase();
   const isSuperAdmin = roleUpper.includes("SUPER");
+  const isAdmin = isSuperAdmin || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
 
   // Filter master catalog based on enabled modules and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
+    if (item.adminOnly && !isAdmin) {
+      return false;
+    }
     if (item.industry) {
       const codeUpper = (industryCode || "").toUpperCase();
       const itemInd = (item.industry || "").toUpperCase();
