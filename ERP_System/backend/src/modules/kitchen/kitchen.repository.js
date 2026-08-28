@@ -22,7 +22,9 @@ const kotInclude = {
 
 export const getKitchenOrders = async (restaurantId, status) => {
   const where = {};
-  if (restaurantId) where.restaurantId = restaurantId;
+  if (restaurantId && restaurantId !== "ALL" && restaurantId.trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
 
   if (status) {
     where.status = status;

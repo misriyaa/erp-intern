@@ -153,6 +153,10 @@ export const restaurantService = {
     const res = await apiClient.post("/restaurant-orders", data);
     return res.data;
   },
+  updateOrder: async (id, data) => {
+    const res = await apiClient.put(`/restaurant-orders/${id}`, data);
+    return res.data;
+  },
   checkStock: async (id, warehouseId) => {
     const res = await apiClient.get(`/restaurant-orders/${id}/check-stock`, { params: { warehouseId } });
     return res.data;

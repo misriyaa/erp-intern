@@ -787,51 +787,101 @@ export default function AddEmployeePage() {
 
                 {formData.role && (
                   <div className={styles.card} style={{ marginTop: "24px" }}>
-                    <h2 className={styles.cardTitle}>Module Access Permissions</h2>
-                    <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "16px" }}>
-                      Select which modules this {formData.role} can access.
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {availableModules.map((mod) => {
-                        const isSelected = selectedModules.includes(mod.code);
-                        return (
-                          <label
-                            key={mod.code}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                              padding: "10px 12px",
-                              borderRadius: "6px",
-                              backgroundColor: isSelected ? "rgba(79, 70, 229, 0.1)" : "#1e293b",
-                              border: `1px solid ${isSelected ? "#4f46e5" : "#334155"}`,
-                              cursor: "pointer",
-                              transition: "all 0.2s ease",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleModuleToggle(mod.code)}
-                              style={{
-                                width: "16px",
-                                height: "16px",
-                                accentColor: "#4f46e5",
-                                cursor: "pointer",
-                              }}
-                            />
-                            <div>
-                              <strong style={{ display: "block", fontSize: "13px", color: "#f8fafc" }}>
-                                {mod.name}
-                              </strong>
-                              <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-                                {mod.description}
-                              </span>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
+                    <h2 className={styles.cardTitle}>
+                      {isRestaurant ? "Automatic Role Permissions" : "Module Access Permissions"}
+                    </h2>
+
+                    {isRestaurant ? (
+                      <div style={{ padding: "16px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155" }}>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 12px 0" }}>
+                          Access is automatically assigned based on the selected role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
+                        </p>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {formData.role === "Admin" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Full Restaurant ERP Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Dashboard, Outlets Setup, POS, Tables, Reservations, Menu & Recipes, KDS, Orders, Wastage, Staff, Reports</div>
+                            </>
+                          )}
+                          {formData.role === "Manager" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Operational Restaurant Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Dashboard, POS, Tables, Reservations, Menu & Recipes, KDS, Orders, Wastage, Staff, Reports</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: Outlet Setup</div>
+                            </>
+                          )}
+                          {formData.role === "Cashier" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Cashier Billing Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Restaurant POS, Restaurant Orders, Order History, Payment & Billing, Print Bill</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: Dashboard, Outlet Setup, Menu, KDS, Staff, Reports</div>
+                            </>
+                          )}
+                          {formData.role === "Waiter" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Service Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Restaurant POS, Floor & Tables, Reservations, My Orders</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: Billing, Payments, Print Bill, KDS, Menu Setup</div>
+                            </>
+                          )}
+                          {formData.role === "Kitchen Staff" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Kitchen Display Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Kitchen Display System (KDS)</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: POS, Billing, Orders Management, Reports</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "16px" }}>
+                          Select which modules this {formData.role} can access.
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {availableModules.map((mod) => {
+                            const isSelected = selectedModules.includes(mod.code);
+                            return (
+                              <label
+                                key={mod.code}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "10px",
+                                  padding: "10px 12px",
+                                  borderRadius: "6px",
+                                  backgroundColor: isSelected ? "rgba(79, 70, 229, 0.1)" : "#1e293b",
+                                  border: `1px solid ${isSelected ? "#4f46e5" : "#334155"}`,
+                                  cursor: "pointer",
+                                  transition: "all 0.2s ease",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleModuleToggle(mod.code)}
+                                  style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    accentColor: "#4f46e5",
+                                    cursor: "pointer",
+                                  }}
+                                />
+                                <div>
+                                  <strong style={{ display: "block", fontSize: "13px", color: "#f8fafc" }}>
+                                    {mod.name}
+                                  </strong>
+                                  <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                                    {mod.description}
+                                  </span>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 

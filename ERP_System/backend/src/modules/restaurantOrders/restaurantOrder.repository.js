@@ -80,11 +80,22 @@ export const createOrder = async (data) => {
 
     const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
     const cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+    const cleanTableId = isUUID(orderData.tableId) ? orderData.tableId : null;
+
+    let cleanRestaurantId = isUUID(orderData.restaurantId) ? orderData.restaurantId : null;
+    if (!cleanRestaurantId) {
+      const firstRest = await tx.restaurant.findFirst({
+        where: orderData.branchId ? { branchId: orderData.branchId } : {},
+      });
+      cleanRestaurantId = firstRest?.id || null;
+    }
 
     const order = await tx.restaurantOrder.create({
       data: {
         ...orderData,
+        restaurantId: cleanRestaurantId,
         customerId: cleanCustomerId,
+        tableId: cleanTableId,
         orderNumber,
         subtotal,
         discountAmount,
@@ -110,15 +121,27 @@ export const createOrder = async (data) => {
 };
 
 export const getOrders = async (params) => {
-  const { restaurantId, branchId, companyId, tableId, status, orderType } = params;
+  const { restaurantId, branchId, companyId, tableId, status, orderType, search } = params;
   const where = {};
 
   if (restaurantId) where.restaurantId = restaurantId;
   if (branchId) where.branchId = branchId;
   if (companyId) where.companyId = companyId;
   if (tableId) where.tableId = tableId;
-  if (status) where.status = status;
+  if (status) {
+    if (Array.isArray(status)) {
+      where.status = { in: status };
+    } else {
+      where.status = status;
+    }
+  }
   if (orderType) where.orderType = orderType;
+  if (search) {
+    where.OR = [
+      { orderNumber: { contains: search, mode: "insensitive" } },
+      { notes: { contains: search, mode: "insensitive" } },
+    ];
+  }
 
   return await prisma.restaurantOrder.findMany({
     where,
@@ -179,6 +202,14 @@ export const updateOrder = async (id, data) => {
       orderData.taxAmount = parseFloat(orderData.taxAmount) || totalTax;
       const disc = parseFloat(orderData.discountAmount) || 0;
       orderData.totalAmount = subtotal - disc + orderData.taxAmount;
+    }
+
+    const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+    if (orderData.customerId !== undefined) {
+      orderData.customerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+    }
+    if (orderData.tableId !== undefined) {
+      orderData.tableId = isUUID(orderData.tableId) ? orderData.tableId : null;
     }
 
     const updated = await tx.restaurantOrder.update({
@@ -467,6 +498,18 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
 
     if (!order) throw new Error("Order not found.");
 
+    if (order.orderType === "DINE_IN" && (!order.tableId || !order.table)) {
+      const err = new Error("Table selection is required before sending an order to the kitchen.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (order.table && order.restaurantId && order.table.restaurantId && order.table.restaurantId !== order.restaurantId) {
+      const err = new Error("The selected table does not belong to the active restaurant outlet.");
+      err.statusCode = 400;
+      throw err;
+    }
+
     let targetWarehouseId = warehouseId;
     if (!targetWarehouseId) {
       const defaultWh = await tx.warehouse.findFirst({
@@ -572,25 +615,21 @@ export const completeOrderAndPay = async (orderId, paymentData) => {
       include: {
         table: true,
         items: true,
+        payments: true,
       },
     });
 
     if (!order) throw new Error("Order not found.");
 
-    const updatedOrder = await tx.restaurantOrder.update({
-      where: { id: orderId },
-      data: { status: "COMPLETED" },
-    });
-
-    if (order.tableId && order.orderType === "DINE_IN") {
-      await tx.restaurantTable.update({
-        where: { id: order.tableId },
-        data: { status: "AVAILABLE" },
-      });
+    if (order.status === "COMPLETED") {
+      const existingPay = order.payments?.[0];
+      return { order, payment: existingPay, alreadyCompleted: true };
     }
 
-    let payment = null;
-    if (paymentData) {
+    const existingPaid = order.payments?.find((p) => p.status === "PAID");
+    let payment = existingPaid || null;
+
+    if (!payment && paymentData) {
       const payNumber = paymentData.paymentNumber || `PAY-RST-${Date.now().toString().slice(-6)}`;
       payment = await tx.payment.create({
         data: {
@@ -606,6 +645,18 @@ export const completeOrderAndPay = async (orderId, paymentData) => {
           status: "PAID",
           notes: paymentData.notes || `Payment for Restaurant Order ${order.orderNumber}`,
         },
+      });
+    }
+
+    const updatedOrder = await tx.restaurantOrder.update({
+      where: { id: orderId },
+      data: { status: "COMPLETED" },
+    });
+
+    if (order.tableId && order.orderType === "DINE_IN") {
+      await tx.restaurantTable.update({
+        where: { id: order.tableId },
+        data: { status: "AVAILABLE" },
       });
     }
 

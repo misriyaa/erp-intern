@@ -3,8 +3,15 @@
 import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
 import { FiTv, FiClock, FiCheck, FiPlay, FiRefreshCw, FiCheckCircle, FiAlertCircle } from "react-icons/fi";
+import { showError } from "@/utils/swal";
+
+import { useCompany } from "@/context/CompanyContext";
 
 export default function KitchenDisplayPage() {
+  const { user } = useCompany();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.type || "").toUpperCase();
+  const isAdmin = roleUpper.includes("SUPER") || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
+
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
@@ -15,11 +22,9 @@ export default function KitchenDisplayPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedRestaurantId) {
-      fetchKOTs();
-      const interval = setInterval(fetchKOTs, 10000); // Auto refresh every 10 seconds
-      return () => clearInterval(interval);
-    }
+    fetchKOTs();
+    const interval = setInterval(fetchKOTs, 3000); // Poll live KOTs every 3s
+    return () => clearInterval(interval);
   }, [selectedRestaurantId]);
 
   const fetchInitialData = async () => {
@@ -29,7 +34,15 @@ export default function KitchenDisplayPage() {
       const list = res.data || [];
       setRestaurants(list);
       if (list.length > 0) {
-        setSelectedRestaurantId(list[0].id);
+        let assigned = list[0].id;
+        if (user?.restaurantId) {
+          const match = list.find((r) => r.id === user.restaurantId);
+          if (match) assigned = match.id;
+        } else if (user?.branchId) {
+          const match = list.find((r) => r.branchId === user.branchId);
+          if (match) assigned = match.id;
+        }
+        setSelectedRestaurantId(assigned);
       }
     } catch (err) {
       console.error(err);
@@ -51,21 +64,21 @@ export default function KitchenDisplayPage() {
     try {
       await restaurantService.startPreparation(id);
       fetchKOTs();
-    } catch (err) { alert(err.message); }
+    } catch (err) { showError("KDS Action Failed", err.message); }
   };
 
   const handleMarkReady = async (id) => {
     try {
       await restaurantService.markReady(id);
       fetchKOTs();
-    } catch (err) { alert(err.message); }
+    } catch (err) { showError("KDS Action Failed", err.message); }
   };
 
   const handleMarkServed = async (id) => {
     try {
       await restaurantService.markServed(id);
       fetchKOTs();
-    } catch (err) { alert(err.message); }
+    } catch (err) { showError("KDS Action Failed", err.message); }
   };
 
   const newKOTs = kotOrders.filter((k) => k.status === "NEW");
@@ -98,7 +111,7 @@ export default function KitchenDisplayPage() {
         </div>
 
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          {restaurants.length > 0 && (
+          {isAdmin && restaurants.length > 0 && (
             <select
               value={selectedRestaurantId}
               onChange={(e) => setSelectedRestaurantId(e.target.value)}

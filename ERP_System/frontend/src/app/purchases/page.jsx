@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import PurchaseTable from "./components/PurchaseTable";
 import { getPurchases, deletePurchase } from "@/services/purchaseService";
+import { showSuccess, showError, showConfirm } from "@/utils/swal";
 import "./purchases.css";
 
 const PAGE_SIZE = 10;
@@ -51,14 +52,19 @@ export default function PurchasesPage() {
 
   // Delete purchase handler
   const handleDeletePurchase = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this purchase order?")) {
-      return;
-    }
+    const isConfirmed = await showConfirm({
+      title: "Delete Purchase Order?",
+      text: "Are you sure you want to delete this purchase order?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await deletePurchase(id);
       setPurchases((prev) => prev.filter((p) => p.id !== id));
+      showSuccess("Deleted", "Purchase order deleted successfully.");
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to delete purchase order.");
+      showError("Delete Failed", err.response?.data?.message || err.message || "Failed to delete purchase order.");
     }
   };
 

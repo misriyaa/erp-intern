@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
-import { FiCalendar, FiPlus, FiCheckCircle, FiXCircle, FiUserCheck, FiClock, FiTrash2 } from "react-icons/fi";
+import { FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
+import { showSuccess, showError, showConfirm } from "@/utils/swal";
 
 export default function RestaurantReservationsPage() {
   const [loading, setLoading] = useState(true);
@@ -55,7 +56,7 @@ export default function RestaurantReservationsPage() {
         setTables(tblRes.data || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error loading restaurants:", err);
     } finally {
       setLoading(false);
     }
@@ -91,8 +92,9 @@ export default function RestaurantReservationsPage() {
         notes: "",
       });
       fetchReservations();
+      showSuccess("Reservation Created", "Reservation booking created successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Failed", err.response?.data?.message || err.message);
     }
   };
 
@@ -100,19 +102,26 @@ export default function RestaurantReservationsPage() {
     try {
       await restaurantService.updateReservationStatus(id, status);
       fetchReservations();
+      showSuccess("Status Updated", `Reservation status changed to ${status}`);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Failed", err.response?.data?.message || err.message);
     }
   };
 
   const handleDeleteReservation = async (id) => {
-    if (!confirm("Are you sure you want to delete this reservation booking?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Reservation?",
+      text: "Are you sure you want to delete this reservation booking?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteReservation(id);
       fetchReservations();
-      alert("Reservation deleted successfully!");
+      showSuccess("Deleted", "Reservation deleted successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Delete Failed", err.response?.data?.message || err.message);
     }
   };
 

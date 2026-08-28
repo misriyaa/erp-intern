@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { medicalService } from "@/services/medicalService";
+import { showConfirm } from "@/utils/swal";
 import { FiClock, FiAlertTriangle, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 
 export default function ExpiryManagement() {
@@ -40,7 +41,13 @@ export default function ExpiryManagement() {
   };
 
   const handleDeactivateBatch = async (id) => {
-    if (!confirm("Flag this batch as expired? This disables FEFO allocation for this batch.")) return;
+    const isConfirmed = await showConfirm({
+      title: "Flag Batch Expired?",
+      text: "Flag this batch as expired? This disables FEFO allocation for this batch.",
+      confirmButtonText: "Yes, Flag Expired",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await medicalService.updateBatch(id, { status: "EXPIRED" });
       fetchExpiringBatches();

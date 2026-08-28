@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { laundryService } from "@/services/laundryService";
+import { showSuccess, showError, showWarning, showConfirm } from "@/utils/swal";
 import {
   FiBox,
   FiPlus,
@@ -76,7 +77,7 @@ export default function LaundryServicesConfig() {
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!newCatName.trim()) {
-      alert("Please enter a category name.");
+      showWarning("Name Required", "Please enter a category name.");
       return;
     }
 
@@ -95,7 +96,7 @@ export default function LaundryServicesConfig() {
           fetchInitData();
         }
       } catch (err) {
-        alert("Please create a Laundry Outlet first in Laundry Outlets & Branches before adding categories.");
+        showWarning("Outlet Required", "Please create a Laundry Outlet first in Laundry Outlets & Branches before adding categories.");
         return;
       }
     }
@@ -111,20 +112,27 @@ export default function LaundryServicesConfig() {
         setNewCatName("");
         setNewCatDesc("");
         fetchServiceCatalog(targetLaundryId);
-        alert("Service category created successfully!");
+        showSuccess("Category Created", "Service category created successfully!");
       }
     } catch (err) {
-      alert("Failed to add category: " + (err.response?.data?.message || err.message));
+      showError("Add Failed", "Failed to add category: " + (err.response?.data?.message || err.message));
     }
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!confirm("Are you sure? This will delete the category and all its services.")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Service Category?",
+      text: "Are you sure? This will delete the category and all its services.",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await laundryService.deleteCategory(id);
       fetchServiceCatalog(selectedLaundryId);
+      showSuccess("Deleted", "Category deleted successfully!");
     } catch (err) {
-      alert("Failed to delete category: " + (err.response?.data?.message || err.message));
+      showError("Delete Failed", err.response?.data?.message || err.message);
     }
   };
 
@@ -132,7 +140,7 @@ export default function LaundryServicesConfig() {
     e.preventDefault();
     let targetLaundryId = selectedLaundryId || (laundries[0]?.id);
     if (!newSerName.trim() || !newSerPrice || !newSerCatId || !targetLaundryId) {
-      alert("Please fill in Service Name, Category, and Price.");
+      showWarning("Fields Required", "Please fill in Service Name, Category, and Price.");
       return;
     }
 
@@ -149,20 +157,27 @@ export default function LaundryServicesConfig() {
         setNewSerDesc("");
         setNewSerPrice("");
         fetchServiceCatalog(targetLaundryId);
-        alert("Laundry service created successfully!");
+        showSuccess("Service Created", "Laundry service created successfully!");
       }
     } catch (err) {
-      alert("Failed to add service: " + (err.response?.data?.message || err.message));
+      showError("Add Failed", "Failed to add service: " + (err.response?.data?.message || err.message));
     }
   };
 
   const handleDeleteService = async (id) => {
-    if (!confirm("Are you sure you want to delete this service rate?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Service Rate?",
+      text: "Are you sure you want to delete this service rate?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await laundryService.deleteService(id);
       fetchServiceCatalog(selectedLaundryId);
+      showSuccess("Deleted", "Service deleted successfully!");
     } catch (err) {
-      alert("Failed to delete service: " + err.message);
+      showError("Delete Failed", err.message);
     }
   };
 

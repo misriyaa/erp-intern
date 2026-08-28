@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { laundryService } from "@/services/laundryService";
+import { showSuccess, showError } from "@/utils/swal";
 import {
   FiGrid,
   FiClock,
@@ -99,16 +100,16 @@ export default function LaundryOrders() {
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
-      const res = await laundryService.updateOrderStatus(orderId, newStatus, `Transitioned to ${newStatus}`);
-      if (res.success) {
-        // Update local list
+      const res = await laundryService.updateOrderStatus(orderId, newStatus);
+      if (res.success || res.data) {
         setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
         if (selectedOrder && selectedOrder.id === orderId) {
           setSelectedOrder({ ...selectedOrder, status: newStatus });
         }
+        showSuccess("Status Updated", `Order status updated to ${newStatus}.`);
       }
     } catch (err) {
-      alert("Failed to update status: " + err.message);
+      showError("Update Failed", "Failed to update status: " + err.message);
     }
   };
 

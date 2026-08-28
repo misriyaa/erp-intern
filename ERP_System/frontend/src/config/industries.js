@@ -209,7 +209,8 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "RESTAURANT", label: "Food Purchases", href: "/purchases", icon: FiShoppingCart, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Staff Management", href: "/admin/employees/view", icon: FiUserCheck, industry: "RESTAURANT" },
-  { moduleCode: "RESTAURANT", label: "Orders", href: "/restaurant/orders", icon: FiShoppingCart, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Kitchen Display (KDS)", href: "/restaurant/kitchen", icon: FiMonitor, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Restaurant Orders", href: "/restaurant/orders", icon: FiShoppingCart, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Wastage Management", href: "/restaurant/wastage", icon: FiTrash2, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Analytics & Reports", href: "/reports", icon: FiBarChart2, industry: "RESTAURANT" },
 

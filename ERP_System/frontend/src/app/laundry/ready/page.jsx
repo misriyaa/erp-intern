@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { laundryService } from "@/services/laundryService";
+import { showSuccess, showError } from "@/utils/swal";
 import { FiCheckCircle, FiInbox, FiRefreshCw } from "react-icons/fi";
 
 export default function LaundryReadyOrders() {
@@ -30,8 +31,9 @@ export default function LaundryReadyOrders() {
     try {
       await laundryService.updateOrderStatus(orderId, "DELIVERED", "Handed over to customer");
       fetchReadyOrders();
+      showSuccess("Order Delivered", "Order status updated to DELIVERED.");
     } catch (err) {
-      alert("Failed to deliver order: " + err.message);
+      showError("Delivery Failed", "Failed to deliver order: " + err.message);
     }
   };
 

@@ -5,6 +5,7 @@ import { restaurantService } from "@/services/restaurantService";
 import { getProducts } from "@/services/productService";
 import { getWarehouses } from "@/services/warehouseService";
 import { FiTrash2, FiPlus, FiAlertTriangle } from "react-icons/fi";
+import { showSuccess, showError, showWarning, showConfirm } from "@/utils/swal";
 
 export default function RestaurantWastagePage() {
   const [loading, setLoading] = useState(true);
@@ -16,19 +17,13 @@ export default function RestaurantWastagePage() {
   const [wastages, setWastages] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
-  const [reason, setReason] = useState("SPOILED");
+  const [reason, setReason] = useState("SPOILAGE");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState([]);
 
   useEffect(() => {
     fetchInitialData();
   }, []);
-
-  useEffect(() => {
-    if (selectedRestaurantId) {
-      fetchWastages();
-    }
-  }, [selectedRestaurantId]);
 
   const fetchInitialData = async () => {
     try {
@@ -43,39 +38,65 @@ export default function RestaurantWastagePage() {
       setRestaurants(restList);
       if (restList.length > 0) setSelectedRestaurantId(restList[0].id);
 
-      const whList = whRes.data || [];
+      const whList = whRes.data || whRes || [];
       setWarehouses(whList);
       if (whList.length > 0) setSelectedWarehouseId(whList[0].id);
 
       setProducts(prodRes.data || prodRes || []);
     } catch (err) {
-      console.error(err);
+      console.error("Error loading wastage initial data:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedRestaurantId) fetchWastages();
+  }, [selectedRestaurantId]);
 
   const fetchWastages = async () => {
     try {
       const res = await restaurantService.getWastages(selectedRestaurantId);
       setWastages(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching wastages:", err);
     }
   };
 
-  const handleAddItemRow = () => {
-    if (products.length === 0) return;
-    setItems([
-      ...items,
-      { productId: products[0].id, quantity: 1, unitCost: parseFloat(products[0].costPrice || 0) },
-    ]);
+  const handleAddItem = (productId) => {
+    if (!productId) return;
+    const prod = products.find((p) => p.id === productId);
+    if (!prod) return;
+
+    setItems((prev) => {
+      const exists = prev.find((i) => i.productId === productId);
+      if (exists) return prev;
+      return [
+        ...prev,
+        {
+          productId,
+          name: prod.name,
+          quantity: 1,
+          costPrice: parseFloat(prod.costPrice || 0),
+        },
+      ];
+    });
+  };
+
+  const handleUpdateQty = (productId, qty) => {
+    setItems((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, quantity: parseFloat(qty) || 1 } : i))
+    );
+  };
+
+  const handleRemoveItem = (productId) => {
+    setItems((prev) => prev.filter((i) => i.productId !== productId));
   };
 
   const handleCreateWastage = async (e) => {
     e.preventDefault();
     if (items.length === 0) {
-      alert("Please add at least one wastage item.");
+      showWarning("Items Required", "Please add at least one wastage item.");
       return;
     }
     try {
@@ -90,20 +111,26 @@ export default function RestaurantWastagePage() {
       setItems([]);
       setNotes("");
       fetchWastages();
-      alert("Wastage recorded and stock deducted successfully.");
+      showSuccess("Wastage Recorded", "Wastage recorded and stock deducted successfully.");
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Failed", err.response?.data?.message || err.message);
     }
   };
 
   const handleDeleteWastage = async (id) => {
-    if (!confirm("Are you sure you want to delete this wastage record?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Wastage Record?",
+      text: "Are you sure you want to delete this wastage record?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteWastage(id);
       fetchWastages();
-      alert("Wastage record deleted successfully!");
+      showSuccess("Deleted", "Wastage record deleted successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Delete Failed", err.response?.data?.message || err.message);
     }
   };
 

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { restaurantService } from "@/services/restaurantService";
 import { getBranches } from "@/services/branchService";
 import { FiPlus, FiCoffee, FiEdit, FiTrash2, FiRefreshCw, FiCheckCircle } from "react-icons/fi";
+import { showSuccess, showError, showWarning, showConfirm } from "@/utils/swal";
 
 function RestaurantTablesContent() {
   const router = useRouter();
@@ -14,20 +15,17 @@ function RestaurantTablesContent() {
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(queryRestaurantId);
-  const [areas, setAreas] = useState([]);
-  const [tables, setTables] = useState([]);
 
-  // Modals state
+  const [areas, setAreas] = useState([]);
+  const [selectedAreaId, setSelectedAreaId] = useState("ALL");
+
+  // Modals
   const [showAddAreaModal, setShowAddAreaModal] = useState(false);
   const [areaName, setAreaName] = useState("");
   const [modalRestaurantId, setModalRestaurantId] = useState("");
 
   const [showAddTableModal, setShowAddTableModal] = useState(false);
-  const [tableForm, setTableForm] = useState({
-    tableNumber: "",
-    capacity: 4,
-    areaId: "",
-  });
+  const [tableForm, setTableForm] = useState({ tableNumber: "", capacity: 4, areaId: "" });
 
   const [selectedTable, setSelectedTable] = useState(null);
 
@@ -35,34 +33,20 @@ function RestaurantTablesContent() {
     fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    if (queryRestaurantId) {
-      setSelectedRestaurantId(queryRestaurantId);
-    }
-  }, [queryRestaurantId]);
-
-  useEffect(() => {
-    if (selectedRestaurantId) {
-      fetchFloorPlan(selectedRestaurantId);
-    }
-  }, [selectedRestaurantId]);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
       const res = await restaurantService.getRestaurants();
-      let list = res.data || [];
-      
+      const list = res.data || [];
       setRestaurants(list);
       if (list.length > 0) {
-        const initialId = queryRestaurantId && list.some(r => r.id === queryRestaurantId) 
-          ? queryRestaurantId 
-          : list[0].id;
-        setSelectedRestaurantId(initialId);
-        setModalRestaurantId(initialId);
+        const assigned = queryRestaurantId || list[0].id;
+        setSelectedRestaurantId(assigned);
+        setModalRestaurantId(assigned);
+        fetchFloorPlan(assigned);
       }
     } catch (err) {
-      console.error("Failed to fetch restaurants:", err);
+      console.error("Error loading floor plan:", err);
     } finally {
       setLoading(false);
     }
@@ -70,12 +54,8 @@ function RestaurantTablesContent() {
 
   const fetchFloorPlan = async (restaurantId) => {
     try {
-      const [areaRes, tableRes] = await Promise.all([
-        restaurantService.getAreas(restaurantId),
-        restaurantService.getTables(restaurantId),
-      ]);
-      setAreas(areaRes.data || []);
-      setTables(tableRes.data || []);
+      const res = await restaurantService.getFloorPlan(restaurantId);
+      setAreas(res.data?.areas || []);
     } catch (err) {
       console.error("Error loading floor plan:", err);
     }
@@ -86,12 +66,12 @@ function RestaurantTablesContent() {
     const targetRestId = modalRestaurantId || selectedRestaurantId || (restaurants[0]?.id);
 
     if (!areaName.trim()) {
-      alert("Please enter an Area Name (e.g., Ground Floor, VIP).");
+      showWarning("Name Required", "Please enter an Area Name (e.g., Ground Floor, VIP).");
       return;
     }
 
     if (!targetRestId) {
-      alert("No Restaurant Outlet found. Please create a restaurant outlet first.");
+      showWarning("Outlet Required", "No Restaurant Outlet found. Please create a restaurant outlet first.");
       return;
     }
 
@@ -104,9 +84,9 @@ function RestaurantTablesContent() {
       setShowAddAreaModal(false);
       setSelectedRestaurantId(targetRestId);
       fetchFloorPlan(targetRestId);
-      alert("Dining Area created successfully!");
+      showSuccess("Area Created", "Dining Area created successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to create area");
+      showError("Failed", err.response?.data?.message || err.message || "Failed to create area");
     }
   };
 
@@ -115,7 +95,7 @@ function RestaurantTablesContent() {
     const targetRestId = selectedRestaurantId || (restaurants[0]?.id);
 
     if (!tableForm.tableNumber || !tableForm.areaId) {
-      alert("Please fill in Table Number and select an Area.");
+      showWarning("Fields Required", "Please fill in Table Number and select an Area.");
       return;
     }
 
@@ -128,9 +108,9 @@ function RestaurantTablesContent() {
       setTableForm({ tableNumber: "", capacity: 4, areaId: "" });
       setShowAddTableModal(false);
       fetchFloorPlan(targetRestId);
-      alert("Table created successfully!");
+      showSuccess("Table Created", "Table created successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to create table");
+      showError("Failed", err.response?.data?.message || err.message || "Failed to create table");
     }
   };
 
@@ -140,7 +120,7 @@ function RestaurantTablesContent() {
       setSelectedTable(null);
       fetchFloorPlan(selectedRestaurantId);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Status Update Failed", err.response?.data?.message || err.message);
     }
   };
 
@@ -149,25 +129,37 @@ function RestaurantTablesContent() {
   };
 
   const handleDeleteArea = async (areaId) => {
-    if (!confirm("Are you sure you want to delete this dining area?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Dining Area?",
+      text: "Are you sure you want to delete this dining area?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteArea(areaId);
       fetchFloorPlan(selectedRestaurantId);
-      alert("Dining area deleted successfully!");
+      showSuccess("Deleted", "Dining area deleted successfully!");
     } catch (err) {
-      alert("Failed to delete area: " + (err.response?.data?.message || err.message));
+      showError("Delete Failed", err.response?.data?.message || err.message);
     }
   };
 
   const handleDeleteTable = async (tableId, e) => {
     if (e) e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this table?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Table?",
+      text: "Are you sure you want to delete this table?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteTable(tableId);
       fetchFloorPlan(selectedRestaurantId);
-      alert("Table deleted successfully!");
+      showSuccess("Deleted", "Table deleted successfully!");
     } catch (err) {
-      alert("Failed to delete table: " + (err.response?.data?.message || err.message));
+      showError("Delete Failed", err.response?.data?.message || err.message);
     }
   };
 
@@ -229,7 +221,7 @@ function RestaurantTablesContent() {
           <button
             onClick={() => {
               if (areas.length === 0) {
-                alert("Please add at least one dining area first.");
+                showWarning("Area Required", "Please add at least one dining area first.");
                 return;
               }
               setTableForm((prev) => ({ ...prev, areaId: areas[0]?.id || "" }));

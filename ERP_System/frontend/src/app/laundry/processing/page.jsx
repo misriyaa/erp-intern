@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { laundryService } from "@/services/laundryService";
+import { showSuccess, showError } from "@/utils/swal";
 import { FiClock, FiCheckSquare, FiRefreshCw } from "react-icons/fi";
 
 export default function LaundryProcessingQueue() {
@@ -49,8 +50,9 @@ export default function LaundryProcessingQueue() {
     try {
       await laundryService.updateOrderStatus(orderId, nextStatus, `Advanced stage to ${nextStatus}`);
       fetchQueue();
+      showSuccess("Stage Updated", `Order advanced to ${nextStatus}.`);
     } catch (err) {
-      alert("Failed to advance stage: " + err.message);
+      showError("Stage Update Failed", "Failed to advance stage: " + err.message);
     }
   };
 

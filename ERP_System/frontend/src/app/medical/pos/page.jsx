@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getCustomers } from "@/services/customerService";
 import { medicalService } from "@/services/medicalService";
 import { getWarehouses } from "@/services/warehouseService";
+import { showWarning, showConfirm, showError } from "@/utils/swal";
 import {
   FiUsers,
   FiShoppingBag,
@@ -113,14 +114,19 @@ export default function PharmacyPOS() {
     setCart(itemsToAdd);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedMedId) return;
     const med = medicines.find(m => m.id === selectedMedId);
     if (!med) return;
 
     // Check prescription condition
     if (med.prescriptionRequired && !selectedPrescriptionId) {
-      const ok = confirm("Warning: This drug requires a doctor's prescription. Do you want to override and continue?");
+      const ok = await showConfirm({
+        title: "Prescription Required",
+        text: "Warning: This drug requires a doctor's prescription. Do you want to override and continue?",
+        confirmButtonText: "Yes, Override",
+        icon: "warning",
+      });
       if (!ok) return;
     }
 
@@ -185,7 +191,7 @@ export default function PharmacyPOS() {
       setDiscountAmount(0);
       setNotes("");
     } catch (err) {
-      alert("Checkout failed (stock shortage): " + err.message);
+      showError("Checkout Shortage", "Checkout failed (stock shortage): " + err.message);
     }
   };
 

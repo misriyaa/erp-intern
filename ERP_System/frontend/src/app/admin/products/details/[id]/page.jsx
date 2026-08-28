@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import apiClient from "@/services/apiClient";
+import { showConfirm } from "@/utils/swal";
 import { toast, Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import {
@@ -97,7 +98,12 @@ export default function ProductDetailsPage({ params }) {
   const stockPercentage = maxStock > 0 ? (currentStock / maxStock) * 100 : 0;
 
   const handleDelete = async () => {
-    const confirmed = window.confirm("Are you sure you want to delete this fabric product?");
+    const confirmed = await showConfirm({
+      title: "Delete Fabric Product?",
+      text: "Are you sure you want to delete this fabric product?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
     if (confirmed) {
       try {
         await apiClient.delete(`/products/${id}`);

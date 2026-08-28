@@ -8,6 +8,7 @@ import {
   IconGrid,
 } from "./icons";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import Swal from "@/utils/swal";
 
 export default function PosToolbar({
   query = "",
@@ -232,10 +233,17 @@ export default function PosToolbar({
   /*
    * Handle manual barcode entry
    */
-  const handleManualScan = () => {
-    const code = window.prompt("Enter barcode / SKU:");
+  const handleManualScan = async () => {
+    const { value: code, isConfirmed } = await Swal.fire({
+      title: "Barcode Entry",
+      input: "text",
+      inputLabel: "Enter barcode / SKU:",
+      inputPlaceholder: "Scan or type barcode...",
+      showCancelButton: true,
+      confirmButtonText: "Scan Barcode",
+    });
 
-    if (!code) return;
+    if (!isConfirmed || !code) return;
 
     const cleanedCode = code.trim();
 

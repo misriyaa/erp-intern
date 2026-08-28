@@ -77,13 +77,38 @@ export default function Sidebar({ isOpen, onClose }) {
     }
   };
 
-  const roleUpper = (user?.role || "").toUpperCase();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.type || "").toUpperCase();
   const isSuperAdmin = roleUpper.includes("SUPER");
   const isAdmin = isSuperAdmin || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
+  const isManager = roleUpper.includes("MANAGER");
+  const isCashier = roleUpper.includes("CASHIER") || roleUpper.includes("BILLING") || roleUpper.includes("COUNTER");
+  const isWaiter = roleUpper.includes("WAITER") || roleUpper.includes("STEWARD") || roleUpper.includes("SERVER");
+  const isKitchenStaff = roleUpper.includes("KITCHEN") || roleUpper.includes("CHEF") || roleUpper.includes("COOK");
 
-  // Filter master catalog based on enabled modules and industry context
+  // Filter master catalog based on enabled modules, role and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
     if (item.adminOnly && !isAdmin) {
+      return false;
+    }
+    if (isCashier && !isAdmin && !isManager) {
+      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders", "/laundry/pos", "/laundry/orders"];
+      if (!cashierHrefs.includes(item.href)) {
+        return false;
+      }
+    }
+    if (isWaiter && !isAdmin && !isManager) {
+      const waiterHrefs = ["/restaurant/pos", "/restaurant/tables", "/restaurant/reservations", "/restaurant/orders"];
+      if (!waiterHrefs.includes(item.href)) {
+        return false;
+      }
+    }
+    if (isKitchenStaff && !isAdmin && !isManager) {
+      const kitchenHrefs = ["/restaurant/kitchen"];
+      if (!kitchenHrefs.includes(item.href)) {
+        return false;
+      }
+    }
+    if (item.href === "/dashboard" && ["RESTAURANT", "LAUNDRY"].includes((industryCode || "").toUpperCase())) {
       return false;
     }
     if (item.industry) {

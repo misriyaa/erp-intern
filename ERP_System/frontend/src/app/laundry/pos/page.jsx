@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getCustomers, createCustomer } from "@/services/customerService";
 import { laundryService } from "@/services/laundryService";
+import { showSuccess, showError, showWarning } from "@/utils/swal";
 import { getLaundries } from "@/services/laundryService"; // wait, laundryService.getLaundries exists
 import {
   FiUsers,
@@ -131,9 +132,10 @@ export default function LaundryPOS() {
         setNewCustName("");
         setNewCustPhone("");
         setNewCustEmail("");
+        showSuccess("Customer Added", "Customer created successfully!");
       }
     } catch (err) {
-      alert("Failed to create customer: " + err.message);
+      showError("Customer Error", "Failed to create customer: " + err.message);
     }
   };
 
@@ -192,11 +194,11 @@ export default function LaundryPOS() {
 
   const handleCheckoutSubmit = async () => {
     if (!selectedCustomerId) {
-      alert("Please select a customer first.");
+      showWarning("Customer Required", "Please select a customer first.");
       return;
     }
     if (cart.length === 0) {
-      alert("Please add at least one item to the cart.");
+      showWarning("Cart Empty", "Please add at least one item to the cart.");
       return;
     }
 
@@ -235,9 +237,10 @@ export default function LaundryPOS() {
         setDiscountVal(0);
         setNotes("");
         setPaidAmount(0);
+        showSuccess("Order Placed", "Laundry order created successfully!");
       }
     } catch (err) {
-      alert("Checkout failed: " + err.message);
+      showError("Checkout Failed", "Checkout failed: " + err.message);
     }
   };
 
