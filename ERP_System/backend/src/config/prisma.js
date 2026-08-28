@@ -16,9 +16,8 @@ const prisma = prismaInstance.$extends({
           "Invoice", "Payment", "StockMovement", "StockTransfer", "Return",
           "Discount", "AuditLog", "SystemSettings", "GymMember",
           "GymMembershipPlan", "GymTrainer", "GymAttendance", "GymPayment", "Restaurant",
-          "RestaurantOrder", "Wastage", "Laundry", "LaundryServiceCategory", "LaundryService", "LaundryOrder",
-          "LaundryOrderItem", "LaundryGarment", "LaundryStatusHistory", "LaundryDelivery",
-          "Medicine", "MedicineBatch", "Prescription", "PrescriptionItem"
+          "RestaurantOrder", "Wastage", "Laundry", "LaundryOrder",
+          "Medicine", "Prescription"
         ];
 
         if (tenantId && tenantModels.includes(model)) {
