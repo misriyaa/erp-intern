@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma.js";
+import { processStockDeductionOnServed } from "../restaurantOrders/restaurantOrder.repository.js";
 
 const kotInclude = {
   restaurant: true,
@@ -77,6 +78,10 @@ export const updateKOTStatus = async (id, status) => {
         where: { orderId: kot.orderId },
         data: { status: targetOrderItemsStatus },
       });
+
+      if (targetOrderStatus === "SERVED") {
+        await processStockDeductionOnServed(kot.orderId, tx);
+      }
     }
 
     return kot;

@@ -1845,8 +1845,9 @@ model RestaurantOrder {
   taxAmount      Decimal @default(0.00) @map("tax_amount") @db.Decimal(18, 2)
   totalAmount    Decimal @default(0.00) @map("total_amount") @db.Decimal(18, 2)
 
-  notes     String?
-  createdBy String? @map("created_by")
+  notes         String?
+  createdBy     String? @map("created_by")
+  stockDeducted Boolean @default(false) @map("stock_deducted")
 
   items         RestaurantOrderItem[]
   kitchenOrders KitchenOrder[]

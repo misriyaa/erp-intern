@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma.js";
+import { convertUnit } from "../../utils/unitConverter.js";
 
 const orderInclude = {
   restaurant: true,
@@ -180,11 +181,168 @@ export const updateOrder = async (id, data) => {
       orderData.totalAmount = subtotal - disc + orderData.taxAmount;
     }
 
-    return await tx.restaurantOrder.update({
+    const updated = await tx.restaurantOrder.update({
       where: { id },
       data: orderData,
       include: orderInclude,
     });
+
+    if (updated.status === "SERVED") {
+      await processStockDeductionOnServed(id, tx);
+    }
+
+    return await tx.restaurantOrder.findUnique({
+      where: { id },
+      include: orderInclude,
+    });
+  });
+};
+
+export const processStockDeductionOnServed = async (orderId, tx) => {
+  const db = tx || prisma;
+
+  const order = await db.restaurantOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          menuItem: {
+            include: {
+              recipe: {
+                include: {
+                  ingredients: {
+                    include: {
+                      product: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!order) return;
+
+  if (order.stockDeducted) {
+    return;
+  }
+
+  const defaultWh = await db.warehouse.findFirst({
+    where: {
+      companyId: order.companyId,
+      status: "ACTIVE",
+    },
+  });
+
+  const warehouseId = defaultWh?.id;
+  if (!warehouseId) {
+    await db.restaurantOrder.update({
+      where: { id: orderId },
+      data: { stockDeducted: true },
+    });
+    return;
+  }
+
+  const ingredientTotals = {};
+
+  for (const item of order.items) {
+    const recipe = item.menuItem?.recipe;
+    if (recipe && recipe.ingredients) {
+      for (const ing of recipe.ingredients) {
+        if (!ing.product) continue;
+        const itemQty = parseFloat(item.quantity) || 1;
+        const ingQty = parseFloat(ing.quantity) || 0;
+        const rawRequired = itemQty * ingQty;
+
+        const recipeUnit = ing.unit || ing.product.stockUnit || ing.product.unit || "";
+        const stockUnit = ing.product.stockUnit || ing.product.unit || "";
+
+        const convertedQty = convertUnit(rawRequired, recipeUnit, stockUnit);
+
+        if (!ingredientTotals[ing.productId]) {
+          ingredientTotals[ing.productId] = {
+            productId: ing.productId,
+            productName: ing.product.name,
+            recipeUnit,
+            stockUnit,
+            requiredQty: 0,
+          };
+        }
+        ingredientTotals[ing.productId].requiredQty += convertedQty;
+      }
+    }
+  }
+
+  const prodIds = Object.keys(ingredientTotals);
+  if (prodIds.length === 0) {
+    await db.restaurantOrder.update({
+      where: { id: orderId },
+      data: { stockDeducted: true },
+    });
+    return;
+  }
+
+  const shortages = [];
+  for (const prodId of prodIds) {
+    const info = ingredientTotals[prodId];
+    const inventory = await db.inventory.findFirst({
+      where: { productId: prodId, warehouseId },
+    });
+    const currentStock = inventory ? parseFloat(inventory.quantity) : 0;
+    if (currentStock < info.requiredQty) {
+      shortages.push(
+        `${info.productName}: Required ${info.requiredQty.toFixed(3)} ${info.stockUnit || "units"}, Available ${currentStock.toFixed(3)} ${info.stockUnit || "units"}`
+      );
+    }
+  }
+
+  if (shortages.length > 0) {
+    throw new Error(`Insufficient kitchen stock to serve order: ${shortages.join("; ")}`);
+  }
+
+  for (const prodId of prodIds) {
+    const info = ingredientTotals[prodId];
+    const inventory = await db.inventory.findFirst({
+      where: { productId: prodId, warehouseId },
+    });
+
+    const currentStock = inventory ? parseFloat(inventory.quantity) : 0;
+    const newStock = currentStock - info.requiredQty;
+
+    if (inventory) {
+      await db.inventory.update({
+        where: { id: inventory.id },
+        data: { quantity: newStock },
+      });
+    } else {
+      await db.inventory.create({
+        data: {
+          productId: prodId,
+          warehouseId,
+          quantity: newStock,
+        },
+      });
+    }
+
+    await db.stockMovement.create({
+      data: {
+        companyId: order.companyId,
+        productId: prodId,
+        warehouseId,
+        type: "RECIPE_CONSUMPTION",
+        quantity: -info.requiredQty,
+        referenceNo: order.orderNumber,
+        remarks: `Recipe stock deduction for Restaurant Order ${order.orderNumber} (Served) - ${info.productName}`,
+      },
+    });
+  }
+
+  await db.restaurantOrder.update({
+    where: { id: orderId },
+    data: { stockDeducted: true },
   });
 };
 
@@ -395,55 +553,6 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
         },
       },
     });
-
-    // Consume recipe inventory and log StockMovement
-    if (targetWarehouseId) {
-      for (const item of order.items) {
-        const recipe = item.menuItem.recipe;
-        if (recipe && recipe.ingredients) {
-          for (const ing of recipe.ingredients) {
-            const requiredQty = ing.quantity * item.quantity;
-
-            const existingInventory = await tx.inventory.findFirst({
-              where: {
-                productId: ing.productId,
-                warehouseId: targetWarehouseId,
-              },
-            });
-
-            if (existingInventory) {
-              const currentStock = parseFloat(existingInventory.quantity);
-              await tx.inventory.update({
-                where: { id: existingInventory.id },
-                data: {
-                  quantity: currentStock - requiredQty,
-                },
-              });
-            } else {
-              await tx.inventory.create({
-                data: {
-                  productId: ing.productId,
-                  warehouseId: targetWarehouseId,
-                  quantity: -requiredQty,
-                },
-              });
-            }
-
-            await tx.stockMovement.create({
-              data: {
-                companyId: order.companyId,
-                productId: ing.productId,
-                warehouseId: targetWarehouseId,
-                type: "RECIPE_CONSUMPTION",
-                quantity: -requiredQty,
-                referenceNo: order.orderNumber,
-                remarks: `Consumed for KOT ${kotNumber} - ${item.menuItem.name} x${item.quantity}`,
-              },
-            });
-          }
-        }
-      }
-    }
 
     if (order.orderType === "DINE_IN" && order.tableId) {
       await tx.restaurantTable.update({
