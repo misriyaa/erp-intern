@@ -349,7 +349,7 @@ function RestaurantPOSContent() {
               <option value="">Select Table...</option>
               {tables.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.tableNumber} ({t.status})
+                  {t.tableNumber} {t.area?.name ? `(${t.area.name})` : ""} - {t.status}
                 </option>
               ))}
             </select>

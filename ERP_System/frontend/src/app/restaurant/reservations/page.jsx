@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
-import { FiCalendar, FiPlus, FiCheckCircle, FiXCircle, FiUserCheck, FiClock } from "react-icons/fi";
+import { FiCalendar, FiPlus, FiCheckCircle, FiXCircle, FiUserCheck, FiClock, FiTrash2 } from "react-icons/fi";
 
 export default function RestaurantReservationsPage() {
   const [loading, setLoading] = useState(true);
@@ -30,8 +30,18 @@ export default function RestaurantReservationsPage() {
   useEffect(() => {
     if (selectedRestaurantId) {
       fetchReservations();
+      fetchTables(selectedRestaurantId);
     }
   }, [selectedRestaurantId, filterDate]);
+
+  const fetchTables = async (restaurantId) => {
+    try {
+      const tblRes = await restaurantService.getTables(restaurantId);
+      setTables(tblRes.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -329,7 +339,9 @@ export default function RestaurantReservationsPage() {
                   >
                     <option value="">Select Table...</option>
                     {tables.map((t) => (
-                      <option key={t.id} value={t.id}>{t.tableNumber} ({t.capacity} seats)</option>
+                      <option key={t.id} value={t.id}>
+                        {t.tableNumber} {t.area?.name ? `(${t.area.name})` : ""} - {t.capacity} Seats
+                      </option>
                     ))}
                   </select>
                 </div>
