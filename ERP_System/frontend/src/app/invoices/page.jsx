@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -9,21 +10,23 @@ import PrintInvoice from "./components/PrintInvoice";
 
 export default function InvoicesPage() {
   const { sales, loading, error, refresh } = useSales();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceToPrint, setInvoiceToPrint] = useState(null);
 
-  // Filter for completed/paid sales orders
+  // Filter completed / paid invoices
   const completedInvoices = useMemo(() => {
     return sales.filter((sale) => {
-      // Consider "Paid" status as completed sale invoices
       const isCompleted = sale.paymentStatus === "Paid";
+
       if (!isCompleted) return false;
 
-      // Filter by search query (Invoice No or Customer Name)
+      const search = searchQuery.toLowerCase();
+
       const matchesSearch =
-        (sale.invoiceNo || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (sale.customer || "").toLowerCase().includes(searchQuery.toLowerCase());
+        (sale.invoiceNo || "").toLowerCase().includes(search) ||
+        (sale.customer || "").toLowerCase().includes(search);
 
       return matchesSearch;
     });
@@ -31,83 +34,300 @@ export default function InvoicesPage() {
 
   const handlePrint = (invoice) => {
     setInvoiceToPrint(invoice);
+
     setTimeout(() => {
       window.print();
     }, 150);
   };
 
+  // Loading
   if (loading) {
     return (
-      <div className="no-print min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-500">
-          <FiRefreshCw className="animate-spin text-blue-600" size={24} />
-          <span className="text-lg font-semibold">Loading Invoices...</span>
+      <div
+        className="no-print"
+        style={{
+          minHeight: "100vh",
+          background: "#f8fafc",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            color: "#6b7280",
+          }}
+        >
+          <FiRefreshCw
+            size={24}
+            style={{
+              color: "#2563eb",
+              animation: "spin 1s linear infinite",
+            }}
+          />
+
+          <span
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+            }}
+          >
+            Loading Invoices...
+          </span>
         </div>
+
+        <style jsx>{`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
     <>
-      {/* Print component - Hidden on screen, visible only during print */}
+      {/* PRINT COMPONENT */}
       {invoiceToPrint && <PrintInvoice invoice={invoiceToPrint} />}
 
-      {/* Screen layout - Hidden during print */}
-      <div className="no-print p-6 bg-gray-50 min-h-screen">
-        
-        {/* Page title and header actions */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      {/* MAIN SCREEN */}
+      <div
+        className="no-print"
+        style={{
+          padding: "24px",
+          background: "#f8fafc",
+          minHeight: "100vh",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* HEADER */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            marginBottom: "32px",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* TITLE */}
           <div>
-            <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
-              <FiFileText className="text-blue-600" />
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "30px",
+                lineHeight: "1.2",
+                fontWeight: "800",
+                color: "#111827",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+              }}
+            >
+              <FiFileText
+                size={28}
+                style={{
+                  color: "#2563eb",
+                }}
+              />
+
               <span>Invoices & Billing</span>
             </h1>
-            <p className="text-gray-500 mt-1">
-              View, preview, and print invoices generated from completed POS sales.
+
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: "14px",
+                color: "#6b7280",
+                lineHeight: "1.5",
+              }}
+            >
+              View, preview, and print invoices generated from completed POS
+              sales.
             </p>
           </div>
+
+          {/* REFRESH BUTTON */}
           <button
             onClick={refresh}
-            className="flex items-center justify-center gap-2 border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 px-4 py-2.5 rounded-xl transition-all font-semibold text-sm cursor-pointer shadow-sm self-start md:self-auto"
+            type="button"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              border: "1px solid #d1d5db",
+              background: "#ffffff",
+              color: "#374151",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f3f4f6";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#ffffff";
+            }}
           >
             <FiRefreshCw size={15} />
             <span>Refresh Data</span>
           </button>
         </div>
 
-        {/* Error message */}
+        {/* ERROR MESSAGE */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-sm mb-6 max-w-xl">
-            <p className="font-bold mb-1">Failed to load sales database</p>
-            <p className="text-sm">{error}</p>
+          <div
+            style={{
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#b91c1c",
+              padding: "16px 20px",
+              borderRadius: "12px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              marginBottom: "24px",
+              maxWidth: "600px",
+              boxSizing: "border-box",
+            }}
+          >
+            <p
+              style={{
+                margin: "0 0 5px",
+                fontSize: "14px",
+                fontWeight: "700",
+              }}
+            >
+              Failed to load sales database
+            </p>
+
+            <p
+              style={{
+                margin: 0,
+                fontSize: "13px",
+                color: "#dc2626",
+              }}
+            >
+              {error}
+            </p>
           </div>
         )}
 
-        {/* Filter Toolbar */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="relative w-full max-w-md">
-            <FiSearch className="absolute left-4 top-3.5 text-gray-400" size={18} />
+        {/* FILTER TOOLBAR */}
+        <div
+          style={{
+            background: "#ffffff",
+            padding: "20px",
+            borderRadius: "16px",
+            border: "1px solid #f1f5f9",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* SEARCH */}
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: "450px",
+            }}
+          >
+            <FiSearch
+              size={18}
+              style={{
+                position: "absolute",
+                left: "15px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#9ca3af",
+                pointerEvents: "none",
+              }}
+            />
+
             <input
               type="text"
               placeholder="Search by Invoice No or Customer name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-400 font-medium text-gray-800 transition-all"
+              style={{
+                width: "100%",
+                height: "46px",
+                boxSizing: "border-box",
+                padding: "0 16px 0 44px",
+                background: "#f8fafc",
+                border: "1px solid #e5e7eb",
+                borderRadius: "10px",
+                outline: "none",
+                fontSize: "14px",
+                fontWeight: "500",
+                color: "#1f2937",
+                transition: "all 0.2s ease",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#3b82f6";
+                e.currentTarget.style.boxShadow =
+                  "0 0 0 3px rgba(59,130,246,0.12)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#e5e7eb";
+                e.currentTarget.style.boxShadow = "none";
+              }}
             />
           </div>
-          <div className="text-sm text-gray-500 font-semibold bg-gray-50 px-4 py-2 rounded-xl self-end sm:self-auto">
-            Showing {completedInvoices.length} Invoice(s)
+
+          {/* COUNT */}
+          <div
+            style={{
+              padding: "9px 16px",
+              background: "#f8fafc",
+              border: "1px solid #f1f5f9",
+              borderRadius: "10px",
+              color: "#6b7280",
+              fontSize: "13px",
+              fontWeight: "600",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Showing{" "}
+            <span
+              style={{
+                color: "#111827",
+                fontWeight: "700",
+              }}
+            >
+              {completedInvoices.length}
+            </span>{" "}
+            Invoice(s)
           </div>
         </div>
 
-        {/* Invoices List Table */}
+        {/* INVOICE TABLE */}
         <InvoiceTable
           invoices={completedInvoices}
           onView={(invoice) => setSelectedInvoice(invoice)}
           onPrint={handlePrint}
         />
 
-        {/* Details preview modal overlay */}
+        {/* INVOICE PREVIEW */}
         {selectedInvoice && (
           <InvoicePreview
             invoice={selectedInvoice}
@@ -115,8 +335,8 @@ export default function InvoicesPage() {
             onPrint={handlePrint}
           />
         )}
-
       </div>
     </>
   );
 }
+

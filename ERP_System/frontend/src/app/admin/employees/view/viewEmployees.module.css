@@ -1,3 +1,4 @@
+
 /* =========================================================
    EMPLOYEE PAGE
 ========================================================= */
@@ -5,20 +6,18 @@
 .layout {
   min-height: 100vh;
   width: 100%;
-  background: #f7f8fa;
+  background: #f4f5f6;
+  color: #1f2937;
 }
 
 .container {
   width: 100%;
   min-height: 100vh;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  color: #172033;
 }
 
 .content {
   width: 100%;
-  max-width: 1440px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 32px;
   box-sizing: border-box;
@@ -26,30 +25,32 @@
 
 
 /* =========================================================
-   HEADER
+   PAGE HEADER
 ========================================================= */
 
 .header {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .title {
   margin: 0;
-  color: #172033;
-  font-size: 1.85rem;
-  font-weight: 700;
+  color: #111827;
+  font-size: 28px;
   line-height: 1.2;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.6px;
 }
 
 .subtitle {
   margin: 7px 0 0;
-  color: #7b8494;
-  font-size: 0.88rem;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 
@@ -58,22 +59,23 @@
 ========================================================= */
 
 .addButton {
+  min-height: 42px;
+  padding: 0 17px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   gap: 8px;
 
-  min-height: 42px;
-  padding: 10px 18px;
+  border: 0;
+  border-radius: 9px;
 
-  border: 1px solid #172033;
-  border-radius: 8px;
-
-  background: #172033;
+  background: #111827;
   color: #ffffff;
 
   font-family: inherit;
-  font-size: 0.84rem;
+  font-size: 12px;
   font-weight: 600;
 
   cursor: pointer;
@@ -85,11 +87,12 @@
 }
 
 .addButton:hover {
-  background: #253149;
+  background: #000000;
+
   transform: translateY(-1px);
 
   box-shadow:
-    0 6px 16px rgba(23, 32, 51, 0.16);
+    0 8px 22px rgba(0, 0, 0, 0.15);
 }
 
 .addButton:active {
@@ -98,18 +101,80 @@
 
 
 /* =========================================================
+   FILTER
+========================================================= */
+
+.filterContainer {
+  width: fit-content;
+
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+
+  margin-bottom: 28px;
+  padding: 4px;
+
+  border: 1px solid #e2e4e7;
+  border-radius: 9px;
+
+  background: #ffffff;
+}
+
+.filterButton {
+  padding: 8px 14px;
+
+  border: 0;
+  border-radius: 6px;
+
+  background: transparent;
+  color: #6b7280;
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.filterButton:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.filterButtonActive {
+  background: #111827;
+  color: #ffffff;
+}
+
+.filterButtonActive:hover {
+  background: #111827;
+  color: #ffffff;
+}
+
+
+/* =========================================================
    EMPLOYEE GRID
 ========================================================= */
 
 .employeeGrid {
+  width: 100%;
+
   display: grid;
 
   grid-template-columns:
-    repeat(3, minmax(280px, 1fr));
+    repeat(
+      auto-fill,
+      minmax(260px, 1fr)
+    );
 
-  gap: 24px;
+  gap: 28px;
 
-  padding: 8px 0 40px;
+  align-items: start;
 }
 
 
@@ -121,138 +186,255 @@
   position: relative;
 
   width: 100%;
-  min-width: 0;
+  height: 380px;
 
-  transition:
-    transform 0.25s ease;
-}
+  perspective: 1400px;
+  -webkit-perspective: 1400px;
 
-.employeeCard:hover {
-  transform: translateY(-4px);
+  cursor: pointer;
+
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 
 /* =========================================================
-   MAIN CARD
+   CARD INNER
 ========================================================= */
 
-.idCard {
+.cardInner {
   position: relative;
 
   width: 100%;
-  min-height: 430px;
+  height: 100%;
+
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+
+  transition:
+    transform 0.8s
+    cubic-bezier(
+      0.4,
+      0.2,
+      0.2,
+      1
+    );
+}
+
+
+/* =========================================================
+   HOVER FLIP
+========================================================= */
+
+.employeeCard:hover .cardInner {
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+}
+
+
+/* =========================================================
+   CARD FACE
+========================================================= */
+
+.cardFace {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  box-sizing: border-box;
+
+  border-radius: 17px;
+
+  overflow: hidden;
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+
+  box-shadow:
+    0 12px 35px
+    rgba(15, 23, 42, 0.10);
+}
+
+
+/* =========================================================
+   FRONT CARD
+========================================================= */
+
+.cardFront {
+  position: relative;
 
   display: flex;
   flex-direction: column;
 
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
 
-  border: 1px solid #e2e6ec;
-  border-radius: 14px;
-
-  background: #ffffff;
-
-  box-shadow:
-    0 3px 12px rgba(16, 24, 40, 0.05);
-
-  transition:
-    box-shadow 0.25s ease,
-    border-color 0.25s ease;
+  padding: 26px;
 
   box-sizing: border-box;
-}
 
-.employeeCard:hover .idCard {
-  border-color: #d4dae3;
+  overflow: hidden;
 
-  box-shadow:
-    0 12px 28px rgba(16, 24, 40, 0.09);
+  color: #1c2431;
+
+  background-color: #f6f5f3;
+
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 620'%3E%3Cpath d='M-40 40 C 60 120, 140 20, 240 140 S 420 260, 480 380' stroke='%231c2431' stroke-opacity='0.055' stroke-width='2' fill='none'/%3E%3Cpath d='M-60 200 C 40 280, 120 180, 220 300 S 400 420, 470 540' stroke='%231c2431' stroke-opacity='0.045' stroke-width='2' fill='none'/%3E%3Cpath d='M-60 360 C 40 440, 120 340, 220 460 S 400 580, 470 700' stroke='%231c2431' stroke-opacity='0.035' stroke-width='2' fill='none'/%3E%3C/svg%3E"),
+    linear-gradient(
+      180deg,
+      #f8f7f5 0%,
+      #f2f1ee 100%
+    );
+
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 }
 
 
 /* =========================================================
-   CARD TOP
+   FRONT TOP
 ========================================================= */
 
-.cardTop {
+.frontTop {
+  position: relative;
+
+  z-index: 10;
+
+  width: 100%;
+  min-height: 40px;
+
   display: flex;
 
-  align-items: center;
+  align-items: flex-start;
 
   justify-content: space-between;
 
-  padding: 18px 20px 14px;
+  gap: 10px;
 
-  border-bottom: 1px solid #edf0f4;
+  padding: 0;
+  margin: 0;
 }
 
 
-/* ERP logo */
+/* =========================================================
+   COMPANY LOGO
+========================================================= */
 
 .companyLogo {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
 
   display: flex;
 
   align-items: center;
   justify-content: center;
 
-  border-radius: 9px;
+  flex-shrink: 0;
 
-  background: #172033;
+  background: transparent;
 
-  color: #ffffff;
+  border: 0;
 
-  font-size: 0.7rem;
-  font-weight: 700;
+  border-radius: 0;
 
-  letter-spacing: -0.03em;
+  color: #a9835c;
+
+  overflow: hidden;
 }
 
+.companyLogo img {
+  width: 100%;
+  height: 100%;
 
-/* Employee ID label */
+  display: block;
 
-.cardType {
-  color: #8a93a1;
+  object-fit: contain;
 
-  font-size: 0.62rem;
-
-  font-weight: 700;
-
-  letter-spacing: 0.12em;
-
-  text-transform: uppercase;
+  object-position: left center;
 }
 
 
 /* =========================================================
-   PHOTO SECTION
+   FRONT LABEL
 ========================================================= */
 
-.photoWrapper {
-  width: 112px;
-  height: 112px;
+.frontLabel {
+  margin-left: 0;
 
-  flex-shrink: 0;
+  padding-top: 6px;
 
-  margin: 22px auto 14px;
+  color: #9aa1ac;
 
-  overflow: hidden;
+  font-size: 8px;
 
-  border: 4px solid #ffffff;
+  line-height: 1;
 
-  border-radius: 50%;
+  font-weight: 700;
 
-  background: #eef1f5;
+  letter-spacing: 1.5px;
 
-  box-shadow:
-    0 0 0 1px #dce1e8,
-    0 5px 15px rgba(16, 24, 40, 0.08);
+  text-transform: uppercase;
+
+  text-align: right;
 }
 
 
-/* Employee photo */
+/* =========================================================
+   REMOVE OLD TOP DECORATION
+========================================================= */
+
+.frontTop::before,
+.frontTop::after {
+  display: none;
+}
+
+
+/* =========================================================
+   EMPLOYEE PHOTO
+========================================================= */
+
+.photoWrapper {
+  position: absolute;
+
+  top: 64px;
+
+  left: 26px;
+  right: 26px;
+
+  height: 205px;
+
+  margin: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background: transparent;
+
+  border: 0;
+
+  border-radius: 0;
+
+  box-shadow: none;
+
+  z-index: 2;
+}
+
+
+/* =========================================================
+   EMPLOYEE IMAGE
+========================================================= */
 
 .employeePhoto {
   width: 100%;
@@ -260,169 +442,382 @@
 
   display: block;
 
-  object-fit: cover;
+  object-fit: contain;
+
+  object-position: center;
+
+  background: transparent;
+
+  transition:
+    transform 0.45s ease;
+}
+
+.employeeCard:hover .employeePhoto {
+  transform: scale(1.015);
 }
 
 
-/* Initial avatar */
+/* =========================================================
+   INITIAL AVATAR
+========================================================= */
 
 .initialAvatar {
-  width: 100%;
-  height: 100%;
+  width: 135px;
+  height: 135px;
 
   display: flex;
 
   align-items: center;
   justify-content: center;
 
-  background: #e9edf3;
+  border-radius: 10%;
 
-  color: #334155;
+  background: #e8e8e8;
 
-  font-size: 1.9rem;
+  color: #303030;
 
-  font-weight: 700;
-
-  letter-spacing: -0.04em;
-}
-
-
-/* =========================================================
-   EMPLOYEE INFORMATION
-========================================================= */
-
-.employeeInfo {
-  flex: 1;
-
-  padding: 0 22px;
-
-  box-sizing: border-box;
-}
-
-
-/* Name */
-
-.employeeInfo h2 {
-  margin: 0;
-
-  color: #172033;
-
-  font-size: 1.18rem;
-
-  font-weight: 700;
-
-  line-height: 1.3;
-
-  text-align: center;
-
-  letter-spacing: -0.025em;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-}
-
-
-/* Role */
-
-.role {
-  margin: 4px 0 18px;
-
-  color: #7b8494;
-
-  font-size: 0.75rem;
+  font-size: 40px;
 
   font-weight: 500;
-
-  text-align: center;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
 }
 
 
 /* =========================================================
-   INFORMATION ROWS
+   FRONT NAME
 ========================================================= */
 
-.infoRow {
-  min-height: 30px;
+.frontName {
+  position: absolute;
+
+  left: 26px;
+  right: 26px;
+
+  bottom: 32px;
+
+  width: auto;
+
+  margin: 0;
+
+  z-index: 10;
+
+  text-align: left;
+}
+
+.frontName h2 {
+  margin: 0;
+
+  max-width: 100%;
+
+  color: #1c2431;
+
+  font-size: 25px;
+
+  line-height: 0.96;
+
+  font-weight: 700;
+
+  letter-spacing: -0.8px;
+
+  text-transform: uppercase;
+
+  white-space: normal;
+
+  overflow: visible;
+}
+
+.frontName p {
+  margin: 12px 0 0;
+
+  color: #8b93a1;
+
+  font-size: 10px;
+
+  line-height: 1.2;
+
+  font-weight: 600;
+
+  letter-spacing: 2px;
+
+  text-transform: uppercase;
+
+  text-align: left;
+}
+
+
+/* =========================================================
+   REMOVE FLIP HINT
+========================================================= */
+
+.flipHint {
+  display: none;
+}
+
+
+/* =========================================================
+   FRONT HOVER
+========================================================= */
+
+.employeeCard:hover .cardFront {
+  box-shadow:
+    0 18px 45px
+    rgba(0, 0, 0, 0.14);
+}
+
+
+/* =========================================================
+   BACK CARD
+========================================================= */
+
+.cardBack {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 22px 24px;
+
+  box-sizing: border-box;
+
+  display: flex;
+
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      165deg,
+      #17202e 0%,
+      #1b2740 100%
+    );
+
+  color: #ffffff;
+
+  border-radius: 17px;
+
+  transform: rotateY(180deg);
+
+  -webkit-transform: rotateY(180deg);
+}
+
+
+/* =========================================================
+   BACK DECORATION
+========================================================= */
+
+.cardBack::before {
+  content: "";
+
+  position: absolute;
+
+  top: -70px;
+  right: -90px;
+
+  width: 260px;
+  height: 260px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle at 35% 35%,
+      rgba(243, 247, 255, 0.4),
+      rgba(140, 142, 146, 0) 70%
+    );
+
+  z-index: 0;
+
+  pointer-events: none;
+}
+
+.cardBack::after {
+  content: "";
+
+  position: absolute;
+
+  bottom: -110px;
+  left: -60px;
+
+  width: 150px;
+  height: 180px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle at 65% 65%,
+      rgba(122, 156, 209, 0.18),
+      rgba(122, 156, 209, 0) 70%
+    );
+
+  z-index: 0;
+
+  pointer-events: none;
+}
+
+.cardBack > * {
+  position: relative;
+
+  z-index: 1;
+}
+
+
+/* =========================================================
+   BACK HEADER
+========================================================= */
+
+.backHeader {
+  position: relative;
+
+  width: 100%;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  flex-shrink: 0;
+
+  padding-bottom: 16px;
+
+  border-bottom:
+    1px solid
+    rgba(255, 255, 255, 0.1);
+}
+
+
+/* =========================================================
+   BACK LOGO
+========================================================= */
+
+.backBrand {
+  width: 46px;
+  height: 46px;
 
   display: flex;
 
   align-items: center;
-
-  justify-content: space-between;
-
-  gap: 15px;
-
-  border-bottom: 1px solid #edf0f4;
-}
-
-.infoRow:last-child {
-  border-bottom: none;
-}
-
-
-/* Left side */
-
-.infoLabel {
-  display: inline-flex;
-
-  align-items: center;
-
-  gap: 7px;
+  justify-content: center;
 
   flex-shrink: 0;
 
-  color: #8a93a1;
+  border-radius: 10px;
 
-  font-size: 0.66rem;
+  background: #ffffff;
 
-  font-weight: 600;
-
-  text-transform: uppercase;
-
-  letter-spacing: 0.04em;
-}
-
-.infoLabel svg {
-  color: #9ba4b1;
-}
-
-
-/* Right side */
-
-.infoRow strong {
-  max-width: 65%;
+  color: #1f2937;
 
   overflow: hidden;
+}
 
-  text-overflow: ellipsis;
+.backBrand img {
+  width: 70%;
+  height: 70%;
 
-  white-space: nowrap;
+  display: block;
 
-  color: #303a4b;
+  object-fit: contain;
+}
 
-  font-size: 0.72rem;
 
-  font-weight: 600;
+/* =========================================================
+   CARD TYPE
+========================================================= */
+
+.cardType {
+  padding-top: 16px;
+
+  color: #aeb6c2;
+
+  font-size: 8px;
+
+  line-height: 1;
+
+  font-weight: 700;
+
+  letter-spacing: 1px;
+
+  text-transform: uppercase;
 
   text-align: right;
 }
 
 
 /* =========================================================
-   FOOTER
+   BACK NAME
 ========================================================= */
 
-.cardFooter {
-  min-height: 55px;
+.backName {
+  flex-shrink: 0;
+
+  margin-top: 18px;
+
+  margin-bottom: 10px;
+}
+
+.backName h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 24px;
+
+  line-height: 1.05;
+
+  font-weight: 800;
+
+  letter-spacing: -0.5px;
+
+  text-transform: uppercase;
+
+  white-space: normal;
+}
+
+.backName p {
+  margin: 7px 0 0;
+
+  color: #7c9cd1;
+
+  font-size: 10px;
+
+  line-height: 1.2;
+
+  font-weight: 600;
+
+  letter-spacing: 1.5px;
+
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   DETAILS LIST
+========================================================= */
+
+.detailsList {
+  width: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  flex: 1;
+
+  min-height: 0;
+}
+
+
+/* =========================================================
+   DETAIL ROW
+========================================================= */
+
+.detailRow {
+  width: 100%;
+
+  min-height: 43px;
 
   display: flex;
 
@@ -430,15 +825,93 @@
 
   justify-content: space-between;
 
-  gap: 12px;
-
-  padding: 10px 18px;
-
-  border-top: 1px solid #e8ebef;
-
-  background: #fafbfc;
+  gap: 10px;
 
   box-sizing: border-box;
+
+  border-bottom:
+    1px solid
+    rgba(255, 255, 255, 0.08);
+}
+
+
+/* =========================================================
+   DETAIL LABEL
+========================================================= */
+
+.detailLabel {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  color: #aeb6c2;
+
+  font-size: 9px;
+
+  line-height: 1;
+
+  font-weight: 500;
+
+  flex-shrink: 0;
+}
+
+.detailLabel svg {
+  width: 14px;
+  height: 14px;
+
+  flex-shrink: 0;
+
+  color: #aeb6c2;
+}
+
+
+/* =========================================================
+   DETAIL VALUE
+========================================================= */
+
+.detailRow strong {
+  max-width: 57%;
+
+  color: #f5f6f7;
+
+  font-size: 9px;
+
+  line-height: 1.2;
+
+  font-weight: 600;
+
+  text-align: right;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   BACK FOOTER
+========================================================= */
+
+.backFooter {
+  width: 100%;
+
+  min-height: 50px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  flex-shrink: 0;
+
+  padding-top: 12px;
 }
 
 
@@ -451,35 +924,53 @@
 
   align-items: center;
 
-  gap: 7px;
+  gap: 6px;
 
-  font-size: 0.68rem;
+  padding: 7px 10px;
+
+  border-radius: 30px;
+
+  font-size: 8px;
+
+  line-height: 1;
 
   font-weight: 600;
 
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .statusDot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 
   border-radius: 50%;
 
-  background: currentColor;
+  flex-shrink: 0;
 }
 
 .statusVerified {
-  color: #237a4b;
+  background: #123d35;
+
+  color: #4ade80;
+}
+
+.statusVerified .statusDot {
+  background: #22c55e;
 }
 
 .statusPending {
-  color: #b27618;
+  background: #463715;
+
+  color: #facc15;
+}
+
+.statusPending .statusDot {
+  background: #eab308;
 }
 
 
 /* =========================================================
-   ACTION BUTTONS
+   CARD ACTIONS
 ========================================================= */
 
 .cardActions {
@@ -487,57 +978,144 @@
 
   align-items: center;
 
-  gap: 5px;
+  gap: 7px;
+
+  flex-shrink: 0;
 }
 
-.editButton,
-.deleteButton {
-  width: 31px;
-  height: 31px;
+
+/* =========================================================
+   EDIT BUTTON
+========================================================= */
+
+.editButton {
+  width: 36px;
+  height: 36px;
 
   display: flex;
 
   align-items: center;
   justify-content: center;
 
-  padding: 0;
+  flex-shrink: 0;
 
-  border: 1px solid transparent;
+  border: 1px solid #46515f;
 
-  border-radius: 7px;
+  border-radius: 9px;
 
-  background: transparent;
+  background: #273342;
+
+  color: #d7dce2;
 
   cursor: pointer;
 
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.editButton {
-  color: #647084;
-}
-
-.deleteButton {
-  color: #7d8795;
+    transform 0.2s ease;
 }
 
 .editButton:hover {
-  background: #eef2f7;
+  background: #313d4b;
 
-  border-color: #dce2e9;
+  border-color: #596574;
 
-  color: #26354d;
+  transform: translateY(-1px);
+}
+
+.editButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+/* =========================================================
+   DELETE BUTTON
+========================================================= */
+
+.deleteButton {
+  width: 36px;
+  height: 36px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: 1px solid #6b3a43;
+
+  border-radius: 9px;
+
+  background: #29252e;
+
+  color: #f87171;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .deleteButton:hover {
-  background: #fff0ef;
+  background: #3a2930;
 
-  border-color: #f2d6d3;
+  border-color: #82444f;
 
-  color: #c13d32;
+  transform: translateY(-1px);
+}
+
+.deleteButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+/* =========================================================
+   LOADING STATE
+========================================================= */
+
+.loadingState {
+  grid-column: 1 / -1;
+
+  min-height: 350px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 12px;
+
+  border: 1px dashed #d1d5db;
+
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  color: #6b7280;
+
+  font-size: 13px;
+}
+
+.loadingState p {
+  margin: 0;
+}
+
+.spinner {
+  animation:
+    spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 
@@ -558,106 +1136,91 @@
 
   justify-content: center;
 
+  padding: 30px;
+
+  border: 1px dashed #d1d5db;
+
+  border-radius: 16px;
+
+  background: #ffffff;
+
   text-align: center;
 }
 
 .emptyIcon {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
 
-  margin-bottom: 15px;
+  margin-bottom: 13px;
 
-  color: #a4adba;
+  color: #9ca3af;
 }
 
 .emptyState h3 {
-  margin: 0 0 7px;
+  margin: 0;
 
-  color: #344054;
+  color: #111827;
 
-  font-size: 1.05rem;
+  font-size: 17px;
 
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .emptyState p {
-  margin: 0 0 20px;
+  margin: 7px 0 18px;
 
-  color: #8a93a1;
+  color: #6b7280;
 
-  font-size: 0.84rem;
+  font-size: 13px;
 }
 
+
+/* =========================================================
+   EMPTY BUTTON
+========================================================= */
+
 .emptyAddButton {
+  min-height: 40px;
+
+  padding: 0 16px;
+
   display: inline-flex;
 
   align-items: center;
-
   justify-content: center;
 
   gap: 7px;
 
-  padding: 9px 16px;
-
-  border: none;
+  border: 0;
 
   border-radius: 8px;
 
-  background: #172033;
+  background: #111827;
 
   color: #ffffff;
 
   font-family: inherit;
 
-  font-size: 0.8rem;
+  font-size: 12px;
 
   font-weight: 600;
 
   cursor: pointer;
 
-  transition: background 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .emptyAddButton:hover {
-  background: #253149;
+  background: #000000;
+
+  transform: translateY(-1px);
 }
 
 
 /* =========================================================
-   LOADING
-========================================================= */
-
-.loadingState {
-  grid-column: 1 / -1;
-
-  min-height: 350px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  justify-content: center;
-
-  color: #7b8494;
-}
-
-.loadingState p {
-  margin: 14px 0 0;
-
-  font-size: 0.84rem;
-}
-
-.spinner {
-  color: #344054;
-
-  animation: spin 1s linear infinite;
-}
-
-
-/* =========================================================
-   MODAL
+   MODAL OVERLAY
 ========================================================= */
 
 .modalOverlay {
@@ -665,53 +1228,84 @@
 
   inset: 0;
 
-  width: 100%;
-  height: 100%;
+  z-index: 9999;
 
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
-  padding: 20px;
+  padding: 24px;
 
-  background: rgba(15, 23, 42, 0.48);
+  background:
+    rgba(15, 23, 42, 0.58);
 
   backdrop-filter: blur(5px);
 
   -webkit-backdrop-filter: blur(5px);
 
-  z-index: 1000;
-
-  box-sizing: border-box;
-
-  animation: fadeIn 0.2s ease;
+  animation:
+    fadeIn 0.2s ease;
 }
 
-.modalContent {
-  width: 100%;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
 
-  max-width: 500px;
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* =========================================================
+   MODAL CONTENT
+========================================================= */
+
+.modalContent {
+  width: min(620px, 100%);
 
   max-height: 90vh;
 
   overflow-y: auto;
 
-  padding: 30px;
+  padding: 25px;
 
-  border: 1px solid #e1e5ea;
+  box-sizing: border-box;
 
-  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+
+  border-radius: 16px;
 
   background: #ffffff;
 
   box-shadow:
-    0 25px 60px rgba(16, 24, 40, 0.2);
+    0 25px 70px
+    rgba(15, 23, 42, 0.22);
 
-  box-sizing: border-box;
+  animation:
+    modalSlideIn
+    0.25s
+    ease;
+}
 
-  animation: slideUp 0.25s ease;
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(12px)
+      scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
 }
 
 
@@ -728,15 +1322,22 @@
 
   gap: 20px;
 
-  margin-bottom: 25px;
+  margin-bottom: 24px;
+
+  padding-bottom: 18px;
+
+  border-bottom:
+    1px solid #e5e7eb;
 }
 
 .modalTitle {
   margin: 0;
 
-  color: #172033;
+  color: #111827;
 
-  font-size: 1.3rem;
+  font-size: 20px;
+
+  line-height: 1.3;
 
   font-weight: 700;
 }
@@ -744,10 +1345,15 @@
 .modalSubtitle {
   margin: 5px 0 0;
 
-  color: #8a93a1;
+  color: #6b7280;
 
-  font-size: 0.78rem;
+  font-size: 12px;
 }
+
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
 
 .closeButton {
   width: 34px;
@@ -758,15 +1364,15 @@
   align-items: center;
   justify-content: center;
 
-  padding: 0;
+  flex-shrink: 0;
 
-  border: none;
+  border: 1px solid #e5e7eb;
 
-  border-radius: 7px;
+  border-radius: 8px;
 
-  background: transparent;
+  background: #ffffff;
 
-  color: #8a93a1;
+  color: #6b7280;
 
   cursor: pointer;
 
@@ -776,9 +1382,9 @@
 }
 
 .closeButton:hover {
-  background: #f1f3f6;
+  background: #f3f4f6;
 
-  color: #172033;
+  color: #111827;
 }
 
 
@@ -787,7 +1393,9 @@
 ========================================================= */
 
 .formGroup {
-  margin-bottom: 18px;
+  width: 100%;
+
+  margin-bottom: 17px;
 }
 
 .label {
@@ -795,9 +1403,11 @@
 
   margin-bottom: 7px;
 
-  color: #344054;
+  color: #374151;
 
-  font-size: 0.8rem;
+  font-size: 12px;
+
+  line-height: 1.3;
 
   font-weight: 600;
 }
@@ -805,11 +1415,13 @@
 .input {
   width: 100%;
 
-  min-height: 43px;
+  height: 42px;
 
-  padding: 10px 13px;
+  padding: 0 12px;
 
-  border: 1px solid #d9dee6;
+  box-sizing: border-box;
+
+  border: 1px solid #d1d5db;
 
   border-radius: 8px;
 
@@ -817,13 +1429,11 @@
 
   background: #ffffff;
 
-  color: #172033;
+  color: #111827;
 
   font-family: inherit;
 
-  font-size: 0.86rem;
-
-  box-sizing: border-box;
+  font-size: 13px;
 
   transition:
     border-color 0.2s ease,
@@ -831,35 +1441,24 @@
 }
 
 .input::placeholder {
-  color: #a5acb7;
+  color: #9ca3af;
 }
 
 .input:hover {
-  border-color: #c4cad3;
+  border-color: #9ca3af;
 }
 
 .input:focus {
-  border-color: #52657f;
+  border-color: #111827;
 
   box-shadow:
-    0 0 0 3px rgba(82, 101, 127, 0.1);
-}
-
-.inputHint {
-  display: block;
-
-  margin-top: 6px;
-
-  color: #929aa7;
-
-  font-size: 0.69rem;
-
-  line-height: 1.4;
+    0 0 0 3px
+    rgba(17, 24, 39, 0.08);
 }
 
 
 /* =========================================================
-   FORM BUTTONS
+   FORM ACTIONS
 ========================================================= */
 
 .formActions {
@@ -871,65 +1470,25 @@
 
   gap: 10px;
 
-  margin-top: 28px;
+  margin-top: 25px;
+
+  padding-top: 18px;
+
+  border-top:
+    1px solid #e5e7eb;
 }
 
-.cancelButton {
-  min-height: 40px;
-
-  padding: 9px 17px;
-
-  border: 1px solid #d7dce3;
-
-  border-radius: 8px;
-
-  background: #ffffff;
-
-  color: #475467;
-
-  font-family: inherit;
-
-  font-size: 0.82rem;
-
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.cancelButton:hover {
-  background: #f7f8fa;
-
-  border-color: #c4cad3;
-}
-
+.cancelButton,
 .submitButton {
   min-height: 40px;
 
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 7px;
-
-  padding: 9px 17px;
-
-  border: none;
+  padding: 0 17px;
 
   border-radius: 8px;
 
-  background: #172033;
-
-  color: #ffffff;
-
   font-family: inherit;
 
-  font-size: 0.82rem;
+  font-size: 12px;
 
   font-weight: 600;
 
@@ -937,79 +1496,66 @@
 
   transition:
     background 0.2s ease,
+    color 0.2s ease,
     transform 0.2s ease;
 }
 
+.cancelButton {
+  border: 1px solid #d1d5db;
+
+  background: #ffffff;
+
+  color: #374151;
+}
+
+.cancelButton:hover {
+  background: #f9fafb;
+}
+
+.submitButton {
+  border: 1px solid #111827;
+
+  background: #111827;
+
+  color: #ffffff;
+}
+
 .submitButton:hover {
-  background: #253149;
-}
+  background: #000000;
 
-.submitButton:active {
-  transform: scale(0.98);
-}
-
-.submitButton:disabled,
-.cancelButton:disabled {
-  opacity: 0.55;
-
-  cursor: not-allowed;
-}
-
-.buttonSpinner {
-  animation: spin 1s linear infinite;
+  transform: translateY(-1px);
 }
 
 
 /* =========================================================
-   ANIMATIONS
+   MODAL SCROLLBAR
 ========================================================= */
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+.modalContent::-webkit-scrollbar {
+  width: 6px;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-
-    transform: translateY(0);
-  }
+.modalContent::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
+.modalContent::-webkit-scrollbar-thumb {
+  background: #d1d5db;
 
-  to {
-    transform: rotate(360deg);
-  }
+  border-radius: 10px;
+}
+
+.modalContent::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 
 /* =========================================================
-   LARGE DESKTOP
+   CARD Z-INDEX
 ========================================================= */
 
-@media (min-width: 1400px) {
-  .employeeGrid {
-    grid-template-columns:
-      repeat(3, minmax(300px, 1fr));
-
-    gap: 28px;
-  }
+.employeeCard:hover {
+  z-index: 20;
 }
 
 
@@ -1018,37 +1564,49 @@
 ========================================================= */
 
 @media (max-width: 1100px) {
+
   .content {
-    padding: 28px 24px;
+    padding: 26px;
   }
 
   .employeeGrid {
     grid-template-columns:
-      repeat(2, minmax(280px, 1fr));
+      repeat(
+        3,
+        minmax(230px, 1fr)
+      );
 
-    gap: 24px;
+    gap: 22px;
+  }
+
+  .employeeCard {
+    height: 440px;
   }
 }
 
 
 /* =========================================================
-   SMALL TABLET
+   SMALL LAPTOP
 ========================================================= */
 
-@media (max-width: 800px) {
-  .content {
-    padding: 24px 18px;
-  }
+@media (max-width: 900px) {
 
-  .title {
-    font-size: 1.7rem;
+  .content {
+    padding: 24px;
   }
 
   .employeeGrid {
     grid-template-columns:
-      repeat(2, minmax(250px, 1fr));
+      repeat(
+        2,
+        minmax(250px, 1fr)
+      );
 
-    gap: 20px;
+    gap: 22px;
+  }
+
+  .employeeCard {
+    height: 440px;
   }
 }
 
@@ -1058,30 +1616,49 @@
 ========================================================= */
 
 @media (max-width: 650px) {
+
   .content {
-    padding: 20px 15px;
+    padding: 18px;
   }
 
   .header {
     flex-direction: column;
 
-    align-items: stretch;
+    align-items: flex-start;
+  }
 
-    gap: 16px;
+  .title {
+    font-size: 23px;
   }
 
   .addButton {
     width: 100%;
   }
 
+  .filterContainer {
+    width: 100%;
+
+    overflow-x: auto;
+
+    box-sizing: border-box;
+  }
+
+  .filterButton {
+    flex-shrink: 0;
+  }
+
   .employeeGrid {
     grid-template-columns: 1fr;
 
-    max-width: 420px;
+    gap: 22px;
+  }
+
+  .employeeCard {
+    width: 300px;
+
+    height: 440px;
 
     margin: 0 auto;
-
-    gap: 20px;
   }
 }
 
@@ -1090,74 +1667,50 @@
    SMALL MOBILE
 ========================================================= */
 
-@media (max-width: 430px) {
+@media (max-width: 380px) {
+
   .content {
-    padding: 18px 12px;
+    padding: 14px;
   }
 
-  .title {
-    font-size: 1.5rem;
+  .employeeCard {
+    width: 100%;
+
+    height: 440px;
   }
 
-  .subtitle {
-    font-size: 0.8rem;
+  .cardFront {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
-  .idCard {
-    min-height: 420px;
+  .frontName {
+    left: 20px;
+    right: 20px;
   }
 
-  .photoWrapper {
-    width: 105px;
-    height: 105px;
+  .frontName h2 {
+    font-size: 26px;
   }
 
-  .employeeInfo {
-    padding: 0 18px;
+  .backName h2 {
+    font-size: 20px;
   }
 
-  .employeeInfo h2 {
-    font-size: 1.1rem;
+  .detailLabel {
+    font-size: 9px;
   }
 
-  .cardFooter {
-    padding: 10px 15px;
+  .detailRow strong {
+    font-size: 9px;
+
+    max-width: 55%;
   }
 
-  .modalOverlay {
-    padding: 12px;
-  }
-
-  .modalContent {
-    max-height: 94vh;
-
-    padding: 22px;
-
-    border-radius: 12px;
-  }
-}
-
-
-/* =========================================================
-   VERY SMALL MOBILE
-========================================================= */
-
-@media (max-width: 350px) {
-  .idCard {
-    min-height: 405px;
-  }
-
-  .photoWrapper {
-    width: 95px;
-    height: 95px;
-  }
-
-  .employeeInfo h2 {
-    font-size: 1rem;
-  }
-
-  .infoRow strong {
-    max-width: 60%;
+  .editButton,
+  .deleteButton {
+    width: 34px;
+    height: 34px;
   }
 }
 
@@ -1167,54 +1720,17 @@
 ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .employeeCard,
-  .addButton,
-  .editButton,
-  .deleteButton,
-  .submitButton,
-  .spinner,
-  .buttonSpinner {
-    animation: none;
+
+  .cardInner {
     transition: none;
+  }
+
+  .employeePhoto {
+    transition: none;
+  }
+
+  .employeeCard:hover .cardInner {
+    transform: rotateY(180deg);
   }
 }
 
-/* =========================================================
-   FILTER TABS (PREMIUM PILLS)
-========================================================= */
-
-.filterContainer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #edf0f4;
-  padding: 5px;
-  border-radius: 10px;
-  width: fit-content;
-  margin-bottom: 25px;
-  border: 1px solid #e2e6ec;
-}
-
-.filterButton {
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  color: #4a5568;
-  font-family: inherit;
-  font-size: 0.86rem;
-  font-weight: 600;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.filterButton:hover {
-  color: #172033;
-}
-
-.filterButtonActive {
-  background: #ffffff;
-  color: #172033;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-}
