@@ -26,8 +26,8 @@ export const createServiceValidation = [
 
 export const createOrderValidation = [
   body("laundryId").notEmpty().isUUID().withMessage("Laundry ID is required"),
-  body("branchId").notEmpty().isUUID().withMessage("Branch ID is required"),
-  body("customerId").notEmpty().isUUID().withMessage("Customer ID is required"),
+  body("branchId").optional({ checkFalsy: true }).isUUID().withMessage("Branch ID must be a valid UUID"),
+  body("customerId").optional({ checkFalsy: true }).isUUID().withMessage("Customer ID must be a valid UUID"),
   body("subtotal").notEmpty().isFloat({ min: 0 }).withMessage("Subtotal must be 0 or greater"),
   body("discountAmount").optional().isFloat({ min: 0 }).withMessage("Discount must be 0 or greater"),
   body("taxAmount").optional().isFloat({ min: 0 }).withMessage("Tax must be 0 or greater"),
