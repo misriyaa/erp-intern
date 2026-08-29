@@ -4,24 +4,57 @@ export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Edit2, Trash2, X, Users, Loader2, Plus, CreditCard, Mail, Phone, Building2 } from "lucide-react";
+import {
+  Edit2,
+  Trash2,
+  X,
+  Users,
+  Loader2,
+  Plus,
+  CreditCard,
+  Mail,
+  Phone,
+  Building2,
+} from "lucide-react";
+
 import styles from "./viewEmployees.module.css";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
+
 import { getRoles } from "@/services/roleService";
 import { getBranches } from "@/services/branchService";
 import { restaurantService } from "@/services/restaurantService";
 import apiClient from "@/services/apiClient";
+
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
 
+
 export default function EmployeePage() {
   const router = useRouter();
-  const { user, company, industryCode, isGym, isTextile, isRestaurant } = useCompany();
+
+  const {
+    user,
+    company,
+    industryCode,
+    isGym,
+    isTextile,
+    isRestaurant,
+  } = useCompany();
+
   const { settings, logoUrl } = useSettings();
-  const { showSuccess, showError, showConfirm } = useAlert();
+
+  const {
+    showSuccess,
+    showError,
+    showConfirm,
+  } = useAlert();
+
+
+  /* =====================================================
+     PAGE TEXT
+  ===================================================== */
 
   const pageTitle = isGym
     ? "Gym Fitness Trainers & Staff Roster"
@@ -29,75 +62,194 @@ export default function EmployeePage() {
     ? "Mill Machine Operators, Technicians & QC Staff"
     : "Employees & Staff Directory";
 
+
   const pageSub = isGym
     ? "Manage personal trainers, front-desk staff, and fitness managers."
     : isTextile
     ? "Manage weaving loom operators, dyeing technicians, quality inspectors, and mill supervisors."
     : "Manage store employees, sales cashiers, and department staff.";
 
-  const addBtnText = isGym ? "Add Trainer / Staff" : isTextile ? "Add Operator / Staff" : "Add Employee";
+
+  const addBtnText = isGym
+    ? "Add Trainer / Staff"
+    : isTextile
+    ? "Add Operator / Staff"
+    : "Add Employee";
+
+
+  /* =====================================================
+     STATE
+  ===================================================== */
 
   const [roles, setRoles] = useState([]);
+
   const [branches, setBranches] = useState([]);
+
   const [employees, setEmployees] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [errors, setErrors] = useState({});
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
 
-  const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [currentEmployee, setCurrentEmployee] =
+    useState(null);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [filterType, setFilterType] = useState("all");
-  const [selectedModules, setSelectedModules] = useState([]);
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [filterType, setFilterType] =
+    useState("all");
+
+  const [selectedModules, setSelectedModules] =
+    useState([]);
+
+
+  /* =====================================================
+     AVAILABLE MODULES
+  ===================================================== */
 
   const availableModules = useMemo(() => {
-    const isTex = Boolean(industryCode?.includes("TEXTILE"));
-    const isGymMode = Boolean(industryCode?.includes("GYM"));
-    const isRest = Boolean(industryCode?.includes("RESTAURANT"));
-    const isLnd = Boolean(industryCode?.includes("LAUNDRY"));
+    const isTex = Boolean(
+      industryCode?.includes("TEXTILE")
+    );
+
+    const isGymMode = Boolean(
+      industryCode?.includes("GYM")
+    );
+
+    const isRest = Boolean(
+      industryCode?.includes("RESTAURANT")
+    );
+
+    const isLnd = Boolean(
+      industryCode?.includes("LAUNDRY")
+    );
+
+
+    /* ===============================
+       LAUNDRY
+    =============================== */
 
     if (isLnd) {
       return [
-        { code: "DASHBOARD", name: "Laundry Dashboard", description: "Washing operations summary & charts" },
-        { code: "LAUNDRY", name: "Laundry POS & Operations", description: "Garment tracking, active orders & queue" },
-        { code: "BRANCHES", name: "Outlets & Branches", description: "Laundry outlets & branch locations" },
-        { code: "SERVICES", name: "Services & Categories", description: "Washing & dry cleaning catalog" },
-        { code: "CUSTOMERS", name: "Customers", description: "Client profiles & phone directory" },
-        { code: "EMPLOYEES", name: "Employees & Staff", description: "Washer, presser & driver team" },
-        { code: "REPORTS", name: "Laundry Reports", description: "Revenue & garment delivery analytics" },
+        {
+          code: "DASHBOARD",
+          name: "Laundry Dashboard",
+          description:
+            "Washing operations summary & charts",
+        },
+        {
+          code: "LAUNDRY",
+          name: "Laundry POS & Operations",
+          description:
+            "Garment tracking, active orders & queue",
+        },
+        {
+          code: "BRANCHES",
+          name: "Outlets & Branches",
+          description:
+            "Laundry outlets & branch locations",
+        },
+        {
+          code: "SERVICES",
+          name: "Services & Categories",
+          description:
+            "Washing & dry cleaning catalog",
+        },
+        {
+          code: "CUSTOMERS",
+          name: "Customers",
+          description:
+            "Client profiles & phone directory",
+        },
+        {
+          code: "EMPLOYEES",
+          name: "Employees & Staff",
+          description:
+            "Washer, presser & driver team",
+        },
+        {
+          code: "REPORTS",
+          name: "Laundry Reports",
+          description:
+            "Revenue & garment delivery analytics",
+        },
       ];
-    } else if (isGymMode) {
+    }
+
+
+    /* ===============================
+       GYM
+    =============================== */
+
+    else if (isGymMode) {
       return [
-        { code: "DASHBOARD", name: "Dashboard", description: "Business statistics & charts" },
-        { code: "MEMBERS", name: "Members", description: "Manage gym member accounts" },
-        { code: "MEMBERSHIP_PLANS", name: "Membership Plans", description: "Configure membership packages" },
-        { code: "TRAINERS", name: "Trainers", description: "Gym instructors & schedules" },
-        { code: "ATTENDANCE", name: "Attendance", description: "Daily gym check-ins logs" },
-        { code: "PAYMENTS", name: "Payments", description: "Financial receipts & invoices" },
-        { code: "EMPLOYEES", name: "Employees", description: "Manage staff & team permissions" },
-        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor catalog & logistics" },
-        { code: "REPORTS", name: "Reports & Analytics", description: "Visual operations summaries" },
+        {
+          code: "DASHBOARD",
+          name: "Dashboard",
+          description:
+            "Business statistics & charts",
+        },
+        {
+          code: "MEMBERS",
+          name: "Members",
+          description:
+            "Manage gym member accounts",
+        },
+        {
+          code: "MEMBERSHIP_PLANS",
+          name: "Membership Plans",
+          description:
+            "Configure membership packages",
+        },
+        {
+          code: "TRAINERS",
+          name: "Trainers",
+          description:
+            "Gym instructors & schedules",
+        },
+        {
+          code: "ATTENDANCE",
+          name: "Attendance",
+          description:
+            "Daily gym check-ins logs",
+        },
+        {
+          code: "PAYMENTS",
+          name: "Payments",
+          description:
+            "Financial receipts & invoices",
+        },
+        {
+          code: "EMPLOYEES",
+          name: "Employees",
+          description:
+            "Manage staff & team permissions",
+        },
+        {
+          code: "SUPPLIERS",
+          name: "Suppliers",
+          description:
+            "Vendor catalog & logistics",
+        },
+        {
+          code: "REPORTS",
+          name: "Reports & Analytics",
+          description:
+            "Visual operations summaries",
+        },
       ];
-    } else if (isTex) {
-      return [
-        { code: "DASHBOARD", name: "Dashboard", description: "Industrial performance summary" },
-        { code: "PRODUCTS", name: "Products Setup", description: "Manage product listings" },
-        { code: "CATEGORIES", name: "Product Categories", description: "Configure category filters" },
-        { code: "BRANDS", name: "Product Brands", description: "Configure product brand tags" },
-        { code: "UNITS", name: "Units of Measure", description: "Configure units of measure (UoM)" },
-        { code: "RAW_MATERIALS", name: "Raw Materials", description: "Weaving yarn & mill supplies" },
-        { code: "PRODUCTION", name: "Production Run", description: "Textile manufacturing tracking" },
-        { code: "INVENTORY", name: "Inventory", description: "Raw & finished product stocks" },
-        { code: "WAREHOUSE", name: "Warehouse", description: "Storage mills & stock depots" },
-        { code: "QUALITY_CONTROL", name: "Quality Control", description: "Fabric inspection sheets" },
-        { code: "SUPPLIERS", name: "Suppliers", description: "Supplier records & bulk orders" },
-        { code: "SALES", name: "Sales Orders", description: "Client sales & invoices" },
-        { code: "PAYMENTS", name: "Payments", description: "Transactional records ledger" },
-        { code: "EMPLOYEES", name: "Employees", description: "Manage workers & mill supervisors" },
-        { code: "REPORTS", name: "Industrial Reports", description: "Factory output summaries" },
-      ];
-    } else if (isRest) {
+    }
+
+
+    /* ===============================
+       TEXTILE
+    =============================== */
+
+    else if (isTex) {
       return [
         { code: "DASHBOARD", name: "Restaurant Dashboard", description: "Food sales charts & analytics" },
         { code: "RESTAURANT", name: "Restaurant POS & Floor", description: "POS terminal, KOT, tables & costing" },
@@ -108,36 +260,211 @@ export default function EmployeePage() {
         { code: "INVENTORY", name: "Kitchen Inventory", description: "Stock control of kitchen supplies" },
         { code: "WAREHOUSE", name: "Outlets / Storage", description: "Store storage rooms & pantries" },
         { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details for food orders" },
-        { code: "PURCHASES", name: "Food Purchases", description: "Supplier ingredients procurement" },
         { code: "EMPLOYEES", name: "Staff Management", description: "Waiters, kitchen & cashier accounts" },
-        { code: "REPORTS", name: "Analytics & Reports", description: "Restaurant operations overview" },
-      ];
-    } else {
-      return [
-        { code: "DASHBOARD", name: "Dashboard", description: "Live metrics & charts" },
-        { code: "PRODUCTS", name: "Products Setup", description: "Manage product listings" },
-        { code: "CATEGORIES", name: "Product Categories", description: "Configure category filters" },
-        { code: "BRANDS", name: "Product Brands", description: "Configure product brand tags" },
-        { code: "UNITS", name: "Units of Measure", description: "Configure units of measure (UoM)" },
-        { code: "INVENTORY", name: "Inventory", description: "Current stock catalogs" },
-        { code: "WAREHOUSE", name: "Warehouse", description: "Store depots & physical logs" },
-        { code: "STOCK_TRANSFER", name: "Stock Transfer", description: "Inter-branch product transfers" },
-        { code: "CUSTOMERS", name: "Customers", description: "Client database & profiles" },
-        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details & catalog" },
-        { code: "PURCHASES", name: "Purchases", description: "Supplier purchase logs" },
-        { code: "SALES", name: "Sales Orders", description: "Store sales & invoices" },
-        { code: "REPORTS", name: "Reports & Analytics", description: "Operations summaries" },
-        { code: "INVOICES", name: "Invoices", description: "Generate receipt documents" },
-        { code: "EMPLOYEES", name: "Employees / Team", description: "Manage branch staff accounts" },
+        { code: "REPORTS", name: "Reports & Analytics", description: "Restaurant operations overview" },
       ];
     }
+
+
+    /* ===============================
+       RESTAURANT
+    =============================== */
+
+    else if (isRest) {
+      return [
+        {
+          code: "DASHBOARD",
+          name: "Restaurant Dashboard",
+          description:
+            "Food sales charts & analytics",
+        },
+        {
+          code: "RESTAURANT",
+          name: "Restaurant POS & Floor",
+          description:
+            "POS terminal, KOT, tables & costing",
+        },
+        {
+          code: "PRODUCTS",
+          name: "Menu & Ingredients",
+          description:
+            "Manage raw ingredients & recipes",
+        },
+        {
+          code: "CATEGORIES",
+          name: "Menu Categories",
+          description:
+            "Configure menu categories",
+        },
+        {
+          code: "BRANDS",
+          name: "Ingredient Brands",
+          description:
+            "Configure ingredient brands",
+        },
+        {
+          code: "UNITS",
+          name: "Units of Measure",
+          description:
+            "Configure recipe units of measure",
+        },
+        {
+          code: "INVENTORY",
+          name: "Kitchen Inventory",
+          description:
+            "Stock control of kitchen supplies",
+        },
+        {
+          code: "WAREHOUSE",
+          name: "Outlets / Storage",
+          description:
+            "Store storage rooms & pantries",
+        },
+        {
+          code: "SUPPLIERS",
+          name: "Suppliers",
+          description:
+            "Vendor details for food orders",
+        },
+        {
+          code: "PURCHASES",
+          name: "Food Purchases",
+          description:
+            "Supplier ingredients procurement",
+        },
+        {
+          code: "EMPLOYEES",
+          name: "Staff Management",
+          description:
+            "Waiters, kitchen & cashier accounts",
+        },
+        {
+          code: "REPORTS",
+          name: "Analytics & Reports",
+          description:
+            "Restaurant operations overview",
+        },
+      ];
+    }
+
+
+    /* ===============================
+       RETAIL / DEFAULT
+    =============================== */
+
+    return [
+      {
+        code: "DASHBOARD",
+        name: "Dashboard",
+        description:
+          "Live metrics & charts",
+      },
+      {
+        code: "PRODUCTS",
+        name: "Products Setup",
+        description:
+          "Manage product listings",
+      },
+      {
+        code: "CATEGORIES",
+        name: "Product Categories",
+        description:
+          "Configure category filters",
+      },
+      {
+        code: "BRANDS",
+        name: "Product Brands",
+        description:
+          "Configure product brand tags",
+      },
+      {
+        code: "UNITS",
+        name: "Units of Measure",
+        description:
+          "Configure units of measure (UoM)",
+      },
+      {
+        code: "INVENTORY",
+        name: "Inventory",
+        description:
+          "Current stock catalogs",
+      },
+      {
+        code: "WAREHOUSE",
+        name: "Warehouse",
+        description:
+          "Store depots & physical logs",
+      },
+      {
+        code: "STOCK_TRANSFER",
+        name: "Stock Transfer",
+        description:
+          "Inter-branch product transfers",
+      },
+      {
+        code: "CUSTOMERS",
+        name: "Customers",
+        description:
+          "Client database & profiles",
+      },
+      {
+        code: "SUPPLIERS",
+        name: "Suppliers",
+        description:
+          "Vendor details & catalog",
+      },
+      {
+        code: "PURCHASES",
+        name: "Purchases",
+        description:
+          "Supplier purchase logs",
+      },
+      {
+        code: "SALES",
+        name: "Sales Orders",
+        description:
+          "Store sales & invoices",
+      },
+      {
+        code: "REPORTS",
+        name: "Reports & Analytics",
+        description:
+          "Operations summaries",
+      },
+      {
+        code: "INVOICES",
+        name: "Invoices",
+        description:
+          "Generate receipt documents",
+      },
+      {
+        code: "EMPLOYEES",
+        name: "Employees / Team",
+        description:
+          "Manage branch staff accounts",
+      },
+    ];
   }, [industryCode]);
 
+
+  /* =====================================================
+     MODULE TOGGLE
+  ===================================================== */
+
   const handleModuleToggle = (code) => {
-    setSelectedModules((prev) =>
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    setSelectedModules((previous) =>
+      previous.includes(code)
+        ? previous.filter(
+            (item) => item !== code
+          )
+        : [...previous, code]
     );
   };
+
+
+  /* =====================================================
+     FORM DATA
+  ===================================================== */
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -148,52 +475,93 @@ export default function EmployeePage() {
     branchId: "",
   });
 
+
+  /* =====================================================
+     VALIDATE FORM
+  ===================================================== */
+
   const validateEditEmployeeForm = () => {
     const newErrors = {};
 
+
     if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = "Full name must be at least 2 characters";
+      newErrors.fullName =
+        "Full name is required";
+    } else if (
+      formData.fullName.trim().length < 2
+    ) {
+      newErrors.fullName =
+        "Full name must be at least 2 characters";
     }
+
 
     if (!formData.employeeId.trim()) {
-      newErrors.employeeId = "Employee ID is required";
+      newErrors.employeeId =
+        "Employee ID is required";
     }
+
 
     if (!formData.role) {
-      newErrors.role = "Role is required";
+      newErrors.role =
+        "Role is required";
     }
+
 
     if (!formData.email.trim()) {
-      newErrors.email = "Email address is required";
+      newErrors.email =
+        "Email address is required";
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = "Enter a valid email address";
+      const emailRegex =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (
+        !emailRegex.test(
+          formData.email.trim()
+        )
+      ) {
+        newErrors.email =
+          "Enter a valid email address";
       }
     }
+
 
     if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
+      newErrors.phone =
+        "Phone number is required";
     } else {
-      const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/;
-      if (!phoneRegex.test(formData.phone.trim())) {
-        newErrors.phone = "Enter a valid phone number (7-20 digits)";
+      const phoneRegex =
+        /^[\+\d\s\-\(\)]{7,20}$/;
+
+      if (
+        !phoneRegex.test(
+          formData.phone.trim()
+        )
+      ) {
+        newErrors.phone =
+          "Enter a valid phone number (7-20 digits)";
       }
     }
 
+
     if (!formData.branchId) {
-      newErrors.branchId = isRestaurant ? "Outlet is required" : "Branch is required";
+      newErrors.branchId =
+        isRestaurant
+          ? "Outlet is required"
+          : "Branch is required";
     }
 
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    return (
+      Object.keys(newErrors).length === 0
+    );
   };
 
-  // =====================================================
-  // FETCH EMPLOYEES
-  // =====================================================
+
+  /* =====================================================
+     FETCH DATA
+  ===================================================== */
 
   useEffect(() => {
     fetchEmployees();
@@ -201,303 +569,711 @@ export default function EmployeePage() {
     fetchBranches();
   }, []);
 
+
+  /* =====================================================
+     FETCH ROLES
+  ===================================================== */
+
   const fetchRoles = () => {
     let combined = [];
+
+
     if (isGym) {
       combined = [
-        { id: "Manager", name: "Manager" },
-        { id: "Trainer", name: "Trainer" },
-      ];
-    } else if (isTextile) {
-      combined = [
-        { id: "Manager", name: "Manager" },
-        { id: "Weaver", name: "Weaver" },
-        { id: "Dyer", name: "Dyer" },
-        { id: "Quality Inspector", name: "Quality Inspector" },
-      ];
-    } else if (isRestaurant) {
-      combined = [
-        { id: "Manager", name: "Manager" },
-        { id: "Cashier", name: "Cashier" },
-        { id: "Waiter", name: "Waiter" },
-        { id: "Kitchen Staff", name: "Kitchen Staff" },
-      ];
-    } else {
-      // Retail / default
-      combined = [
-        { id: "Manager", name: "Manager" },
-        { id: "Cashier", name: "Cashier" },
-        { id: "Inventory Manager", name: "Inventory Manager" },
+        {
+          id: "Manager",
+          name: "Manager",
+        },
+        {
+          id: "Trainer",
+          name: "Trainer",
+        },
       ];
     }
+
+
+    else if (isTextile) {
+      combined = [
+        {
+          id: "Manager",
+          name: "Manager",
+        },
+        {
+          id: "Weaver",
+          name: "Weaver",
+        },
+        {
+          id: "Dyer",
+          name: "Dyer",
+        },
+        {
+          id: "Quality Inspector",
+          name: "Quality Inspector",
+        },
+      ];
+    }
+
+
+    else if (isRestaurant) {
+      combined = [
+        {
+          id: "Manager",
+          name: "Manager",
+        },
+        {
+          id: "Cashier",
+          name: "Cashier",
+        },
+        {
+          id: "Waiter",
+          name: "Waiter",
+        },
+        {
+          id: "Kitchen Staff",
+          name: "Kitchen Staff",
+        },
+      ];
+    }
+
+
+    else {
+      combined = [
+        {
+          id: "Manager",
+          name: "Manager",
+        },
+        {
+          id: "Cashier",
+          name: "Cashier",
+        },
+        {
+          id: "Inventory Manager",
+          name: "Inventory Manager",
+        },
+      ];
+    }
+
+
     setRoles(combined);
   };
 
+
+  /* =====================================================
+     FETCH BRANCHES / OUTLETS
+  ===================================================== */
+
   const fetchBranches = async () => {
     try {
-      const [res, restRes] = await Promise.all([
+      const [
+        res,
+        restRes,
+      ] = await Promise.all([
         getBranches().catch(() => []),
-        restaurantService.getRestaurants().catch(() => []),
+        restaurantService
+          .getRestaurants()
+          .catch(() => []),
       ]);
 
-      const bList = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : (res?.data?.data || []);
-      const rList = Array.isArray(restRes?.data) ? restRes.data : Array.isArray(restRes) ? restRes : (restRes?.data?.data || []);
+
+      const bList = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res)
+        ? res
+        : res?.data?.data || [];
+
+
+      const rList = Array.isArray(
+        restRes?.data
+      )
+        ? restRes.data
+        : Array.isArray(restRes)
+        ? restRes
+        : restRes?.data?.data || [];
+
 
       let combined = [];
 
+
       if (isRestaurant) {
         if (rList.length > 0) {
-          combined = rList.map((r) => ({
-            id: r.id,
-            branchId: r.branchId || r.id,
-            name: r.code ? `${r.name} (${r.code})` : r.name,
-            code: r.code || "OUTLET",
+          combined = rList.map((restaurant) => ({
+            id: restaurant.id,
+
+            branchId:
+              restaurant.branchId ||
+              restaurant.id,
+
+            name: restaurant.code
+              ? `${restaurant.name} (${restaurant.code})`
+              : restaurant.name,
+
+            code:
+              restaurant.code ||
+              "OUTLET",
           }));
         } else {
-          combined = bList.map((b) => ({
-            id: b.id,
-            branchId: b.id,
-            name: b.name,
-            code: b.code || "BRANCH",
+          combined = bList.map((branch) => ({
+            id: branch.id,
+
+            branchId: branch.id,
+
+            name: branch.name,
+
+            code:
+              branch.code ||
+              "BRANCH",
           }));
         }
-      } else {
+      }
+
+
+      else {
         combined = [...bList];
-        rList.forEach((r) => {
-          if (r?.id && !combined.some((b) => b.id === r.id || b.id === r.branchId)) {
+
+        rList.forEach((restaurant) => {
+          if (
+            restaurant?.id &&
+            !combined.some(
+              (branch) =>
+                branch.id === restaurant.id ||
+                branch.id ===
+                  restaurant.branchId
+            )
+          ) {
             combined.push({
-              id: r.id,
-              branchId: r.branchId || r.id,
-              name: `${r.name} (${r.code || "Outlet"})`,
-              code: r.code || "OUTLET",
+              id: restaurant.id,
+
+              branchId:
+                restaurant.branchId ||
+                restaurant.id,
+
+              name: `${restaurant.name} (${
+                restaurant.code ||
+                "Outlet"
+              })`,
+
+              code:
+                restaurant.code ||
+                "OUTLET",
             });
           }
         });
       }
 
+
       setBranches(combined);
-    } catch (err) {
-      console.error("Failed to fetch branches/outlets:", err);
+    } catch (error) {
+      console.error(
+        "Failed to fetch branches/outlets:",
+        error
+      );
     }
   };
 
+
+  /* =====================================================
+     AUTH HEADERS
+  ===================================================== */
+
   const getAuthHeaders = () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("token")
+        : null;
+
+    return token
+      ? {
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      : {};
   };
+
+
+  /* =====================================================
+     FETCH EMPLOYEES
+  ===================================================== */
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
 
-      const response = await apiClient.get(
-        `/employees?companyId=${company?.id || ""}&type=${industryCode || ""}`
-      );
 
-      const rawList = response.data?.data || [];
-
-      // Filter out admins if logged-in user is a business-type admin
-      let baseList = rawList;
-      if (user?.role?.toUpperCase() === "ADMIN") {
-        baseList = rawList.filter(
-          (emp) =>
-            emp.role?.toUpperCase() !== "ADMIN" &&
-            emp.role?.toUpperCase() !== "SUPER_ADMIN" &&
-            emp.role?.toUpperCase() !== "SUPERADMIN"
+      const response =
+        await apiClient.get(
+          `/employees?companyId=${
+            company?.id || ""
+          }&type=${
+            industryCode || ""
+          }`
         );
+
+
+      const rawList =
+        response.data?.data || [];
+
+
+      let baseList = rawList;
+
+
+      /* =========================================
+         HIDE ADMIN EMPLOYEES FOR BUSINESS ADMIN
+      ========================================= */
+
+      if (
+        user?.role?.toUpperCase() ===
+        "ADMIN"
+      ) {
+        baseList =
+          rawList.filter(
+            (employee) =>
+              employee.role
+                ?.toUpperCase() !==
+                "ADMIN" &&
+              employee.role
+                ?.toUpperCase() !==
+                "SUPER_ADMIN" &&
+              employee.role
+                ?.toUpperCase() !==
+                "SUPERADMIN"
+          );
       }
 
-      const filteredList = baseList.filter((emp) => {
-        if (emp.type && industryCode && emp.type.toUpperCase() === industryCode.toUpperCase()) {
+
+      /* =========================================
+         INDUSTRY FILTER
+      ========================================= */
+
+      const filteredList =
+        baseList.filter((employee) => {
+
+          if (
+            employee.type &&
+            industryCode &&
+            employee.type.toUpperCase() ===
+              industryCode.toUpperCase()
+          ) {
+            return true;
+          }
+
+
+          const isTex =
+            employee.type ===
+              "TEXTILE" ||
+            employee.employeeId?.startsWith(
+              "EMP-TEX"
+            ) ||
+            employee.role
+              ?.toLowerCase()
+              .includes("loom") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("weaving") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("spinning") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("dyeing") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("textile") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("mill");
+
+
+          const isGymEmp =
+            employee.type ===
+              "GYM" ||
+            employee.employeeId?.startsWith(
+              "EMP-GYM"
+            ) ||
+            employee.role
+              ?.toLowerCase()
+              .includes("trainer") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("nutrition") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("fitness") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("desk") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("check-in") ||
+            employee.role
+              ?.toLowerCase()
+              .includes("receptionist");
+
+
+          if (isTextile) {
+            return (
+              isTex ||
+              !employee.type
+            );
+          }
+
+
+          if (isGym) {
+            return (
+              isGymEmp ||
+              !employee.type
+            );
+          }
+
+
           return true;
-        }
+        });
 
-        const isTex =
-          emp.type === "TEXTILE" ||
-          emp.employeeId?.startsWith("EMP-TEX") ||
-          emp.role?.toLowerCase().includes("loom") ||
-          emp.role?.toLowerCase().includes("weaving") ||
-          emp.role?.toLowerCase().includes("spinning") ||
-          emp.role?.toLowerCase().includes("dyeing") ||
-          emp.role?.toLowerCase().includes("textile") ||
-          emp.role?.toLowerCase().includes("mill");
-
-        const isGymEmp =
-          emp.type === "GYM" ||
-          emp.employeeId?.startsWith("EMP-GYM") ||
-          emp.role?.toLowerCase().includes("trainer") ||
-          emp.role?.toLowerCase().includes("nutrition") ||
-          emp.role?.toLowerCase().includes("fitness") ||
-          emp.role?.toLowerCase().includes("desk") ||
-          emp.role?.toLowerCase().includes("check-in") ||
-          emp.role?.toLowerCase().includes("receptionist");
-
-        if (isTextile) return isTex || !emp.type;
-        if (isGym) return isGymEmp || !emp.type;
-        return true;
-      });
 
       setEmployees(filteredList);
+
     } catch (error) {
-      console.error("Fetch employees error:", error);
+      console.error(
+        "Fetch employees error:",
+        error
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // =====================================================
-  // INPUT CHANGE
-  // =====================================================
+
+  /* =====================================================
+     INPUT CHANGE
+  ===================================================== */
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const {
+      name,
+      value,
+    } = e.target;
+
 
     setFormData((previous) => ({
       ...previous,
       [name]: value,
     }));
+
+
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+      setErrors((previous) => ({
+        ...previous,
+        [name]: undefined,
+      }));
     }
   };
 
-  // =====================================================
-  // ADD EMPLOYEE
-  // =====================================================
+
+  /* =====================================================
+     ADD EMPLOYEE
+  ===================================================== */
 
   const handleAddEmployee = () => {
-    router.push("/admin/employees/add");
+    router.push(
+      "/admin/employees/add"
+    );
   };
 
-  // =====================================================
-  // EDIT EMPLOYEE
-  // =====================================================
 
-  const handleEditEmployee = (employee) => {
+  /* =====================================================
+     EDIT EMPLOYEE
+  ===================================================== */
+
+  const handleEditEmployee = (
+    employee
+  ) => {
     setCurrentEmployee(employee);
+
     setErrors({});
 
-    const matchingOption = branches.find(
-      (b) => b.id === employee.branchId || b.branchId === employee.branchId || b.id === employee.branch?.id
-    );
+
+    const matchingOption =
+      branches.find(
+        (branch) =>
+          branch.id ===
+            employee.branchId ||
+          branch.branchId ===
+            employee.branchId ||
+          branch.id ===
+            employee.branch?.id
+      );
+
 
     let existingPerms = [];
+
+
     if (employee.permissions) {
       try {
-        existingPerms = typeof employee.permissions === "string" ? JSON.parse(employee.permissions) : employee.permissions;
-      } catch (e) {
-        if (typeof employee.permissions === "string") {
-          existingPerms = employee.permissions.split(",").map((s) => s.trim().toUpperCase());
+        existingPerms =
+          typeof employee.permissions ===
+          "string"
+            ? JSON.parse(
+                employee.permissions
+              )
+            : employee.permissions;
+
+      } catch (error) {
+        if (
+          typeof employee.permissions ===
+          "string"
+        ) {
+          existingPerms =
+            employee.permissions
+              .split(",")
+              .map((item) =>
+                item.trim().toUpperCase()
+              );
         }
       }
     }
-    setSelectedModules(Array.isArray(existingPerms) && existingPerms.length > 0 ? existingPerms : availableModules.map((m) => m.code));
+
+
+    setSelectedModules(
+      Array.isArray(existingPerms) &&
+        existingPerms.length > 0
+        ? existingPerms
+        : availableModules.map(
+            (module) => module.code
+          )
+    );
+
 
     setFormData({
-      fullName: employee.fullName || "",
-      email: employee.email || "",
-      phone: employee.phone || "",
-      employeeId: employee.employeeId || "",
-      role: employee.role?.name || employee.role || "Admin",
-      branchId: matchingOption?.id || employee.branchId || employee.branch?.id || "",
+      fullName:
+        employee.fullName || "",
+
+      email:
+        employee.email || "",
+
+      phone:
+        employee.phone || "",
+
+      employeeId:
+        employee.employeeId || "",
+
+      role:
+        employee.role?.name ||
+        employee.role ||
+        "Admin",
+
+      branchId:
+        matchingOption?.id ||
+        employee.branchId ||
+        employee.branch?.id ||
+        "",
     });
+
 
     setIsModalOpen(true);
   };
 
-  // =====================================================
-  // DELETE EMPLOYEE
-  // =====================================================
 
-  const handleDeleteEmployee = (employeeId) => {
+  /* =====================================================
+     DELETE EMPLOYEE
+  ===================================================== */
+
+  const handleDeleteEmployee = (
+    employeeId
+  ) => {
     showConfirm({
       title: "Delete Employee",
-      message: "Are you sure you want to delete this employee record? This action cannot be undone.",
-      confirmText: "Delete Employee",
+
+      message:
+        "Are you sure you want to delete this employee record? This action cannot be undone.",
+
+      confirmText:
+        "Delete Employee",
+
       type: "danger",
+
       onConfirm: async () => {
         try {
-          if (typeof employeeId === "string" && !employeeId.startsWith("emp-")) {
-            await apiClient.delete(`/employees/${employeeId}`);
+
+          if (
+            typeof employeeId ===
+              "string" &&
+            !employeeId.startsWith(
+              "emp-"
+            )
+          ) {
+            await apiClient.delete(
+              `/employees/${employeeId}`
+            );
           }
-          showSuccess("Employee Deleted", "Employee profile deleted successfully.");
-          setEmployees((previous) => previous.filter((employee) => employee.id !== employeeId));
+
+
+          showSuccess(
+            "Employee Deleted",
+            "Employee profile deleted successfully."
+          );
+
+
+          setEmployees(
+            (previous) =>
+              previous.filter(
+                (employee) =>
+                  employee.id !==
+                  employeeId
+              )
+          );
+
         } catch (error) {
-          console.error("Delete employee error:", error);
-          showError("Employee Deletion Failed", error.response?.data?.message || "Failed to delete employee.");
+
+          console.error(
+            "Delete employee error:",
+            error
+          );
+
+
+          showError(
+            "Employee Deletion Failed",
+            error.response?.data
+              ?.message ||
+              "Failed to delete employee."
+          );
         }
       },
     });
   };
 
-  // =====================================================
-  // UPDATE EMPLOYEE
-  // =====================================================
 
-  const handleSubmit = async (e) => {
+  /* =====================================================
+     UPDATE EMPLOYEE
+  ===================================================== */
+
+  const handleSubmit = async (
+    e
+  ) => {
     e.preventDefault();
+
 
     if (!currentEmployee) {
       return;
     }
 
+
     if (!validateEditEmployeeForm()) {
       return;
     }
 
+
     setSubmitting(true);
 
+
     try {
+
       const updateData = {
         ...formData,
-        permissions: selectedModules,
+        permissions:
+          selectedModules,
       };
 
-      const response = await apiClient.put(
-        `/employees/${currentEmployee.id}`,
-        updateData
-      );
+
+      const response =
+        await apiClient.put(
+          `/employees/${currentEmployee.id}`,
+          updateData
+        );
+
 
       toast.success(
         response.data?.message ||
           "Employee updated successfully"
       );
 
+
       closeModal();
 
       fetchEmployees();
-    } catch (error) {
-      console.error("Update employee error:", error);
-      const serverMsg = error.response?.data?.message || "";
-      const lower = serverMsg.toLowerCase();
 
-      if (lower.includes("email")) {
-        setErrors((prev) => ({ ...prev, email: serverMsg }));
-      } else if (lower.includes("phone")) {
-        setErrors((prev) => ({ ...prev, phone: serverMsg }));
-      } else if (lower.includes("employee")) {
-        setErrors((prev) => ({ ...prev, employeeId: serverMsg }));
-      } else {
-        toast.error(serverMsg || "Failed to update employee");
+    } catch (error) {
+
+      console.error(
+        "Update employee error:",
+        error
+      );
+
+
+      const serverMsg =
+        error.response?.data
+          ?.message || "";
+
+      const lower =
+        serverMsg.toLowerCase();
+
+
+      if (
+        lower.includes("email")
+      ) {
+        setErrors(
+          (previous) => ({
+            ...previous,
+            email: serverMsg,
+          })
+        );
       }
+
+
+      else if (
+        lower.includes("phone")
+      ) {
+        setErrors(
+          (previous) => ({
+            ...previous,
+            phone: serverMsg,
+          })
+        );
+      }
+
+
+      else if (
+        lower.includes("employee")
+      ) {
+        setErrors(
+          (previous) => ({
+            ...previous,
+            employeeId:
+              serverMsg,
+          })
+        );
+      }
+
+
+      else {
+        toast.error(
+          serverMsg ||
+            "Failed to update employee"
+        );
+      }
+
     } finally {
       setSubmitting(false);
     }
   };
 
-  // =====================================================
-  // CLOSE MODAL
-  // =====================================================
+
+  /* =====================================================
+     CLOSE MODAL
+  ===================================================== */
 
   const closeModal = () => {
     if (submitting) {
       return;
     }
 
+
     setIsModalOpen(false);
 
     setCurrentEmployee(null);
+
     setErrors({});
+
 
     setFormData({
       fullName: "",
@@ -509,58 +1285,80 @@ export default function EmployeePage() {
     });
   };
 
-  // =====================================================
-  // GET INITIALS
-  // =====================================================
+
+  /* =====================================================
+     GET INITIALS
+  ===================================================== */
 
   const getInitials = (name) => {
     if (!name) {
       return "EM";
     }
 
+
     return name
       .trim()
       .split(/\s+/)
-      .map((word) => word.charAt(0))
+      .map(
+        (word) =>
+          word.charAt(0)
+      )
       .join("")
       .substring(0, 2)
       .toUpperCase();
   };
 
-  // =====================================================
-  // GET ROLE
-  // =====================================================
 
-  const getRoleName = (employee) => {
+  /* =====================================================
+     GET ROLE
+  ===================================================== */
+
+  const getRoleName = (
+    employee
+  ) => {
+
     if (!employee) {
       return "Employee";
     }
 
-    if (
-      employee.role &&
-      typeof employee.role === "object"
-    ) {
-      return employee.role?.name || "Employee";
-    }
 
     if (
       employee.role &&
-      typeof employee.role === "string"
+      typeof employee.role ===
+        "object"
+    ) {
+      return (
+        employee.role?.name ||
+        "Employee"
+      );
+    }
+
+
+    if (
+      employee.role &&
+      typeof employee.role ===
+        "string"
     ) {
       return employee.role;
     }
 
+
     return "Employee";
   };
 
-  // =====================================================
-  // GET EMPLOYEE IMAGE
-  // =====================================================
 
-  const getEmployeeImage = (employee) => {
+  /* =====================================================
+     GET EMPLOYEE IMAGE
+  ===================================================== */
+
+  const getEmployeeImage = (
+    employee
+  ) => {
+
     if (!employee) {
       return null;
     }
+
 
     return (
       employee.image ||
@@ -571,49 +1369,124 @@ export default function EmployeePage() {
     );
   };
 
-  const isTrainerRole = (emp) => {
-    const roleName = getRoleName(emp).toLowerCase();
+
+  /* =====================================================
+     TRAINER CHECK
+  ===================================================== */
+
+  const isTrainerRole = (
+    employee
+  ) => {
+
+    const roleName =
+      getRoleName(
+        employee
+      ).toLowerCase();
+
+
     return (
-      roleName.includes("trainer") ||
-      roleName.includes("nutrition") ||
-      roleName.includes("coach") ||
-      roleName.includes("instructor") ||
-      emp.employeeId?.startsWith("EMP-TRN")
+      roleName.includes(
+        "trainer"
+      ) ||
+      roleName.includes(
+        "nutrition"
+      ) ||
+      roleName.includes(
+        "coach"
+      ) ||
+      roleName.includes(
+        "instructor"
+      ) ||
+      employee.employeeId?.startsWith(
+        "EMP-TRN"
+      )
     );
   };
 
-  const displayedEmployees = employees.filter((emp) => {
-    const callerRole = (user?.role || "").toUpperCase();
-    const empRole = (typeof emp.role === "string" ? emp.role : (emp.role?.name || "")).toUpperCase();
 
-    // Hide managers from the employee/staff list
-    // if (empRole === "MANAGER") {
-    //   return false;
-    // }
+  /* =====================================================
+     DISPLAYED EMPLOYEES
+  ===================================================== */
 
-    if (callerRole !== "SUPER_ADMIN" && callerRole !== "SUPERADMIN") {
-      if (empRole === "ADMIN" || empRole === "SUPER_ADMIN" || empRole === "SUPERADMIN") {
-        return false;
+  const displayedEmployees =
+    employees.filter(
+      (employee) => {
+
+        const callerRole =
+          (
+            user?.role || ""
+          ).toUpperCase();
+
+
+        if (
+          callerRole !==
+            "SUPER_ADMIN" &&
+          callerRole !==
+            "SUPERADMIN"
+        ) {
+
+          const employeeRole =
+            (
+              typeof employee.role ===
+              "string"
+                ? employee.role
+                : employee.role
+                    ?.name || ""
+            ).toUpperCase();
+
+
+          if (
+            employeeRole ===
+              "ADMIN" ||
+            employeeRole ===
+              "SUPER_ADMIN" ||
+            employeeRole ===
+              "SUPERADMIN"
+          ) {
+            return false;
+          }
+        }
+
+
+        if (!isGym) {
+          return true;
+        }
+
+
+        if (
+          filterType ===
+          "staff"
+        ) {
+          return !isTrainerRole(
+            employee
+          );
+        }
+
+
+        if (
+          filterType ===
+          "trainers"
+        ) {
+          return isTrainerRole(
+            employee
+          );
+        }
+
+
+        return true;
       }
-    }
+    );
 
-    if (!isGym) return true;
-    if (filterType === "staff") {
-      return !isTrainerRole(emp);
-    }
-    if (filterType === "trainers") {
-      return isTrainerRole(emp);
-    }
-    return true; // "all"
-  });
 
-  // =====================================================
-  // RENDER
-  // =====================================================
+  /* =====================================================
+     RENDER
+  ===================================================== */
 
   return (
     <div className={styles.layout}>
+
       <div className={styles.container}>
+
         <div className={styles.content}>
 
           {/* =================================================
@@ -627,76 +1500,161 @@ export default function EmployeePage() {
             }}
           />
 
+
           {/* =================================================
               PAGE HEADER
           ================================================= */}
 
-          <div className={styles.header}>
+          <div
+            className={
+              styles.header
+            }
+          >
 
             <div>
-              <h1 className={styles.title}>
+
+              <h1
+                className={
+                  styles.title
+                }
+              >
                 {pageTitle}
               </h1>
 
-              <p className={styles.subtitle}>
+
+              <p
+                className={
+                  styles.subtitle
+                }
+              >
                 {pageSub}
               </p>
+
             </div>
+
 
             <button
               type="button"
-              className={styles.addButton}
-              onClick={handleAddEmployee}
+              className={
+                styles.addButton
+              }
+              onClick={
+                handleAddEmployee
+              }
             >
+
               <Plus size={18} />
 
               {addBtnText}
+
             </button>
 
           </div>
 
+
+          {/* =================================================
+              GYM FILTER
+          ================================================= */}
+
           {isGym && (
-            <div className={styles.filterContainer}>
+            <div
+              className={
+                styles.filterContainer
+              }
+            >
+
               <button
                 type="button"
-                className={`${styles.filterButton} ${filterType === "all" ? styles.filterButtonActive : ""}`}
-                onClick={() => setFilterType("all")}
+                className={`
+                  ${styles.filterButton}
+                  ${
+                    filterType ===
+                    "all"
+                      ? styles.filterButtonActive
+                      : ""
+                  }
+                `}
+                onClick={() =>
+                  setFilterType(
+                    "all"
+                  )
+                }
               >
                 All Employees
               </button>
+
+
               <button
                 type="button"
-                className={`${styles.filterButton} ${filterType === "staff" ? styles.filterButtonActive : ""}`}
-                onClick={() => setFilterType("staff")}
+                className={`
+                  ${styles.filterButton}
+                  ${
+                    filterType ===
+                    "staff"
+                      ? styles.filterButtonActive
+                      : ""
+                  }
+                `}
+                onClick={() =>
+                  setFilterType(
+                    "staff"
+                  )
+                }
               >
                 Staff Only
               </button>
+
+
               <button
                 type="button"
-                className={`${styles.filterButton} ${filterType === "trainers" ? styles.filterButtonActive : ""}`}
-                onClick={() => setFilterType("trainers")}
+                className={`
+                  ${styles.filterButton}
+                  ${
+                    filterType ===
+                    "trainers"
+                      ? styles.filterButtonActive
+                      : ""
+                  }
+                `}
+                onClick={() =>
+                  setFilterType(
+                    "trainers"
+                  )
+                }
               >
                 Trainers Only
               </button>
+
             </div>
           )}
+
 
           {/* =================================================
               EMPLOYEE GRID
           ================================================= */}
 
-          <div className={styles.employeeGrid}>
+          <div
+            className={
+              styles.employeeGrid
+            }
+          >
 
             {/* =================================================
                 LOADING
             ================================================= */}
 
             {loading && (
-              <div className={styles.loadingState}>
+              <div
+                className={
+                  styles.loadingState
+                }
+              >
 
                 <Loader2
                   size={38}
-                  className={styles.spinner}
+                  className={
+                    styles.spinner
+                  }
                 />
 
                 <p>
@@ -708,15 +1666,23 @@ export default function EmployeePage() {
 
 
             {/* =================================================
-                EMPTY STATE
+                NO EMPLOYEES
             ================================================= */}
 
             {!loading &&
-              employees.length === 0 && (
-                <div className={styles.emptyState}>
+              employees.length ===
+                0 && (
+
+                <div
+                  className={
+                    styles.emptyState
+                  }
+                >
 
                   <Users
-                    className={styles.emptyIcon}
+                    className={
+                      styles.emptyIcon
+                    }
                   />
 
                   <h3>
@@ -724,8 +1690,8 @@ export default function EmployeePage() {
                   </h3>
 
                   <p>
-                    Start by adding your first
-                    employee.
+                    Start by adding your
+                    first employee.
                   </p>
 
                   <button
@@ -733,11 +1699,15 @@ export default function EmployeePage() {
                     className={
                       styles.emptyAddButton
                     }
-                    onClick={handleAddEmployee}
+                    onClick={
+                      handleAddEmployee
+                    }
                   >
+
                     <Plus size={17} />
 
                     Add Employee
+
                   </button>
 
                 </div>
@@ -745,16 +1715,37 @@ export default function EmployeePage() {
 
 
             {/* =================================================
-                FILTER EMPTY STATE
+                FILTER EMPTY
             ================================================= */}
 
             {!loading &&
-              employees.length > 0 &&
-              displayedEmployees.length === 0 && (
-                <div className={styles.emptyState}>
-                  <Users className={styles.emptyIcon} />
-                  <h3>No employees match this filter</h3>
-                  <p>Try switching to another filter tab.</p>
+              employees.length >
+                0 &&
+              displayedEmployees.length ===
+                0 && (
+
+                <div
+                  className={
+                    styles.emptyState
+                  }
+                >
+
+                  <Users
+                    className={
+                      styles.emptyIcon
+                    }
+                  />
+
+                  <h3>
+                    No employees match
+                    this filter
+                  </h3>
+
+                  <p>
+                    Try switching to
+                    another filter tab.
+                  </p>
+
                 </div>
               )}
 
@@ -764,363 +1755,559 @@ export default function EmployeePage() {
             ================================================= */}
 
             {!loading &&
-              displayedEmployees.length > 0 &&
-              displayedEmployees.map((employee) => {
+              displayedEmployees.length >
+                0 &&
+              displayedEmployees.map(
+                (employee) => {
 
-                const employeeName =
-                  employee.fullName ||
-                  "Unknown Employee";
+                  const employeeName =
+                    employee.fullName ||
+                    "Unknown Employee";
 
-                const initials =
-                  getInitials(employeeName);
 
-                const role =
-                  getRoleName(employee);
+                  const initials =
+                    getInitials(
+                      employeeName
+                    );
 
-                const image =
-                  getEmployeeImage(employee);
 
-                const employeeId =
-                  employee.employeeId ||
-                  "EMP-000";
+                  const role =
+                    getRoleName(
+                      employee
+                    );
 
-                const isVerified =
-                  Boolean(employee.isVerified);
 
-                return (
-                  <div
-                    className={
-                      styles.employeeCard
-                    }
-                    key={employee.id}
-                  >
+                  const image =
+                    getEmployeeImage(
+                      employee
+                    );
 
-                    {/* =================================================
-                        PROFESSIONAL EMPLOYEE CARD
-                    ================================================= */}
 
-                    <div className={styles.idCard}>
+                  const employeeId =
+                    employee.employeeId ||
+                    "EMP-000";
+
+
+                  const isVerified =
+                    Boolean(
+                      employee.isVerified
+                    );
+
+
+                  return (
+                    <div
+                      className={
+                        styles.employeeCard
+                      }
+                      key={
+                        employee.id
+                      }
+                    >
 
                       {/* =================================================
-                          CARD HEADER
+                          3D CARD INNER
                       ================================================= */}
 
                       <div
                         className={
-                          styles.cardTop
+                          styles.cardInner
                         }
                       >
 
-                        <div
-                          className={
-                            styles.companyLogo
-                          }
-                        >
-                          {logoUrl ? (
-                            <img
-                              src={logoUrl}
-                              alt={settings?.companyName || "Company Logo"}
-                              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-                            />
-                          ) : (
-                            (settings?.companyName || "ERP").substring(0, 2).toUpperCase()
-                          )}
-                        </div>
-
-                        <span
-                          className={
-                            styles.cardType
-                          }
-                        >
-                          Employee ID
-                        </span>
-
-                      </div>
-
-
-                      {/* =================================================
-                          PROFILE IMAGE
-                      ================================================= */}
-
-                      <div
-                        className={
-                          styles.photoWrapper
-                        }
-                      >
-
-                        {image ? (
-
-                          <img
-                            src={image}
-                            alt={employeeName}
-                            className={
-                              styles.employeePhoto
-                            }
-                          />
-
-                        ) : (
-
-                          <div
-                            className={
-                              styles.initialAvatar
-                            }
-                          >
-                            {initials}
-                          </div>
-
-                        )}
-
-                      </div>
-
-
-                      {/* =================================================
-                          EMPLOYEE DETAILS
-                      ================================================= */}
-
-                      <div
-                        className={
-                          styles.employeeInfo
-                        }
-                      >
-
-                        <h2>
-                          {employeeName}
-                        </h2>
-
-                        <p
-                          className={
-                            styles.role
-                          }
-                        >
-                          {role}
-                        </p>
-
-
-                        {/* ===============================
-                            EMPLOYEE ID
-                        =============================== */}
+                        {/* =================================================
+                            FRONT
+                        ================================================= */}
 
                         <div
-                          className={
-                            styles.infoRow
-                          }
-                        >
-
-                          <div
-                            className={
-                              styles.infoLabel
-                            }
-                          >
-
-                            <CreditCard
-                              size={13}
-                            />
-
-                            <span>
-                              Employee ID
-                            </span>
-
-                          </div>
-
-                          <strong>
-                            {employeeId}
-                          </strong>
-
-                        </div>
-
-
-                        {/* ===============================
-                            EMAIL
-                        =============================== */}
-
-                        <div
-                          className={
-                            styles.infoRow
-                          }
-                        >
-
-                          <div
-                            className={
-                              styles.infoLabel
-                            }
-                          >
-
-                            <Mail size={13} />
-
-                            <span>
-                              Email
-                            </span>
-
-                          </div>
-
-                          <strong
-                            title={
-                              employee.email ||
-                              "N/A"
-                            }
-                          >
-                            {employee.email ||
-                              "N/A"}
-                          </strong>
-
-                        </div>
-
-
-                        {/* ===============================
-                            PHONE
-                        =============================== */}
-
-                        <div
-                          className={
-                            styles.infoRow
-                          }
-                        >
-
-                          <div
-                            className={
-                              styles.infoLabel
-                            }
-                          >
-
-                            <Phone size={13} />
-
-                            <span>
-                              Phone
-                            </span>
-
-                          </div>
-
-                          <strong>
-                            {employee.phone ||
-                              "N/A"}
-                          </strong>
-
-                        </div>
-
-
-                        {/* ===============================
-                            BRANCH
-                        =============================== */}
-
-                        <div
-                          className={
-                            styles.infoRow
-                          }
-                        >
-
-                          <div
-                            className={
-                              styles.infoLabel
-                            }
-                          >
-
-                            <Building2 size={13} />
-
-                            <span>
-                              {isRestaurant ? "Outlet" : "Branch"}
-                            </span>
-
-                          </div>
-
-                          <strong>
-                            {employee.branch?.name || "N/A"}
-                          </strong>
-
-                        </div>
-
-                      </div>
-
-
-                      {/* =================================================
-                          CARD FOOTER
-                      ================================================= */}
-
-                      <div
-                        className={
-                          styles.cardFooter
-                        }
-                      >
-
-                        {/* ===============================
-                            VERIFICATION STATUS
-                        =============================== */}
-
-                        <span
                           className={`
-                            ${styles.status}
-                            ${
-                              isVerified
-                                ? styles.statusVerified
-                                : styles.statusPending
-                            }
+                            ${styles.cardFace}
+                            ${styles.cardFront}
                           `}
                         >
 
-                          <span
+                          {/* Top Area */}
+
+                          <div
                             className={
-                              styles.statusDot
+                              styles.frontTop
                             }
-                          />
+                          >
 
-                          {isVerified
-                            ? "Verified"
-                            : "Pending"}
+                            <div
+                              className={
+                                styles.companyLogo
+                              }
+                            >
 
-                        </span>
+                              {logoUrl ? (
+                                <img
+                                  src={
+                                    logoUrl
+                                  }
+                                  alt={
+                                    settings?.companyName ||
+                                    "Company Logo"
+                                  }
+                                />
+                              ) : (
+                                (
+                                  settings?.companyName ||
+                                  "ERP"
+                                )
+                                  .substring(
+                                    0,
+                                    2
+                                  )
+                                  .toUpperCase()
+                              )}
+
+                            </div>
 
 
-                        {/* ===============================
-                            ACTIONS
-                        =============================== */}
+                            <span
+                              className={
+                                styles.frontLabel
+                              }
+                            >
+                              EMPLOYEE
+                            </span>
+
+                          </div>
+
+
+                          {/* =================================================
+                              EMPLOYEE PHOTO
+                          ================================================= */}
+
+                          <div
+                            className={
+                              styles.photoWrapper
+                            }
+                          >
+
+                            {image ? (
+
+                              <img
+                                src={
+                                  image
+                                }
+                                alt={
+                                  employeeName
+                                }
+                                className={
+                                  styles.employeePhoto
+                                }
+                              />
+
+                            ) : (
+
+                              <div
+                                className={
+                                  styles.initialAvatar
+                                }
+                              >
+                                {initials}
+                              </div>
+
+                            )}
+
+                          </div>
+
+
+                          {/* =================================================
+                              NAME
+                          ================================================= */}
+
+                          <div
+                            className={
+                              styles.frontName
+                            }
+                          >
+
+                            <h2>
+                              {employeeName}
+                            </h2>
+
+                            <p>
+                              {role}
+                            </p>
+
+                          </div>
+
+
+                          {/* =================================================
+                              FLIP HINT
+                          ================================================= */}
+
+                          <div
+                            className={
+                              styles.flipHint
+                            }
+                          >
+                            <span>
+                              Hover to view details
+                            </span>
+                          </div>
+
+                        </div>
+
+
+                        {/* =================================================
+                            BACK
+                        ================================================= */}
 
                         <div
-                          className={
-                            styles.cardActions
-                          }
+                          className={`
+                            ${styles.cardFace}
+                            ${styles.cardBack}
+                          `}
                         >
 
-                          <button
-                            type="button"
+                          {/* =================================================
+                              BACK HEADER
+                          ================================================= */}
+
+                          <div
                             className={
-                              styles.editButton
+                              styles.backHeader
                             }
-                            onClick={() =>
-                              handleEditEmployee(
-                                employee
-                              )
-                            }
-                            title="Edit Employee"
-                            aria-label="Edit Employee"
                           >
-                            <Edit2 size={15} />
-                          </button>
+
+                            <div
+                              className={
+                                styles.backBrand
+                              }
+                            >
+
+                              {logoUrl ? (
+
+                                <img
+                                  src={
+                                    logoUrl
+                                  }
+                                  alt={
+                                    settings?.companyName ||
+                                    "Company Logo"
+                                  }
+                                />
+
+                              ) : (
+
+                                (
+                                  settings?.companyName ||
+                                  "ERP"
+                                )
+                                  .substring(
+                                    0,
+                                    2
+                                  )
+                                  .toUpperCase()
+
+                              )}
+
+                            </div>
 
 
-                          <button
-                            type="button"
+                            <span
+                              className={
+                                styles.cardType
+                              }
+                            >
+                              EMPLOYEE PROFILE
+                            </span>
+
+                          </div>
+
+
+                          {/* =================================================
+                              EMPLOYEE NAME
+                          ================================================= */}
+
+                          <div
                             className={
-                              styles.deleteButton
+                              styles.backName
                             }
-                            onClick={() =>
-                              handleDeleteEmployee(
-                                employee.id
-                              )
-                            }
-                            title="Delete Employee"
-                            aria-label="Delete Employee"
                           >
-                            <Trash2 size={15} />
-                          </button>
+
+                            <h2>
+                              {employeeName}
+                            </h2>
+
+                            <p>
+                              {role}
+                            </p>
+
+                          </div>
+
+
+                          {/* =================================================
+                              DETAILS
+                          ================================================= */}
+
+                          <div
+                            className={
+                              styles.detailsList
+                            }
+                          >
+
+                            {/* EMPLOYEE ID */}
+
+                            <div
+                              className={
+                                styles.detailRow
+                              }
+                            >
+
+                              <div
+                                className={
+                                  styles.detailLabel
+                                }
+                              >
+
+                                <CreditCard
+                                  size={13}
+                                />
+
+                                <span>
+                                  Employee ID
+                                </span>
+
+                              </div>
+
+
+                              <strong>
+                                {employeeId}
+                              </strong>
+
+                            </div>
+
+
+                            {/* EMAIL */}
+
+                            <div
+                              className={
+                                styles.detailRow
+                              }
+                            >
+
+                              <div
+                                className={
+                                  styles.detailLabel
+                                }
+                              >
+
+                                <Mail
+                                  size={13}
+                                />
+
+                                <span>
+                                  Email
+                                </span>
+
+                              </div>
+
+
+                              <strong
+                                title={
+                                  employee.email ||
+                                  "N/A"
+                                }
+                              >
+                                {employee.email ||
+                                  "N/A"}
+                              </strong>
+
+                            </div>
+
+
+                            {/* PHONE */}
+
+                            <div
+                              className={
+                                styles.detailRow
+                              }
+                            >
+
+                              <div
+                                className={
+                                  styles.detailLabel
+                                }
+                              >
+
+                                <Phone
+                                  size={13}
+                                />
+
+                                <span>
+                                  Phone
+                                </span>
+
+                              </div>
+
+
+                              <strong>
+                                {employee.phone ||
+                                  "N/A"}
+                              </strong>
+
+                            </div>
+
+
+                            {/* BRANCH */}
+
+                            <div
+                              className={
+                                styles.detailRow
+                              }
+                            >
+
+                              <div
+                                className={
+                                  styles.detailLabel
+                                }
+                              >
+
+                                <Building2
+                                  size={13}
+                                />
+
+                                <span>
+                                  {isRestaurant
+                                    ? "Outlet"
+                                    : "Branch"}
+                                </span>
+
+                              </div>
+
+
+                              <strong
+                                title={
+                                  employee
+                                    .branch
+                                    ?.name ||
+                                  "N/A"
+                                }
+                              >
+                                {employee
+                                  .branch
+                                  ?.name ||
+                                  "N/A"}
+                              </strong>
+
+                            </div>
+
+                          </div>
+
+
+                          {/* =================================================
+                              BACK FOOTER
+                          ================================================= */}
+
+                          <div
+                            className={
+                              styles.backFooter
+                            }
+                          >
+
+                            {/* VERIFICATION */}
+
+                            <span
+                              className={`
+                                ${styles.status}
+                                ${
+                                  isVerified
+                                    ? styles.statusVerified
+                                    : styles.statusPending
+                                }
+                              `}
+                            >
+
+                              <span
+                                className={
+                                  styles.statusDot
+                                }
+                              />
+
+                              {isVerified
+                                ? "Verified"
+                                : "Pending"}
+
+                            </span>
+
+
+                            {/* ACTIONS */}
+
+                            <div
+                              className={
+                                styles.cardActions
+                              }
+                            >
+
+                              {/* EDIT */}
+
+                              <button
+                                type="button"
+                                className={
+                                  styles.editButton
+                                }
+                                onClick={(
+                                  event
+                                ) => {
+                                  event.stopPropagation();
+
+                                  handleEditEmployee(
+                                    employee
+                                  );
+                                }}
+                                title="Edit Employee"
+                                aria-label="Edit Employee"
+                              >
+
+                                <Edit2
+                                  size={14}
+                                />
+
+                              </button>
+
+
+                              {/* DELETE */}
+
+                              <button
+                                type="button"
+                                className={
+                                  styles.deleteButton
+                                }
+                                onClick={(
+                                  event
+                                ) => {
+                                  event.stopPropagation();
+
+                                  handleDeleteEmployee(
+                                    employee.id
+                                  );
+                                }}
+                                title="Delete Employee"
+                                aria-label="Delete Employee"
+                              >
+
+                                <Trash2
+                                  size={14}
+                                />
+
+                              </button>
+
+                            </div>
+
+                          </div>
 
                         </div>
 
                       </div>
 
                     </div>
-
-                  </div>
-                );
-              })}
+                  );
+                }
+              )}
 
           </div>
 
@@ -1156,30 +2343,55 @@ export default function EmployeePage() {
                     styles.modalHeader
                   }
                 >
-                  <h2
-                    className={
-                      styles.modalTitle
-                    }
-                  >
-                    Edit Employee
-                  </h2>
 
-                  <p
+                  <div>
+
+                    <h2
+                      className={
+                        styles.modalTitle
+                      }
+                    >
+                      Edit Employee
+                    </h2>
+
+                    <p
+                      className={
+                        styles.modalSubtitle
+                      }
+                    >
+                      Update employee information
+                    </p>
+
+                  </div>
+
+
+                  <button
+                    type="button"
                     className={
-                      styles.modalSubtitle
+                      styles.closeButton
                     }
+                    onClick={
+                      closeModal
+                    }
+                    disabled={
+                      submitting
+                    }
+                    aria-label="Close"
                   >
-                    Update employee information
-                  </p>
+                    <X size={18} />
+                  </button>
+
                 </div>
 
 
                 {/* =================================================
-                    EDIT FORM
+                    FORM
                 ================================================= */}
 
                 <form
-                  onSubmit={handleSubmit}
+                  onSubmit={
+                    handleSubmit
+                  }
                   noValidate
                 >
 
@@ -1200,6 +2412,7 @@ export default function EmployeePage() {
                       Full Name
                     </label>
 
+
                     <input
                       id="fullName"
                       type="text"
@@ -1214,11 +2427,33 @@ export default function EmployeePage() {
                         styles.input
                       }
                       placeholder="Enter full name"
-                      style={errors.fullName ? { borderColor: "#ef4444" } : {}}
+                      style={
+                        errors.fullName
+                          ? {
+                              borderColor:
+                                "#ef4444",
+                            }
+                          : {}
+                      }
                     />
+
+
                     {errors.fullName && (
-                      <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                        {errors.fullName}
+                      <span
+                        style={{
+                          color:
+                            "#ef4444",
+                          fontSize:
+                            "12px",
+                          marginTop:
+                            "4px",
+                          display:
+                            "block",
+                        }}
+                      >
+                        {
+                          errors.fullName
+                        }
                       </span>
                     )}
 
@@ -1242,6 +2477,7 @@ export default function EmployeePage() {
                       Employee ID
                     </label>
 
+
                     <input
                       id="employeeId"
                       type="text"
@@ -1256,11 +2492,33 @@ export default function EmployeePage() {
                         styles.input
                       }
                       placeholder="EMP-001"
-                      style={errors.employeeId ? { borderColor: "#ef4444" } : {}}
+                      style={
+                        errors.employeeId
+                          ? {
+                              borderColor:
+                                "#ef4444",
+                            }
+                          : {}
+                      }
                     />
+
+
                     {errors.employeeId && (
-                      <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                        {errors.employeeId}
+                      <span
+                        style={{
+                          color:
+                            "#ef4444",
+                          fontSize:
+                            "12px",
+                          marginTop:
+                            "4px",
+                          display:
+                            "block",
+                        }}
+                      >
+                        {
+                          errors.employeeId
+                        }
                       </span>
                     )}
 
@@ -1284,39 +2542,98 @@ export default function EmployeePage() {
                       Role
                     </label>
 
+
                     <select
                       id="role"
                       name="role"
-                      value={formData.role}
-                      onChange={handleInputChange}
-                      className={styles.input}
-                      style={errors.role ? { borderColor: "#ef4444" } : {}}
+                      value={
+                        formData.role
+                      }
+                      onChange={
+                        handleInputChange
+                      }
+                      className={
+                        styles.input
+                      }
+                      style={
+                        errors.role
+                          ? {
+                              borderColor:
+                                "#ef4444",
+                            }
+                          : {}
+                      }
                     >
-                      <option value="">Select Role</option>
-                      {roles.length > 0 ? (
-                        roles.map((r) => (
-                          <option key={r.id} value={r.name}>
-                            {r.name}
-                          </option>
-                        ))
+
+                      <option value="">
+                        Select Role
+                      </option>
+
+
+                      {roles.length >
+                      0 ? (
+
+                        roles.map(
+                          (role) => (
+                            <option
+                              key={
+                                role.id
+                              }
+                              value={
+                                role.name
+                              }
+                            >
+                              {
+                                role.name
+                              }
+                            </option>
+                          )
+                        )
+
                       ) : (
+
                         <>
-                          <option value="Admin">Admin</option>
-                          <option value="Manager">Manager</option>
-                          <option value="HR">HR</option>
+                          <option value="Admin">
+                            Admin
+                          </option>
+
+                          <option value="Manager">
+                            Manager
+                          </option>
+
+                          <option value="HR">
+                            HR
+                          </option>
                         </>
+
                       )}
+
                     </select>
+
+
                     {errors.role && (
-                      <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                        {errors.role}
+                      <span
+                        style={{
+                          color:
+                            "#ef4444",
+                          fontSize:
+                            "12px",
+                          marginTop:
+                            "4px",
+                          display:
+                            "block",
+                        }}
+                      >
+                        {
+                          errors.role
+                        }
                       </span>
                     )}
 
                   </div>
 
 
-                  {/* BRANCH */}
+                  {/* BRANCH / OUTLET */}
 
                   <div
                     className={
@@ -1330,33 +2647,93 @@ export default function EmployeePage() {
                       }
                       htmlFor="branchId"
                     >
-                      {isRestaurant ? "Outlet" : "Branch"}
+                      {isRestaurant
+                        ? "Outlet"
+                        : "Branch"}
                     </label>
+
 
                     <select
                       id="branchId"
                       name="branchId"
-                      value={formData.branchId}
-                      onChange={handleInputChange}
-                      className={styles.input}
-                      style={errors.branchId ? { borderColor: "#ef4444" } : {}}
+                      value={
+                        formData.branchId
+                      }
+                      onChange={
+                        handleInputChange
+                      }
+                      className={
+                        styles.input
+                      }
+                      style={
+                        errors.branchId
+                          ? {
+                              borderColor:
+                                "#ef4444",
+                            }
+                          : {}
+                      }
                     >
-                      <option value="">{isRestaurant ? "Select Outlet" : "Select Branch"}</option>
-                      {branches.length > 0 ? (
-                        branches.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))
+
+                      <option value="">
+                        {isRestaurant
+                          ? "Select Outlet"
+                          : "Select Branch"}
+                      </option>
+
+
+                      {branches.length >
+                      0 ? (
+
+                        branches.map(
+                          (branch) => (
+                            <option
+                              key={
+                                branch.id
+                              }
+                              value={
+                                branch.id
+                              }
+                            >
+                              {
+                                branch.name
+                              }
+                            </option>
+                          )
+                        )
+
                       ) : (
-                        <option value="" disabled>
-                          {isRestaurant ? "No outlets available" : "No branches available"}
+
+                        <option
+                          value=""
+                          disabled
+                        >
+                          {isRestaurant
+                            ? "No outlets available"
+                            : "No branches available"}
                         </option>
+
                       )}
+
                     </select>
+
+
                     {errors.branchId && (
-                      <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                        {errors.branchId}
+                      <span
+                        style={{
+                          color:
+                            "#ef4444",
+                          fontSize:
+                            "12px",
+                          marginTop:
+                            "4px",
+                          display:
+                            "block",
+                        }}
+                      >
+                        {
+                          errors.branchId
+                        }
                       </span>
                     )}
 
@@ -1380,6 +2757,7 @@ export default function EmployeePage() {
                       Email Address
                     </label>
 
+
                     <input
                       id="email"
                       type="email"
@@ -1394,11 +2772,33 @@ export default function EmployeePage() {
                         styles.input
                       }
                       placeholder="employee@example.com"
-                      style={errors.email ? { borderColor: "#ef4444" } : {}}
+                      style={
+                        errors.email
+                          ? {
+                              borderColor:
+                                "#ef4444",
+                            }
+                          : {}
+                      }
                     />
+
+
                     {errors.email && (
-                      <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                        {errors.email}
+                      <span
+                        style={{
+                          color:
+                            "#ef4444",
+                          fontSize:
+                            "12px",
+                          marginTop:
+                            "4px",
+                          display:
+                            "block",
+                        }}
+                      >
+                        {
+                          errors.email
+                        }
                       </span>
                     )}
 
@@ -1422,6 +2822,7 @@ export default function EmployeePage() {
                       Phone Number
                     </label>
 
+
                     <input
                       id="phone"
                       type="tel"
@@ -1436,55 +2837,173 @@ export default function EmployeePage() {
                         styles.input
                       }
                       placeholder="+91 9876543210"
-                      style={errors.phone ? { borderColor: "#ef4444" } : {}}
+                      style={
+                        errors.phone
+                          ? {
+                              borderColor:
+                                "#ef4444",
+                            }
+                          : {}
+                      }
                     />
+
+
                     {errors.phone && (
-                      <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                        {errors.phone}
+                      <span
+                        style={{
+                          color:
+                            "#ef4444",
+                          fontSize:
+                            "12px",
+                          marginTop:
+                            "4px",
+                          display:
+                            "block",
+                        }}
+                      >
+                        {
+                          errors.phone
+                        }
                       </span>
                     )}
 
                   </div>
 
 
-                  {/* MODULE ACCESS PERMISSIONS */}
-                  <div style={{ gridColumn: "1 / -1", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #334155" }}>
-                    <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#f8fafc", marginBottom: "4px" }}>
+                  {/* =================================================
+                      MODULE ACCESS PERMISSIONS
+                  ================================================= */}
+
+                  <div
+                    style={{
+                      marginTop:
+                        "16px",
+                      paddingTop:
+                        "16px",
+                      borderTop:
+                        "1px solid #334155",
+                    }}
+                  >
+
+                    <h3
+                      style={{
+                        fontSize:
+                          "14px",
+                        fontWeight:
+                          "600",
+                        color:
+                          "#f8fafc",
+                        marginBottom:
+                          "4px",
+                      }}
+                    >
                       Module Access Permissions
                     </h3>
-                    <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "12px" }}>
-                      Select which modules this employee can access.
+
+
+                    <p
+                      style={{
+                        fontSize:
+                          "12px",
+                        color:
+                          "#94a3b8",
+                        marginBottom:
+                          "12px",
+                      }}
+                    >
+                      Select which modules
+                      this employee can
+                      access.
                     </p>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
-                      {availableModules.map((mod) => {
-                        const isSelected = selectedModules.includes(mod.code);
-                        return (
-                          <label
-                            key={mod.code}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              padding: "8px 10px",
-                              borderRadius: "6px",
-                              backgroundColor: isSelected ? "rgba(79, 70, 229, 0.1)" : "#1e293b",
-                              border: `1px solid ${isSelected ? "#4f46e5" : "#334155"}`,
-                              cursor: "pointer",
-                              fontSize: "12px",
-                              color: "#f8fafc",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleModuleToggle(mod.code)}
-                              style={{ width: "14px", height: "14px", accentColor: "#4f46e5" }}
-                            />
-                            <span>{mod.name}</span>
-                          </label>
-                        );
-                      })}
+
+
+                    <div
+                      style={{
+                        display:
+                          "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fill, minmax(220px, 1fr))",
+                        gap: "8px",
+                      }}
+                    >
+
+                      {availableModules.map(
+                        (module) => {
+
+                          const isSelected =
+                            selectedModules.includes(
+                              module.code
+                            );
+
+
+                          return (
+                            <label
+                              key={
+                                module.code
+                              }
+                              style={{
+                                display:
+                                  "flex",
+                                alignItems:
+                                  "center",
+                                gap: "8px",
+                                padding:
+                                  "8px 10px",
+                                borderRadius:
+                                  "6px",
+                                backgroundColor:
+                                  isSelected
+                                    ? "rgba(79, 70, 229, 0.1)"
+                                    : "#1e293b",
+                                border:
+                                  `1px solid ${
+                                    isSelected
+                                      ? "#4f46e5"
+                                      : "#334155"
+                                  }`,
+                                cursor:
+                                  "pointer",
+                                fontSize:
+                                  "12px",
+                                color:
+                                  "#f8fafc",
+                              }}
+                            >
+
+                              <input
+                                type="checkbox"
+                                checked={
+                                  isSelected
+                                }
+                                onChange={() =>
+                                  handleModuleToggle(
+                                    module.code
+                                  )
+                                }
+                                style={{
+                                  width:
+                                    "14px",
+                                  height:
+                                    "14px",
+                                  accentColor:
+                                    "#4f46e5",
+                                }}
+                              />
+
+
+                              <span>
+                                {
+                                  module.name
+                                }
+                              </span>
+
+                            </label>
+                          );
+                        }
+                      )}
+
                     </div>
+
                   </div>
 
 
@@ -1503,8 +3022,12 @@ export default function EmployeePage() {
                       className={
                         styles.cancelButton
                       }
-                      onClick={closeModal}
-                      disabled={submitting}
+                      onClick={
+                        closeModal
+                      }
+                      disabled={
+                        submitting
+                      }
                     >
                       Cancel
                     </button>
@@ -1515,10 +3038,13 @@ export default function EmployeePage() {
                       className={
                         styles.submitButton
                       }
-                      disabled={submitting}
+                      disabled={
+                        submitting
+                      }
                     >
 
                       {submitting ? (
+
                         <>
                           <Loader2
                             size={16}
@@ -1529,8 +3055,11 @@ export default function EmployeePage() {
 
                           Saving...
                         </>
+
                       ) : (
+
                         "Save Changes"
+
                       )}
 
                     </button>
@@ -1546,7 +3075,9 @@ export default function EmployeePage() {
           )}
 
         </div>
+
       </div>
+
     </div>
   );
 }

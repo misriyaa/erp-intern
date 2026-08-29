@@ -49,7 +49,10 @@ export const createProduct = async (data) => {
 };
 
 export const getAllProducts = async (companyId) => {
-  const where = companyId ? { companyId } : {};
+  const where = {};
+  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
+    where.companyId = companyId;
+  }
   return await prisma.product.findMany({
     where,
     include: commonInclude,

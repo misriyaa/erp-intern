@@ -11,8 +11,12 @@ export const createArea = async (data) => {
 };
 
 export const getAreasByRestaurant = async (restaurantId) => {
+  const where = {};
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
   return await prisma.restaurantArea.findMany({
-    where: { restaurantId },
+    where,
     include: {
       tables: {
         orderBy: { tableNumber: "asc" },

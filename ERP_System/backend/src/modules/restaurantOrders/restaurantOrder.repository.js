@@ -1,5 +1,6 @@
 import prisma from "../../config/prisma.js";
 import { convertUnit } from "../../utils/unitConverter.js";
+import { emitOrderStatusUpdate } from "../../config/socket.js";
 
 const orderInclude = {
   restaurant: true,
@@ -80,11 +81,22 @@ export const createOrder = async (data) => {
 
     const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
     const cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+    const cleanTableId = isUUID(orderData.tableId) ? orderData.tableId : null;
+
+    let cleanRestaurantId = isUUID(orderData.restaurantId) ? orderData.restaurantId : null;
+    if (!cleanRestaurantId) {
+      const firstRest = await tx.restaurant.findFirst({
+        where: orderData.branchId ? { branchId: orderData.branchId } : {},
+      });
+      cleanRestaurantId = firstRest?.id || null;
+    }
 
     const order = await tx.restaurantOrder.create({
       data: {
         ...orderData,
+        restaurantId: cleanRestaurantId,
         customerId: cleanCustomerId,
+        tableId: cleanTableId,
         orderNumber,
         subtotal,
         discountAmount,
@@ -110,15 +122,37 @@ export const createOrder = async (data) => {
 };
 
 export const getOrders = async (params) => {
-  const { restaurantId, branchId, companyId, tableId, status, orderType } = params;
+  const { restaurantId, branchId, companyId, tableId, status, orderType, search } = params;
   const where = {};
 
-  if (restaurantId) where.restaurantId = restaurantId;
-  if (branchId) where.branchId = branchId;
-  if (companyId) where.companyId = companyId;
-  if (tableId) where.tableId = tableId;
-  if (status) where.status = status;
-  if (orderType) where.orderType = orderType;
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
+  if (branchId && branchId !== "ALL" && branchId !== "undefined" && branchId !== "null" && String(branchId).trim() !== "") {
+    where.branchId = branchId;
+  }
+  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
+    where.companyId = companyId;
+  }
+  if (tableId && tableId !== "ALL" && tableId !== "undefined" && tableId !== "null" && String(tableId).trim() !== "") {
+    where.tableId = tableId;
+  }
+  if (status && status !== "ALL" && status !== "undefined" && status !== "null") {
+    if (Array.isArray(status)) {
+      where.status = { in: status };
+    } else {
+      where.status = status;
+    }
+  }
+  if (orderType && orderType !== "ALL" && orderType !== "undefined" && orderType !== "null") {
+    where.orderType = orderType;
+  }
+  if (search && String(search).trim() !== "") {
+    where.OR = [
+      { orderNumber: { contains: String(search).trim(), mode: "insensitive" } },
+      { notes: { contains: String(search).trim(), mode: "insensitive" } },
+    ];
+  }
 
   return await prisma.restaurantOrder.findMany({
     where,
@@ -137,7 +171,7 @@ export const getOrderById = async (id) => {
 export const updateOrder = async (id, data) => {
   const { items, ...orderData } = data;
 
-  return await prisma.$transaction(async (tx) => {
+  const resOrder = await prisma.$transaction(async (tx) => {
     if (items) {
       await tx.restaurantOrderItem.deleteMany({
         where: { orderId: id },
@@ -181,6 +215,14 @@ export const updateOrder = async (id, data) => {
       orderData.totalAmount = subtotal - disc + orderData.taxAmount;
     }
 
+    const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+    if (orderData.customerId !== undefined) {
+      orderData.customerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+    }
+    if (orderData.tableId !== undefined) {
+      orderData.tableId = isUUID(orderData.tableId) ? orderData.tableId : null;
+    }
+
     const updated = await tx.restaurantOrder.update({
       where: { id },
       data: orderData,
@@ -188,14 +230,43 @@ export const updateOrder = async (id, data) => {
     });
 
     if (updated.status === "SERVED") {
+      await tx.kitchenOrder.updateMany({
+        where: { orderId: id },
+        data: { status: "SERVED" },
+      });
+      await tx.restaurantOrderItem.updateMany({
+        where: { orderId: id },
+        data: { status: "SERVED" },
+      });
       await processStockDeductionOnServed(id, tx);
+    } else if (updated.status === "CANCELLED") {
+      await tx.kitchenOrder.updateMany({
+        where: { orderId: id },
+        data: { status: "CANCELLED" },
+      });
+    } else if (updated.status === "COMPLETED") {
+      await tx.kitchenOrder.updateMany({
+        where: { orderId: id },
+        data: { status: "COMPLETED" },
+      });
     }
 
-    return await tx.restaurantOrder.findUnique({
+    const finalOrder = await tx.restaurantOrder.findUnique({
       where: { id },
       include: orderInclude,
     });
+    return finalOrder;
   });
+
+  if (resOrder) {
+    try {
+      emitOrderStatusUpdate(resOrder);
+    } catch (err) {
+      console.error("Socket emit error:", err);
+    }
+  }
+
+  return resOrder;
 };
 
 export const processStockDeductionOnServed = async (orderId, tx) => {
@@ -439,7 +510,7 @@ export const checkStockAvailability = async (orderId, warehouseId) => {
 };
 
 export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOverride = false) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const order = await tx.restaurantOrder.findUnique({
       where: { id: orderId },
       include: {
@@ -466,6 +537,18 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
     });
 
     if (!order) throw new Error("Order not found.");
+
+    if (order.orderType === "DINE_IN" && (!order.tableId || !order.table)) {
+      const err = new Error("Table selection is required before sending an order to the kitchen.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (order.table && order.restaurantId && order.table.restaurantId && order.table.restaurantId !== order.restaurantId) {
+      const err = new Error("The selected table does not belong to the active restaurant outlet.");
+      err.statusCode = 400;
+      throw err;
+    }
 
     let targetWarehouseId = warehouseId;
     if (!targetWarehouseId) {
@@ -563,34 +646,44 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
 
     return { order: updatedOrder, kot };
   });
+
+  try {
+    const fullOrder = await prisma.restaurantOrder.findUnique({
+      where: { id: orderId },
+      include: orderInclude,
+    });
+    if (fullOrder) {
+      emitOrderStatusUpdate({ ...fullOrder, kot: result.kot });
+    }
+  } catch (err) {
+    console.error("Socket emit error on confirmOrder:", err);
+  }
+
+  return result;
 };
 
 export const completeOrderAndPay = async (orderId, paymentData) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const order = await tx.restaurantOrder.findUnique({
       where: { id: orderId },
       include: {
         table: true,
         items: true,
+        payments: true,
       },
     });
 
     if (!order) throw new Error("Order not found.");
 
-    const updatedOrder = await tx.restaurantOrder.update({
-      where: { id: orderId },
-      data: { status: "COMPLETED" },
-    });
-
-    if (order.tableId && order.orderType === "DINE_IN") {
-      await tx.restaurantTable.update({
-        where: { id: order.tableId },
-        data: { status: "AVAILABLE" },
-      });
+    if (order.status === "COMPLETED") {
+      const existingPay = order.payments?.[0];
+      return { order, payment: existingPay, alreadyCompleted: true };
     }
 
-    let payment = null;
-    if (paymentData) {
+    const existingPaid = order.payments?.find((p) => p.status === "PAID");
+    let payment = existingPaid || null;
+
+    if (!payment && paymentData) {
       const payNumber = paymentData.paymentNumber || `PAY-RST-${Date.now().toString().slice(-6)}`;
       payment = await tx.payment.create({
         data: {
@@ -609,12 +702,38 @@ export const completeOrderAndPay = async (orderId, paymentData) => {
       });
     }
 
+    const updatedOrder = await tx.restaurantOrder.update({
+      where: { id: orderId },
+      data: { status: "COMPLETED" },
+    });
+
+    if (order.tableId && order.orderType === "DINE_IN") {
+      await tx.restaurantTable.update({
+        where: { id: order.tableId },
+        data: { status: "AVAILABLE" },
+      });
+    }
+
     return { order: updatedOrder, payment };
   });
+
+  try {
+    const fullOrder = await prisma.restaurantOrder.findUnique({
+      where: { id: orderId },
+      include: orderInclude,
+    });
+    if (fullOrder) {
+      emitOrderStatusUpdate(fullOrder);
+    }
+  } catch (err) {
+    console.error("Socket emit error on completeOrder:", err);
+  }
+
+  return result;
 };
 
 export const cancelOrder = async (orderId, reason) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const order = await tx.restaurantOrder.findUnique({
       where: { id: orderId },
     });
@@ -643,4 +762,18 @@ export const cancelOrder = async (orderId, reason) => {
 
     return updatedOrder;
   });
+
+  try {
+    const fullOrder = await prisma.restaurantOrder.findUnique({
+      where: { id: orderId },
+      include: orderInclude,
+    });
+    if (fullOrder) {
+      emitOrderStatusUpdate(fullOrder);
+    }
+  } catch (err) {
+    console.error("Socket emit error on cancelOrder:", err);
+  }
+
+  return result;
 };

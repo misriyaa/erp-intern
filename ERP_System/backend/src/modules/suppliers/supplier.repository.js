@@ -7,7 +7,10 @@ export const createSupplier = async (data) => {
 };
 
 export const getAllSuppliers = async (companyId) => {
-  const where = companyId ? { companyId } : {};
+  const where = {};
+  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
+    where.companyId = companyId;
+  }
   return await prisma.supplier.findMany({
     where,
     orderBy: {

@@ -269,6 +269,16 @@ export default function ProductsPage() {
     productsData,
   ]);
 
+  const getProductQuantity = (product) => {
+    if (product.currentStock !== undefined && product.currentStock !== null) {
+      return Number(product.currentStock);
+    }
+    if (Array.isArray(product.inventories) && product.inventories.length > 0) {
+      return product.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0);
+    }
+    return Number(product.initialStock || 0);
+  };
+
   /* =========================================================
      STATISTICS
   ========================================================= */
@@ -277,28 +287,20 @@ export default function ProductsPage() {
 
   const inStock = productsData.filter(
     (product) => {
-      const quantity =
-        Number(
-          product.inventories?.[0]?.quantity || 0
-        );
-
+      const quantity = getProductQuantity(product);
       return quantity > 0;
     }
   ).length;
 
   const lowStock = productsData.filter(
     (product) => {
-      const quantity =
-        Number(
-          product.inventories?.[0]?.quantity || 0
-        );
-
-      const minimumStock =
-        Number(
-          product.inventories?.[0]?.minimumStock ||
-            product.inventories?.[0]?.lowStock ||
-            10
-        );
+      const quantity = getProductQuantity(product);
+      const minimumStock = Number(
+        product.minimumStock ||
+        product.inventories?.[0]?.minimumStock ||
+        product.inventories?.[0]?.lowStock ||
+        10
+      );
 
       return (
         quantity > 0 &&
@@ -309,11 +311,7 @@ export default function ProductsPage() {
 
   const noStock = productsData.filter(
     (product) => {
-      const quantity =
-        Number(
-          product.inventories?.[0]?.quantity || 0
-        );
-
+      const quantity = getProductQuantity(product);
       return quantity === 0;
     }
   ).length;
@@ -323,17 +321,13 @@ export default function ProductsPage() {
   ========================================================= */
 
   const getProductStatus = (product) => {
-    const quantity =
-      Number(
-        product.inventories?.[0]?.quantity || 0
-      );
-
-    const minimumStock =
-      Number(
-        product.inventories?.[0]?.minimumStock ||
-          product.inventories?.[0]?.lowStock ||
-          10
-      );
+    const quantity = getProductQuantity(product);
+    const minimumStock = Number(
+      product.minimumStock ||
+      product.inventories?.[0]?.minimumStock ||
+      product.inventories?.[0]?.lowStock ||
+      10
+    );
 
     if (quantity === 0) {
       return "No Stock";
@@ -850,12 +844,7 @@ export default function ProductsPage() {
                           product.image
                         );
 
-                      const quantity =
-                        Number(
-                          product
-                            .inventories?.[0]
-                            ?.quantity || 0
-                        );
+                      const quantity = getProductQuantity(product);
 
                       if (isRestaurant) {
                         return (

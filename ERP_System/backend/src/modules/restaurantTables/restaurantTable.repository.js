@@ -12,8 +12,12 @@ export const createTable = async (data) => {
 
 export const getTables = async (restaurantId, areaId) => {
   const where = {};
-  if (restaurantId) where.restaurantId = restaurantId;
-  if (areaId) where.areaId = areaId;
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
+  if (areaId && areaId !== "ALL" && areaId !== "undefined" && areaId !== "null" && String(areaId).trim() !== "") {
+    where.areaId = areaId;
+  }
 
   return await prisma.restaurantTable.findMany({
     where,
@@ -22,7 +26,7 @@ export const getTables = async (restaurantId, areaId) => {
       orders: {
         where: {
           status: {
-            in: ["CONFIRMED", "PREPARING", "READY", "SERVED"],
+            in: ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"],
           },
         },
         include: {
@@ -32,6 +36,7 @@ export const getTables = async (restaurantId, areaId) => {
             },
           },
         },
+        orderBy: { createdAt: "desc" },
       },
     },
     orderBy: { tableNumber: "asc" },
@@ -46,7 +51,7 @@ export const getTableById = async (id) => {
       orders: {
         where: {
           status: {
-            in: ["CONFIRMED", "PREPARING", "READY", "SERVED"],
+            in: ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"],
           },
         },
         include: {
@@ -56,6 +61,7 @@ export const getTableById = async (id) => {
             },
           },
         },
+        orderBy: { createdAt: "desc" },
       },
     },
   });

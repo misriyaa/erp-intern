@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FiPrinter, FiDownload, FiX } from "react-icons/fi";
+import { showInfo } from "@/utils/swal";
 import PurchaseForm from "../components/PurchaseForm";
 import "../purchases.css";
 
@@ -11,8 +12,8 @@ export default function AddPurchasePage() {
       {/* PAGE HEADER */}
       <header className="header">
         <div>
-          <h1>Purchases</h1>
-          <p>Manage company purchase orders, supplier inventory, and stock receipts.</p>
+          <h1 className="pageTitle">New Purchase Order</h1>
+          <p className="pageSubtitle">Create a new purchase order for stock replenishment.</p>
         </div>
 
         <div className="headerActions">
@@ -26,7 +27,7 @@ export default function AddPurchasePage() {
 
           <button
             className="secondaryButton"
-            onClick={() => alert("Exporting template...")}
+            onClick={() => showInfo("Export Template", "Exporting template...")}
           >
             <FiDownload size={15} />
             Export

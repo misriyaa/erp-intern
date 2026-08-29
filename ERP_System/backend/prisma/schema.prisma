@@ -1569,6 +1569,7 @@ enum RestaurantOrderType {
 
 enum RestaurantOrderStatus {
   DRAFT
+  HELD
   CONFIRMED
   PREPARING
   READY

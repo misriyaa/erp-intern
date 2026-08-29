@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   FiUpload,
   FiSave,
@@ -15,6 +16,8 @@ import {
   FiCheckCircle,
   FiTag,
   FiCamera,
+  FiArrowLeft,
+  FiPlus,
 } from "react-icons/fi";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
@@ -23,6 +26,7 @@ import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
 import { useCompany } from "@/context/CompanyContext";
 import { restaurantService } from "@/services/restaurantService";
+import { showSuccess, showError } from "@/utils/swal";
 
 const DEFAULT_UNITS = [
   { id: "pcs", name: "Piece / Pcs", code: "pcs" },
@@ -591,58 +595,55 @@ export default function AddRetailProductPage() {
       try {
         const formData = new FormData();
         formData.append("name", product.name.trim());
+        formData.append("ingredientName", product.name.trim());
         formData.append("sku", skuCode);
-        formData.append("barcode", skuCode);
+        formData.append("ingredientCode", skuCode);
         formData.append("description", product.description ? product.description.trim() : "");
-        formData.append("productType", "RAW_MATERIAL");
         formData.append("status", product.status || "ACTIVE");
-
-        if (product.categoryId) formData.append("categoryId", product.categoryId);
-        if (product.baseUnitId) formData.append("unitId", product.baseUnitId);
-
+        formData.append("baseUnitId", product.baseUnitId || "");
+        formData.append("openingStock", product.initialStock || "0");
         formData.append("initialStock", product.initialStock || "0");
+        formData.append("minimumStockLevel", product.minimumStock || "0");
         formData.append("minimumStock", product.minimumStock || "0");
         formData.append("reorderQuantity", product.reorderQuantity || "0");
-
+        formData.append("purchaseCost", product.costPrice || "0");
         formData.append("costPrice", product.costPrice || "0");
-        formData.append("sellingPrice", "0");
 
-        if (product.supplierId) formData.append("supplierId", product.supplierId);
+        if (product.supplierId) {
+          formData.append("preferredSupplierId", product.supplierId);
+          formData.append("supplierId", product.supplierId);
+        }
 
-        formData.append("averageCost", product.costPrice || "0");
-        formData.append("lastPurchaseCost", product.costPrice || "0");
+        if (product.restaurantOutletId) {
+          formData.append("restaurantOutletId", product.restaurantOutletId);
+        }
 
-        formData.append("restaurantOutletId", product.restaurantOutletId || "");
-        formData.append("defaultStorageLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "");
-        formData.append("warehouseLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "");
-        formData.append("storageType", product.storageType || "");
+        formData.append("defaultStorageLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "Main Store");
+        formData.append("warehouseLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "Main Store");
+        formData.append("storageType", product.storageType || "Dry");
 
         formData.append("isPerishable", product.isPerishable ? "true" : "false");
+        formData.append("expiryTracking", product.isExpiryTracking ? "true" : "false");
         formData.append("isExpiryTracking", product.isExpiryTracking ? "true" : "false");
+        formData.append("batchTracking", product.isBatchTracking ? "true" : "false");
         formData.append("isBatchTracking", product.isBatchTracking ? "true" : "false");
 
         if (image) {
           formData.append("image", image);
         }
 
-        await apiClient.post("/products", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await restaurantService.createIngredient(formData);
 
-        toast.success(`Raw Material / Ingredient "${product.name}" added successfully!`);
+        showSuccess("Ingredient Added", `Raw Material / Ingredient "${product.name}" added successfully!`);
         setTimeout(() => {
           router.push("/admin/products/view");
-        }, 800);
+        }, 700);
       } catch (error) {
         console.error("Error creating ingredient:", error);
         const errData = error.response?.data;
-        let errMsg = errData?.message || "Failed to create raw material / ingredient.";
-        if (Array.isArray(errData?.errors) && errData.errors.length > 0) {
-          const detailMsgs = errData.errors.map((e) => e.msg || `${e.path} invalid`).join(", ");
-          errMsg = `${errMsg} (${detailMsgs})`;
-        }
+        const errMsg = errData?.message || "Unable to add ingredient. Please check the entered information.";
         toast.error(errMsg);
-        showWarning("Submission Error", errMsg);
+        showError("Unable to Add Ingredient", errMsg);
       } finally {
         setSubmitting(false);
       }
@@ -723,150 +724,375 @@ export default function AddRetailProductPage() {
       <Toaster position="top-right" />
 
       {isRestaurant ? (
-        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown}>
-          {/* HERO HEADER BANNER */}
-          <div className={styles.heroBanner} style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)", border: "1px solid #312e81" }}>
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} style={{ maxWidth: "1400px", margin: "0 auto", paddingBottom: "48px" }}>
+          {/* PAGE HEADER */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "24px",
+              flexWrap: "wrap",
+              gap: "16px",
+              background: "#ffffff",
+              padding: "20px 24px",
+              borderRadius: "14px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            }}
+          >
             <div>
-              <span className={styles.badgePill} style={{ background: "#4338ca", color: "#e0e7ff" }}>
-                <FiPackage size={13} /> Restaurant ERP — Raw Materials & Ingredients
-              </span>
-              <h1 className={styles.heroTitle} style={{ color: "#ffffff" }}>Add Raw Material / Ingredient</h1>
-              <p className={styles.heroSubtitle} style={{ color: "#a5b4fc" }}>
-                Register kitchen raw materials, meat, poultry, vegetables, dairy, spices & store items.
+              <button
+                type="button"
+                onClick={() => router.push("/admin/products/view")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "none",
+                  border: "none",
+                  color: "#2563eb",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  padding: "0",
+                  marginBottom: "8px",
+                }}
+              >
+                <FiArrowLeft size={16} /> Back to Ingredients
+              </button>
+              <h1 style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
+                Add Raw Material / Ingredient
+              </h1>
+              <p style={{ color: "#64748b", fontSize: "14px", margin: 0 }}>
+                Manage ingredient details, stock levels, supplier information and storage settings.
               </p>
             </div>
-            <div className={styles.heroActions}>
-              <button type="button" className={styles.cancelBtn} onClick={() => router.push("/admin/products/view")}>
+
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => router.push("/admin/products/view")}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  backgroundColor: "#ffffff",
+                  color: "#475569",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
                 Cancel
               </button>
-              <button type="submit" className={styles.saveBtn} disabled={submitting} style={{ background: "#4f46e5", color: "#ffffff" }}>
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: submitting ? "#93c5fd" : "#2563eb",
+                  color: "#ffffff",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
+                  transition: "all 0.15s ease",
+                }}
+              >
                 <FiSave size={16} />
                 {submitting ? "Saving..." : "Save Ingredient"}
               </button>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: "24px", marginTop: "24px" }}>
+          {/* 2-COLUMN RESPONSIVE FORM GRID */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(440px, 1fr))", gap: "24px" }}>
             {/* 1. BASIC INFORMATION */}
-            <div className={styles.cardSection} style={{ background: "#ffffff", padding: "24px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "18px" }}>
-                <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <FiTag style={{ color: "#4f46e5" }} /> BASIC INFORMATION
+            <div
+              style={{
+                background: "#ffffff",
+                padding: "24px",
+                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "18px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
+                  <FiTag />
+                </div>
+                <h3 style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Basic Information
                 </h3>
-                <div style={{ height: "1px", background: "#cbd5e1", width: "100%" }} />
               </div>
+
               <div style={{ display: "grid", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                    Ingredient Name <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={product.name}
+                    onChange={handleChange}
+                    placeholder="e.g. Chicken Breast, Rice, Cheese"
+                    style={{
+                      width: "100%",
+                      height: "44px",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      backgroundColor: "#ffffff",
+                      color: "#0f172a",
+                      fontSize: "14px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <div>
-                    <label className={styles.label}>Ingredient Name *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={product.name}
-                      onChange={handleChange}
-                      className={styles.input}
-                      placeholder="e.g. Chicken Breast, Rice, Cheese"
-                    />
-                  </div>
-                  <div>
-                    <label className={styles.label}>Ingredient Code / SKU *</label>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Ingredient Code / SKU <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
                     <input
                       type="text"
                       name="sku"
                       value={product.sku}
                       onChange={handleChange}
-                      className={styles.input}
                       placeholder="ING-001"
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
+
                   <div>
-                    <label className={styles.label}>Status *</label>
-                    <select name="status" value={product.status} onChange={handleChange} className={styles.select}>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Status <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
+                    <select
+                      name="status"
+                      value={product.status}
+                      onChange={handleChange}
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        cursor: "pointer",
+                        boxSizing: "border-box",
+                      }}
+                    >
                       <option value="ACTIVE">Active</option>
                       <option value="INACTIVE">Inactive</option>
                     </select>
                   </div>
                 </div>
+
                 <div>
-                  <label className={styles.label}>Description</label>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                    Description
+                  </label>
                   <textarea
                     name="description"
                     value={product.description}
                     onChange={handleChange}
-                    className={styles.textarea}
-                    placeholder="Enter description..."
+                    placeholder="Enter ingredient notes, brand details, or specifications..."
                     rows={3}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      backgroundColor: "#ffffff",
+                      color: "#0f172a",
+                      fontSize: "14px",
+                      outline: "none",
+                      resize: "vertical",
+                      minHeight: "85px",
+                      boxSizing: "border-box",
+                    }}
                   />
                 </div>
               </div>
             </div>
 
             {/* 2. UNIT & STOCK */}
-            <div className={styles.cardSection} style={{ background: "#ffffff", padding: "24px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "18px" }}>
-                <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <FiPackage style={{ color: "#4f46e5" }} /> UNIT & STOCK
+            <div
+              style={{
+                background: "#ffffff",
+                padding: "24px",
+                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "18px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
+                  <FiPackage />
+                </div>
+                <h3 style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Unit & Stock
                 </h3>
-                <div style={{ height: "1px", background: "#cbd5e1", width: "100%" }} />
               </div>
+
               <div style={{ display: "grid", gap: "16px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                      <label className={styles.label} style={{ margin: 0 }}>Base Unit *</label>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155", margin: 0 }}>
+                        Base Unit <span style={{ color: "#ef4444" }}>*</span>
+                      </label>
                       <button
                         type="button"
                         onClick={() => setShowAddUnitModal(true)}
-                        style={{ background: "none", border: "none", color: "#4f46e5", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#2563eb",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          padding: "0",
+                        }}
                       >
                         + Add Unit
                       </button>
                     </div>
-                    <select name="baseUnitId" value={product.baseUnitId} onChange={handleChange} className={styles.select}>
+                    <select
+                      name="baseUnitId"
+                      value={product.baseUnitId}
+                      onChange={handleChange}
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        cursor: "pointer",
+                        boxSizing: "border-box",
+                      }}
+                    >
                       <option value="">Select Base Unit</option>
                       {units.map((u) => (
-                        <option key={u.id} value={u.id}>{u.name || u.code}</option>
+                        <option key={u.id} value={u.id}>
+                          {u.name || u.code}
+                        </option>
                       ))}
                     </select>
                   </div>
+
                   <div>
-                    <label className={styles.label}>Opening Stock</label>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Opening Stock
+                    </label>
                     <input
                       type="number"
                       step="any"
                       name="initialStock"
                       value={product.initialStock}
                       onChange={handleChange}
-                      className={styles.input}
                       placeholder="0"
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
                 </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <div>
-                    <label className={styles.label}>Minimum Stock Level *</label>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Minimum Stock Level <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
                     <input
                       type="number"
                       step="any"
                       name="minimumStock"
                       value={product.minimumStock}
                       onChange={handleChange}
-                      className={styles.input}
                       placeholder="5"
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
+
                   <div>
-                    <label className={styles.label}>Reorder Quantity</label>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Reorder Quantity
+                    </label>
                     <input
                       type="number"
                       step="any"
                       name="reorderQuantity"
                       value={product.reorderQuantity}
                       onChange={handleChange}
-                      className={styles.input}
                       placeholder="20"
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
                 </div>
@@ -874,111 +1100,249 @@ export default function AddRetailProductPage() {
             </div>
 
             {/* 3. COST INFORMATION */}
-            <div className={styles.cardSection} style={{ background: "#ffffff", padding: "24px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "18px" }}>
-                <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <FiDollarSign style={{ color: "#4f46e5" }} /> COST INFORMATION
+            <div
+              style={{
+                background: "#ffffff",
+                padding: "24px",
+                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "18px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
+                  <FiDollarSign />
+                </div>
+                <h3 style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Cost Information
                 </h3>
-                <div style={{ height: "1px", background: "#cbd5e1", width: "100%" }} />
               </div>
+
               <div style={{ display: "grid", gap: "16px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <div>
-                    <label className={styles.label}>Purchase Cost (₹) *</label>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Purchase Cost (₹) <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
                     <input
                       type="number"
                       step="any"
                       name="costPrice"
                       value={product.costPrice}
                       onChange={handleChange}
-                      className={styles.input}
-                      placeholder="300"
+                      placeholder="300.00"
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
+
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                      <label className={styles.label} style={{ margin: 0 }}>Preferred Supplier</label>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155", margin: 0 }}>
+                        Preferred Supplier
+                      </label>
                       <button
                         type="button"
                         onClick={() => setShowAddSupplierModal(true)}
-                        style={{ background: "none", border: "none", color: "#4f46e5", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#2563eb",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          padding: "0",
+                        }}
                       >
                         + Add Supplier
                       </button>
                     </div>
-                    <select name="supplierId" value={product.supplierId} onChange={handleChange} className={styles.select}>
+                    <select
+                      name="supplierId"
+                      value={product.supplierId}
+                      onChange={handleChange}
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        cursor: "pointer",
+                        boxSizing: "border-box",
+                      }}
+                    >
                       <option value="">Select Supplier</option>
                       {suppliers.map((sup) => (
-                        <option key={sup.id} value={sup.id}>{sup.companyName || sup.name || sup.contactPerson}</option>
+                        <option key={sup.id} value={sup.id}>
+                          {sup.companyName || sup.name || sup.contactPerson}
+                        </option>
                       ))}
                     </select>
                   </div>
                 </div>
 
-                {/* CALCULATED READONLY PREVIEWS MATCHING PROMPT */}
-                <div style={{ padding: "16px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "8px" }}>
-                  <div>
-                    <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "700", letterSpacing: "0.5px" }}>AVERAGE COST</span>
-                    <p style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: "4px 0 0" }}>
-                      {product.costPrice && parseFloat(product.costPrice) > 0
-                        ? `₹${parseFloat(product.costPrice).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : "₹300.00"}
-                    </p>
+                {/* COST SUMMARY PANEL */}
+                <div
+                  style={{
+                    padding: "16px 20px",
+                    background: "#f8fafc",
+                    borderRadius: "10px",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "12px" }}>
+                    Cost Summary
                   </div>
-                  <div>
-                    <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "700", letterSpacing: "0.5px" }}>LAST PURCHASE COST</span>
-                    <p style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: "4px 0 0" }}>
-                      {product.costPrice && parseFloat(product.costPrice) > 0
-                        ? `₹${parseFloat(product.costPrice).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : "₹300.00"}
-                    </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
+                    <div>
+                      <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "500" }}>Average Cost</span>
+                      <div style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", marginTop: "2px" }}>
+                        {product.costPrice && parseFloat(product.costPrice) > 0
+                          ? `₹${parseFloat(product.costPrice).toFixed(2)}`
+                          : "₹300.00"}
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "500" }}>Last Purchase</span>
+                      <div style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", marginTop: "2px" }}>
+                        {product.costPrice && parseFloat(product.costPrice) > 0
+                          ? `₹${parseFloat(product.costPrice).toFixed(2)}`
+                          : "₹300.00"}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "700", letterSpacing: "0.5px" }}>STOCK VALUE</span>
-                    <p style={{ fontSize: "15px", fontWeight: "700", color: "#16a34a", margin: "4px 0 0" }}>
-                      {product.costPrice || product.initialStock
-                        ? `₹${((parseFloat(product.costPrice) || 0) * (parseFloat(product.initialStock) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  <div style={{ paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "500" }}>Stock Value</span>
+                    <div style={{ fontSize: "18px", fontWeight: "800", color: "#16a34a", marginTop: "2px" }}>
+                      {product.costPrice && product.initialStock
+                        ? `₹${((parseFloat(product.costPrice) || 0) * (parseFloat(product.initialStock) || 0)).toFixed(2)}`
                         : "₹6,000.00"}
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* 4. STORAGE & TRACKING */}
-            <div className={styles.cardSection} style={{ background: "#ffffff", padding: "24px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "18px" }}>
-                <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <FiTruck style={{ color: "#4f46e5" }} /> STORAGE & TRACKING
+            <div
+              style={{
+                background: "#ffffff",
+                padding: "24px",
+                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "18px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
+                  <FiTruck />
+                </div>
+                <h3 style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Storage & Tracking
                 </h3>
-                <div style={{ height: "1px", background: "#cbd5e1", width: "100%" }} />
               </div>
+
               <div style={{ display: "grid", gap: "16px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <div>
-                    <label className={styles.label}>Restaurant Outlet *</label>
-                    <select name="restaurantOutletId" value={product.restaurantOutletId} onChange={handleChange} className={styles.select}>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Restaurant Outlet <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
+                    <select
+                      name="restaurantOutletId"
+                      value={product.restaurantOutletId}
+                      onChange={handleChange}
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        cursor: "pointer",
+                        boxSizing: "border-box",
+                      }}
+                    >
                       <option value="">Select Outlet</option>
                       {restaurants.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
                       ))}
                     </select>
                   </div>
+
                   <div>
-                    <label className={styles.label}>Default Storage Location *</label>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                      Default Storage Location <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
                     <input
                       type="text"
                       name="defaultStorageLocation"
                       value={product.defaultStorageLocation}
                       onChange={handleChange}
-                      className={styles.input}
                       placeholder="e.g. Main Store, Freezer #1"
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#0f172a",
+                        fontSize: "14px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
                 </div>
+
                 <div>
-                  <label className={styles.label}>Storage Type *</label>
-                  <select name="storageType" value={product.storageType} onChange={handleChange} className={styles.select}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                    Storage Type
+                  </label>
+                  <select
+                    name="storageType"
+                    value={product.storageType}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      height: "44px",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      backgroundColor: "#ffffff",
+                      color: "#0f172a",
+                      fontSize: "14px",
+                      outline: "none",
+                      cursor: "pointer",
+                      boxSizing: "border-box",
+                    }}
+                  >
                     <option value="">Select Storage Type</option>
                     <option value="Dry Storage">Dry Storage</option>
                     <option value="Refrigerated">Refrigerated</option>
@@ -989,38 +1353,52 @@ export default function AddRetailProductPage() {
                   </select>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", paddingTop: "8px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "600", color: "#334155" }}>
-                    <input
-                      type="checkbox"
-                      name="isPerishable"
-                      checked={Boolean(product.isPerishable)}
-                      onChange={handleChange}
-                      style={{ width: "16px", height: "16px", accentColor: "#4f46e5" }}
-                    />
-                    Perishable Item
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                    Tracking Options
                   </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "600", color: "#334155" }}>
-                    <input
-                      type="checkbox"
-                      name="isExpiryTracking"
-                      checked={Boolean(product.isExpiryTracking)}
-                      onChange={handleChange}
-                      style={{ width: "16px", height: "16px", accentColor: "#4f46e5" }}
-                    />
-                    Expiry Tracking
-                  </label>
-
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "600", color: "#334155" }}>
-                    <input
-                      type="checkbox"
-                      name="isBatchTracking"
-                      checked={Boolean(product.isBatchTracking)}
-                      onChange={handleChange}
-                      style={{ width: "16px", height: "16px", accentColor: "#4f46e5" }}
-                    />
-                    Batch Tracking
-                  </label>
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      background: "#f8fafc",
+                      borderRadius: "10px",
+                      border: "1px solid #e2e8f0",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                    }}
+                  >
+                    <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px", fontWeight: "500", color: "#334155" }}>
+                      <input
+                        type="checkbox"
+                        name="isPerishable"
+                        checked={Boolean(product.isPerishable)}
+                        onChange={handleChange}
+                        style={{ width: "18px", height: "18px", accentColor: "#2563eb", cursor: "pointer" }}
+                      />
+                      <span>Perishable Item</span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px", fontWeight: "500", color: "#334155" }}>
+                      <input
+                        type="checkbox"
+                        name="isExpiryTracking"
+                        checked={Boolean(product.isExpiryTracking)}
+                        onChange={handleChange}
+                        style={{ width: "18px", height: "18px", accentColor: "#2563eb", cursor: "pointer" }}
+                      />
+                      <span>Expiry Tracking</span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px", fontWeight: "500", color: "#334155" }}>
+                      <input
+                        type="checkbox"
+                        name="isBatchTracking"
+                        checked={Boolean(product.isBatchTracking)}
+                        onChange={handleChange}
+                        style={{ width: "18px", height: "18px", accentColor: "#2563eb", cursor: "pointer" }}
+                      />
+                      <span>Batch Tracking</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

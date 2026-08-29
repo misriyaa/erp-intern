@@ -13,8 +13,12 @@ export const createReservation = async (data) => {
 
 export const getReservations = async (restaurantId, status, date) => {
   const where = {};
-  if (restaurantId) where.restaurantId = restaurantId;
-  if (status) where.status = status;
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
+  if (status && status !== "ALL" && status !== "undefined" && status !== "null") {
+    where.status = status;
+  }
   if (date) {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);

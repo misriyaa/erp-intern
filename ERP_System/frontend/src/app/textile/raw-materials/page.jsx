@@ -13,6 +13,7 @@ import {
   FiSave,
   FiPackage,
 } from "react-icons/fi";
+import { showConfirm } from "@/utils/swal";
 import { toast, Toaster } from "react-hot-toast";
 
 export default function RawMaterialsPage() {
@@ -98,8 +99,14 @@ export default function RawMaterialsPage() {
     toast.success(`Material "${name}" deleted.`);
   };
 
-  const handleDelete = (id, name) => {
-    if (confirm(`Are you sure you want to remove raw material "${name}"?`)) {
+  const handleDelete = async (id, name) => {
+    const isConfirmed = await showConfirm({
+      title: "Remove Raw Material?",
+      text: `Are you sure you want to remove raw material "${name}"?`,
+      confirmButtonText: "Yes, Remove",
+      icon: "warning",
+    });
+    if (isConfirmed) {
       setMaterials(materials.filter((m) => m.id !== id));
       toast.success("Material removed from inventory");
     }

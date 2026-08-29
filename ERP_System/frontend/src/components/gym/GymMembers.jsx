@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import axios from "axios";
+import { showConfirm } from "@/utils/swal";
 import {
   FiUsers,
   FiPlus,
@@ -201,7 +202,13 @@ export default function GymMembers() {
   };
 
   const handleDelete = async (id, name) => {
-    if (!confirm(`Are you sure you want to delete member "${name}"?`)) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Member?",
+      text: `Are you sure you want to delete member "${name}"?`,
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
 
     try {
       const token = localStorage.getItem("token");

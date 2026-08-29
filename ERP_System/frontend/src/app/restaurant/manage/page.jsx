@@ -6,6 +6,7 @@ import { getBranches, createBranch } from "@/services/branchService";
 import { useCompany } from "@/context/CompanyContext";
 import { useRouter } from "next/navigation";
 import { FiPlus, FiEdit, FiTrash2, FiMapPin, FiPhone, FiCoffee, FiAlertCircle, FiShield } from "react-icons/fi";
+import { showSuccess, showError, showWarning, showConfirm } from "@/utils/swal";
 
 export default function RestaurantManagePage() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function RestaurantManagePage() {
         address: "Main City Center",
       });
       const newBranch = res.data || res;
-      alert("Main Branch created successfully!");
+      showSuccess("Branch Created", "Main Branch created successfully!");
       const branchRes = await getBranches();
       const updatedBranches = branchRes.data || branchRes || [];
       setBranches(updatedBranches);
@@ -78,7 +79,7 @@ export default function RestaurantManagePage() {
         setForm((prev) => ({ ...prev, branchId: newBranch?.id || updatedBranches[0].id }));
       }
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to create branch");
+      showError("Failed", err.response?.data?.message || err.message || "Failed to create branch");
     } finally {
       setCreatingBranch(false);
     }
@@ -88,7 +89,7 @@ export default function RestaurantManagePage() {
     e.preventDefault();
 
     if (!form.name.trim()) {
-      alert("Please enter a Restaurant Name.");
+      showWarning("Name Required", "Please enter a Restaurant Name.");
       return;
     }
 
@@ -115,17 +116,17 @@ export default function RestaurantManagePage() {
     try {
       if (editingRestaurant) {
         await restaurantService.updateRestaurant(editingRestaurant.id, payload);
-        alert("Restaurant outlet updated successfully!");
+        showSuccess("Updated", "Restaurant outlet updated successfully!");
       } else {
         await restaurantService.createRestaurant(payload);
-        alert("New restaurant outlet added successfully!");
+        showSuccess("Created", "New restaurant outlet added successfully!");
       }
       setShowAddModal(false);
       setEditingRestaurant(null);
       setForm({ name: "", code: "", branchId: branches[0]?.id || "", phone: "", address: "" });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Error", err.response?.data?.message || err.message);
     }
   };
 
@@ -142,13 +143,20 @@ export default function RestaurantManagePage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this restaurant outlet?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Outlet?",
+      text: "Are you sure you want to delete this restaurant outlet?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteRestaurant(id);
       setRestaurants((prev) => prev.filter((r) => r.id !== id));
       fetchData();
+      showSuccess("Deleted", "Restaurant outlet deleted successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to delete restaurant outlet");
+      showError("Delete Failed", err.response?.data?.message || err.message || "Failed to delete restaurant outlet");
     }
   };
 

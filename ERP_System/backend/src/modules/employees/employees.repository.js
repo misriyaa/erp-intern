@@ -5,9 +5,10 @@ import prisma from "../../config/prisma.js";
  */
 const getAllEmployees = async (companyId, type) => {
   const where = {};
-  if (companyId) {
+  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
     where.companyId = companyId;
-  } else if (type) {
+  }
+  if (type && type !== "ALL" && type !== "undefined" && type !== "null" && String(type).trim() !== "") {
     where.type = type;
   }
 

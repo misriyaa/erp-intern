@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
 import apiClient from "@/services/apiClient";
+import { showConfirm } from "@/utils/swal";
 
 export default function TextileProductsPage() {
   const [products, setProducts] = useState([]);
@@ -145,7 +146,13 @@ export default function TextileProductsPage() {
   };
 
   const handleDelete = async (id, name) => {
-    if (confirm(`Remove product "${name}" from textile catalog?`)) {
+    const isConfirmed = await showConfirm({
+      title: "Remove Fabric Product?",
+      text: `Are you sure you want to remove product "${name}" from textile catalog?`,
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (isConfirmed) {
       try {
         await apiClient.delete(`/products/${id}`);
       } catch (err) {

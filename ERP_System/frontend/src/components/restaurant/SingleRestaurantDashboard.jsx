@@ -1281,35 +1281,6 @@ export default function SingleRestaurantDashboard() {
           </div>
         </div>
 
-        {/* SECTION 15: WASTAGE SUMMARY */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>Wastage Summary</h4>
-            <Link href="/restaurant/wastage" style={{ color: "#ef4444", fontWeight: "700", fontSize: "11px", textDecoration: "none" }}>
-              Manage →
-            </Link>
-          </div>
-
-          <div style={{ fontSize: "12px", display: "flex", flexDirection: "column", gap: "4px", marginBottom: "12px" }}>
-            <div>Total Entries: <strong>{wastageSummaryData.totalEntries}</strong></div>
-            <div>Total Cost: <strong style={{ color: "#dc2626" }}>₹{wastageSummaryData.totalCost.toFixed(2)}</strong></div>
-            <div>Most Wasted: <strong style={{ color: "#d97706" }}>{wastageSummaryData.mostWasted}</strong></div>
-          </div>
-
-          {wastageSummaryData.list.length === 0 ? (
-            <p style={{ color: "#94a3b8", fontSize: "11px", margin: 0 }}>No recent wastage records.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#475569" }}>
-              {wastageSummaryData.list.map((w) => (
-                <div key={w.id} style={{ display: "flex", justifyContent: "space-between", background: "#f8fafc", padding: "4px 8px", borderRadius: "4px" }}>
-                  <span>{w.product?.name || w.reason || "Wastage"}</span>
-                  <span style={{ fontWeight: "700", color: "#dc2626" }}>₹{parseFloat(w.totalCost || 0).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
       </div>
 
       {/* ==========================================
@@ -1391,17 +1362,17 @@ export default function SingleRestaurantDashboard() {
           <Link href="/restaurant/menu" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", color: "#b45309", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
             <FiBox size={16} /> Manage Menu
           </Link>
-          <Link href="/warehouse/add" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: "10px", color: "#0f766e", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiPackage size={16} /> Add Stock
-          </Link>
-          <Link href="/purchases/add" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#fdf2f8", border: "1px solid #fbcfe8", borderRadius: "10px", color: "#be185d", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiShoppingCart size={16} /> Create PO
-          </Link>
-          <Link href="/restaurant/wastage" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", color: "#b91c1c", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiTrash2 size={16} /> Add Wastage
+          <Link href="/admin/products/view" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: "10px", color: "#0f766e", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
+            <FiPackage size={16} /> Ingredients Inventory
           </Link>
           <Link href="/restaurant/kitchen" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "10px", color: "#047857", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
             <FiTv size={16} /> Open KDS Display
+          </Link>
+          <Link href="/admin/employees/view" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "10px", color: "#6b21a8", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
+            <FiUsers size={16} /> Staff Management
+          </Link>
+          <Link href="/restaurant/reports" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: "10px", color: "#1e40af", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
+            <FiBarChart2 size={16} /> Reports & Analytics
           </Link>
         </div>
       </div>

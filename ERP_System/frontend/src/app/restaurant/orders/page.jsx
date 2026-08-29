@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
+import Swal, { showSuccess, showError } from "@/utils/swal";
 import { FiShoppingCart, FiPrinter, FiXCircle, FiCheckCircle, FiEye } from "react-icons/fi";
 
 export default function RestaurantOrdersPage() {
@@ -17,9 +18,7 @@ export default function RestaurantOrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedRestaurantId) {
-      fetchOrders();
-    }
+    fetchOrders();
   }, [selectedRestaurantId, statusFilter]);
 
   const fetchInitialData = async () => {
@@ -41,7 +40,7 @@ export default function RestaurantOrdersPage() {
   const fetchOrders = async () => {
     try {
       const res = await restaurantService.getOrders({
-        restaurantId: selectedRestaurantId,
+        restaurantId: selectedRestaurantId && selectedRestaurantId !== "ALL" ? selectedRestaurantId : undefined,
         status: statusFilter || undefined,
       });
       setOrders(res.data || []);
@@ -51,13 +50,22 @@ export default function RestaurantOrdersPage() {
   };
 
   const handleCancelOrder = async (orderId) => {
-    const reason = prompt("Enter reason for order cancellation:");
-    if (!reason) return;
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: "Cancel Order",
+      input: "text",
+      inputLabel: "Enter reason for order cancellation:",
+      inputPlaceholder: "Reason...",
+      showCancelButton: true,
+      confirmButtonText: "Cancel Order",
+      confirmButtonColor: "#ef4444",
+    });
+    if (!isConfirmed || !reason) return;
     try {
       await restaurantService.cancelOrder(orderId, reason);
       fetchOrders();
+      showSuccess("Order Cancelled", "Order was successfully cancelled.");
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      showError("Cancel Failed", err.response?.data?.message || err.message);
     }
   };
 
@@ -94,6 +102,7 @@ export default function RestaurantOrdersPage() {
               onChange={(e) => setSelectedRestaurantId(e.target.value)}
               style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid #cbd5e1", fontWeight: "600" }}
             >
+              {restaurants.length > 1 && <option value="ALL">All Outlets</option>}
               {restaurants.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
               ))}

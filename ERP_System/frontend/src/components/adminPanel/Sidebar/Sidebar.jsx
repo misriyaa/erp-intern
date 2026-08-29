@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings, logoUrl } = useSettings();
-  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, isLaundry, isMedical, isRetail, industryCode, clearSession } = useCompany();
+  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, isLaundry, isMedical, isRetail, industryCode, clearSession, loading } = useCompany();
 
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
@@ -77,18 +77,48 @@ export default function Sidebar({ isOpen, onClose }) {
     }
   };
 
-  const roleUpper = (user?.role || "").toUpperCase();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase().replace(/\s+/g, "_");
   const isSuperAdmin = roleUpper.includes("SUPER");
   const isAdmin = isSuperAdmin || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
-  const isManager = roleUpper === "MANAGER";
+  const isManager = roleUpper.includes("MANAGER");
+  const isCashier = roleUpper.includes("CASHIER") || roleUpper.includes("BILLING") || roleUpper.includes("COUNTER");
+  const isWaiter = roleUpper.includes("WAITER") || roleUpper.includes("STEWARD") || roleUpper.includes("SERVER");
+  const isKitchenStaff = roleUpper.includes("KITCHEN") || roleUpper.includes("CHEF") || roleUpper.includes("COOK");
 
-  // Filter master catalog based on enabled modules and industry context
+  // Filter master catalog based on enabled modules, role and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
     if (item.adminOnly && !isAdmin) {
       return false;
     }
+    if (isCashier && !isAdmin && !isManager) {
+      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders", "/laundry/pos", "/laundry/orders"];
+      if (!cashierHrefs.includes(item.href)) {
+        return false;
+      }
+    }
+    if (isWaiter && !isAdmin && !isManager) {
+      const waiterHrefs = ["/restaurant/pos", "/restaurant/tables", "/restaurant/reservations", "/restaurant/orders"];
+      if (!waiterHrefs.includes(item.href)) {
+        return false;
+      }
+    }
+    if (isKitchenStaff && !isAdmin && !isManager) {
+      const kitchenHrefs = ["/restaurant/kitchen"];
+      if (!kitchenHrefs.includes(item.href)) {
+        return false;
+      }
+    }
+    const codeUpper = (industryCode || "").toUpperCase();
+    if (item.href === "/dashboard" && ["RESTAURANT", "LAUNDRY"].includes(codeUpper)) {
+      return false;
+    }
+    // For Restaurant ERP: exclude duplicate shared items ("Employees / Staff" and generic "Reports & Analytics")
+    if (codeUpper === "RESTAURANT") {
+      if (!item.industry && (item.moduleCode === "EMPLOYEES" || item.moduleCode === "REPORTS" || item.moduleCode === "PURCHASES" || item.moduleCode === "WASTAGE")) {
+        return false;
+      }
+    }
     if (item.industry) {
-      const codeUpper = (industryCode || "").toUpperCase();
       const itemInd = (item.industry || "").toUpperCase();
       if (codeUpper !== itemInd && !codeUpper.includes(itemInd) && !itemInd.includes(codeUpper)) {
         return false;
@@ -176,25 +206,31 @@ export default function Sidebar({ isOpen, onClose }) {
             : "SUPERMARKET & RESTAURANT ERP"}
         </h4>
 
-        {visibleNavItems.map((item) => {
-          const IconComp = item.icon;
-          const active = isActivePath(item.href);
-          const finalHref = selectedRestaurantId && item.href.startsWith("/restaurant/")
-            ? `${item.href}?restaurantId=${selectedRestaurantId}`
-            : item.href;
+        {loading ? (
+          <div style={{ padding: "16px 20px", color: "#94a3b8", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>Loading navigation...</span>
+          </div>
+        ) : (
+          visibleNavItems.map((item) => {
+            const IconComp = item.icon;
+            const active = isActivePath(item.href);
+            const finalHref = selectedRestaurantId && item.href.startsWith("/restaurant/")
+              ? `${item.href}?restaurantId=${selectedRestaurantId}`
+              : item.href;
 
-          return (
-            <Link
-              key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
-              href={finalHref}
-              className={active ? styles.active : ""}
-              onClick={handleLinkClick}
-            >
-              <IconComp />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
+                href={finalHref}
+                className={active ? styles.active : ""}
+                onClick={handleLinkClick}
+              >
+                <IconComp />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })
+        )}
 
         <div style={{ marginTop: "24px", paddingTop: "12px", borderTop: "1px solid #334155" }}>
           <button

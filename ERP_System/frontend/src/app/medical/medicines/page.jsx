@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { medicalService } from "@/services/medicalService";
+import { showConfirm } from "@/utils/swal";
 import toast, { Toaster } from "react-hot-toast";
 import {
   FiPlus,
@@ -32,7 +33,13 @@ export default function MedicinesCatalog() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to deregister this medicine?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Deregister Medicine?",
+      text: "Are you sure you want to deregister this medicine?",
+      confirmButtonText: "Yes, Deregister",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await medicalService.deleteMedicine(id);
       toast.success("Medicine deregistered successfully!");

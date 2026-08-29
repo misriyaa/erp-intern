@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FiBox, FiPlus, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import toast, { Toaster } from "react-hot-toast";
 import apiClient from "@/services/apiClient";
+import { showConfirm } from "@/utils/swal";
 
 export default function MedicineCategories() {
   const [categories, setCategories] = useState([]);
@@ -55,7 +56,13 @@ export default function MedicineCategories() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Category?",
+      text: "Are you sure you want to delete this category?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
 
     try {
       await apiClient.delete(`/categories/${id}`);

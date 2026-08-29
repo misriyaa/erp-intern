@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { medicalService } from "@/services/medicalService";
+import { showConfirm } from "@/utils/swal";
 import { getSuppliers } from "@/services/supplierService";
 import { getWarehouses } from "@/services/warehouseService";
 import {
@@ -123,7 +124,13 @@ export default function BatchesRegistry() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to remove this batch?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Remove Batch?",
+      text: "Are you sure you want to remove this batch?",
+      confirmButtonText: "Yes, Remove",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await medicalService.deleteBatch(id);
       fetchInitData();

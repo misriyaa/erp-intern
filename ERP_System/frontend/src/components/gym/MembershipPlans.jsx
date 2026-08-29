@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { showConfirm } from "@/utils/swal";
 import {
   FiAward,
   FiPlus,
@@ -114,7 +115,13 @@ export default function MembershipPlans() {
   };
 
   const handleDelete = async (id, name) => {
-    if (!confirm(`Delete membership plan "${name}"?`)) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Membership Plan?",
+      text: `Are you sure you want to delete membership plan "${name}"?`,
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
 
     try {
       const token = localStorage.getItem("token");

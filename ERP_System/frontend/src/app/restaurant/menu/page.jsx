@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
 import { getProducts } from "@/services/productService";
 import { FiPlus, FiEdit, FiTrash2, FiBox, FiPackage, FiLayers, FiDollarSign, FiCheck } from "react-icons/fi";
+import { showSuccess, showError, showWarning, showConfirm } from "@/utils/swal";
 
 export default function RestaurantMenuPage() {
   const [loading, setLoading] = useState(true);
@@ -13,12 +14,12 @@ export default function RestaurantMenuPage() {
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
   const [rawMaterials, setRawMaterials] = useState([]);
 
-  // Categories State
+  // Category State
   const [categories, setCategories] = useState([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categoryName, setCategoryName] = useState("");
 
-  // Menu Items State
+  // Menu Item State
   const [menuItems, setMenuItems] = useState([]);
   const [showItemModal, setShowItemModal] = useState(false);
   const [itemForm, setItemForm] = useState({
@@ -28,7 +29,7 @@ export default function RestaurantMenuPage() {
     description: "",
   });
 
-  // Recipe Builder State
+  // Recipe BOM State
   const [selectedMenuItemForRecipe, setSelectedMenuItemForRecipe] = useState(null);
   const [recipeIngredients, setRecipeIngredients] = useState([]);
 
@@ -44,57 +45,61 @@ export default function RestaurantMenuPage() {
     fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    if (selectedRestaurantId) {
-      loadTabData();
-    }
-  }, [selectedRestaurantId, activeTab]);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
       const [restRes, prodRes] = await Promise.all([
         restaurantService.getRestaurants(),
-        getProducts(),
+        getProducts({ type: "RAW_MATERIAL" }),
       ]);
-      const list = restRes.data || [];
-      setRestaurants(list);
-      if (list.length > 0) {
-        setSelectedRestaurantId(list[0].id);
+
+      const restList = restRes.data || [];
+      setRestaurants(restList);
+      if (restList.length > 0) {
+        setSelectedRestaurantId(restList[0].id);
       }
+
       setRawMaterials(prodRes.data || prodRes || []);
     } catch (err) {
-      console.error(err);
+      console.error("Error loading menu page initial data:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadTabData();
+  }, [selectedRestaurantId, activeTab]);
+
   const loadTabData = async () => {
-    if (!selectedRestaurantId) return;
+    const outletParam = selectedRestaurantId && selectedRestaurantId !== "ALL" ? selectedRestaurantId : undefined;
     try {
       if (activeTab === "categories") {
-        const res = await restaurantService.getMenuCategories(selectedRestaurantId);
+        const res = await restaurantService.getMenuCategories(outletParam);
         setCategories(res.data || []);
       } else if (activeTab === "items" || activeTab === "recipes") {
-        const [catRes, itemRes] = await Promise.all([
-          restaurantService.getMenuCategories(selectedRestaurantId),
-          restaurantService.getMenuItems(selectedRestaurantId),
+        const [itemRes, catRes] = await Promise.all([
+          restaurantService.getMenuItems(outletParam),
+          restaurantService.getMenuCategories(outletParam),
         ]);
-        setCategories(catRes.data || []);
         setMenuItems(itemRes.data || []);
+        setCategories(catRes.data || []);
       } else if (activeTab === "modifiers") {
-        const res = await restaurantService.getModifierGroups(selectedRestaurantId);
+        const res = await restaurantService.getModifierGroups(outletParam);
         setModifierGroups(res.data || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching tab data:", err);
     }
   };
 
   // Category Handlers
   const handleSaveCategory = async (e) => {
     e.preventDefault();
+    if (!categoryName.trim()) {
+      showWarning("Name Required", "Please enter a category name.");
+      return;
+    }
     try {
       await restaurantService.createMenuCategory({
         name: categoryName,
@@ -103,16 +108,26 @@ export default function RestaurantMenuPage() {
       setCategoryName("");
       setShowCategoryModal(false);
       loadTabData();
-    } catch (err) { alert(err.message); }
+      showSuccess("Category Created", "Menu category created successfully!");
+    } catch (err) {
+      showError("Failed", err.message);
+    }
   };
+  const handleCreateCategory = handleSaveCategory;
 
   const handleDeleteCategory = async (id) => {
-    if (!confirm("Are you sure you want to delete this menu category?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Category?",
+      text: "Are you sure you want to delete this menu category?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteMenuCategory(id);
       loadTabData();
-      alert("Category deleted successfully!");
-    } catch (err) { alert(err.response?.data?.message || err.message); }
+      showSuccess("Deleted", "Category deleted successfully!");
+    } catch (err) { showError("Delete Failed", err.response?.data?.message || err.message); }
   };
 
   // Item Handlers
@@ -130,16 +145,23 @@ export default function RestaurantMenuPage() {
       setShowItemModal(false);
       setItemForm({ name: "", categoryId: "", sellingPrice: "", description: "" });
       loadTabData();
-    } catch (err) { alert(err.message); }
+      showSuccess("Item Created", "Menu item created successfully!");
+    } catch (err) { showError("Failed", err.message); }
   };
 
   const handleDeleteMenuItem = async (id) => {
-    if (!confirm("Are you sure you want to delete this menu item?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Item?",
+      text: "Are you sure you want to delete this menu item?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteMenuItem(id);
       loadTabData();
-      alert("Menu item deleted successfully!");
-    } catch (err) { alert(err.response?.data?.message || err.message); }
+      showSuccess("Deleted", "Menu item deleted successfully!");
+    } catch (err) { showError("Delete Failed", err.response?.data?.message || err.message); }
   };
 
   // Recipe BOM Handlers
@@ -160,7 +182,7 @@ export default function RestaurantMenuPage() {
 
   const handleAddIngredientRow = () => {
     if (rawMaterials.length === 0) {
-      alert("No raw materials found in Product inventory. Add raw material products first.");
+      showWarning("Raw Materials Missing", "No raw materials found in Product inventory. Add raw material products first.");
       return;
     }
     setRecipeIngredients([
@@ -175,14 +197,20 @@ export default function RestaurantMenuPage() {
       await restaurantService.saveRecipe(selectedMenuItemForRecipe.id, {
         ingredients: recipeIngredients,
       });
-      alert("Recipe / BOM saved successfully!");
+      showSuccess("Recipe Saved", "Recipe / BOM saved successfully!");
       setSelectedMenuItemForRecipe(null);
       loadTabData();
-    } catch (err) { alert(err.message); }
+    } catch (err) { showError("Failed", err.message); }
   };
 
   const handleDeleteRecipe = async (recipeId) => {
-    if (!confirm("Are you sure you want to delete this recipe BOM?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Recipe?",
+      text: "Are you sure you want to delete this recipe BOM?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       if (recipeId) {
         await restaurantService.deleteRecipe(recipeId);
@@ -190,8 +218,8 @@ export default function RestaurantMenuPage() {
       setRecipeIngredients([]);
       setSelectedMenuItemForRecipe(null);
       loadTabData();
-      alert("Recipe deleted successfully!");
-    } catch (err) { alert(err.response?.data?.message || err.message); }
+      showSuccess("Deleted", "Recipe deleted successfully!");
+    } catch (err) { showError("Delete Failed", err.response?.data?.message || err.message); }
   };
 
   // Modifier Handlers
@@ -206,16 +234,23 @@ export default function RestaurantMenuPage() {
       setShowModifierModal(false);
       setModifierGroupForm({ name: "", modifiers: [{ name: "", price: 0 }] });
       loadTabData();
-    } catch (err) { alert(err.message); }
+      showSuccess("Group Created", "Modifier group created successfully!");
+    } catch (err) { showError("Failed", err.message); }
   };
 
   const handleDeleteModifierGroup = async (id) => {
-    if (!confirm("Are you sure you want to delete this modifier group?")) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Modifier Group?",
+      text: "Are you sure you want to delete this modifier group?",
+      confirmButtonText: "Yes, Delete",
+      icon: "warning",
+    });
+    if (!isConfirmed) return;
     try {
       await restaurantService.deleteModifierGroup(id);
       loadTabData();
-      alert("Modifier group deleted successfully!");
-    } catch (err) { alert(err.response?.data?.message || err.message); }
+      showSuccess("Deleted", "Modifier group deleted successfully!");
+    } catch (err) { showError("Delete Failed", err.response?.data?.message || err.message); }
   };
 
   if (loading) {
@@ -237,6 +272,7 @@ export default function RestaurantMenuPage() {
             onChange={(e) => setSelectedRestaurantId(e.target.value)}
             style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid #cbd5e1", fontWeight: "600" }}
           >
+            {restaurants.length > 1 && <option value="ALL">All Outlets</option>}
             {restaurants.map((r) => (
               <option key={r.id} value={r.id}>{r.name}</option>
             ))}
@@ -312,7 +348,7 @@ export default function RestaurantMenuPage() {
             <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: 0 }}>Menu Items / Dishes</h3>
             <button
               onClick={() => {
-                if (categories.length === 0) { alert("Please create a menu category first."); return; }
+                if (categories.length === 0) { showWarning("Category Required", "Please create a menu category first."); return; }
                 setItemForm({ ...itemForm, categoryId: categories[0]?.id });
                 setShowItemModal(true);
               }}
