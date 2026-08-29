@@ -53,11 +53,12 @@ export const ROUTE_MODULE_MAP = {
   "/dashboard/pos-dashboard": "DASHBOARD",
   "/dashboard/hrm-dashboard": "DASHBOARD",
 
-  // POS Terminal
-  "/pos": "SALES",
-  "/pos/cart": "SALES",
-  "/pos/checkout": "SALES",
-  "/pos/receipt": "SALES",
+  // POS Terminal & Barcode
+  "/pos": "POS",
+  "/pos/cart": "POS",
+  "/pos/checkout": "POS",
+  "/pos/receipt": "POS",
+  "/admin/pos/barcode-print": "BARCODE_PRINT",
 
   // Retail Products & Inventory
   "/admin/products": "PRODUCTS",
@@ -69,9 +70,9 @@ export const ROUTE_MODULE_MAP = {
   "/admin/brand": "BRANDS",
   "/admin/units": "PRODUCTS",
   "/warehouse/stock": "INVENTORY",
-  "/warehouse": "INVENTORY",
-  "/warehouse/add": "INVENTORY",
-  "/warehouse/transfer": "INVENTORY",
+  "/warehouse": "WAREHOUSE",
+  "/warehouse/add": "WAREHOUSE",
+  "/warehouse/transfer": "WAREHOUSE",
   "/admin/inventory": "INVENTORY",
 
   // Retail Sales & Customers
@@ -82,8 +83,8 @@ export const ROUTE_MODULE_MAP = {
   "/sales": "SALES",
   "/sales/add": "SALES",
   "/sales/edit": "SALES",
-  "/invoices": "SALES",
-  "/invoices/create": "SALES",
+  "/invoices": "INVOICES",
+  "/invoices/create": "INVOICES",
 
   // Retail Purchases & Suppliers
   "/admin/suppliers": "SUPPLIERS",
@@ -186,18 +187,18 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "SALES", label: "Fabric Sales & Export", href: "/sales", icon: FiShoppingCart, industry: "TEXTILE" },
 
   // Retail Industry Modules
-  { moduleCode: "SALES", label: "POS Terminal", href: "/pos", icon: FiMonitor, industry: "RETAIL" },
-  { moduleCode: "SALES", label: "Barcode Printing", href: "/admin/pos/barcode-print", icon: FiTag, industry: "RETAIL" },
+  { moduleCode: "POS", label: "POS Terminal", href: "/pos", icon: FiMonitor, industry: "RETAIL" },
+  { moduleCode: "BARCODE_PRINT", label: "Barcode Printing", href: "/admin/pos/barcode-print", icon: FiTag, industry: "RETAIL" },
   { moduleCode: "PRODUCTS", label: "Products", href: "/admin/products/view", icon: FiShoppingBag, industry: "RETAIL" },
   { moduleCode: "CATEGORIES", label: "Categories", href: "/admin/categories", icon: FiBox, industry: "RETAIL" },
   { moduleCode: "BRANDS", label: "Brands", href: "/admin/brand", icon: FiTag, industry: "RETAIL" },
   { moduleCode: "PRODUCTS", label: "Units of Measure", href: "/admin/units", icon: FiBox, industry: "TEXTILE, RESTAURANT" },
-  { moduleCode: "INVENTORY", label: "Warehouse Management", href: "/warehouse", icon: FiBriefcase, industry: "RETAIL" },
+  { moduleCode: "WAREHOUSE", label: "Warehouse Management", href: "/warehouse", icon: FiBriefcase, industry: "RETAIL" },
   { moduleCode: "CUSTOMERS", label: "Customers", href: "/customers", icon: FiUsers, industry: "RETAIL, MEDICAL_SHOP" },
   { moduleCode: "SUPPLIERS", label: "Goods Vendors & Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RETAIL, MEDICAL_SHOP" },
   { moduleCode: "PURCHASES", label: "Purchases", href: "/purchases", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "SALES", label: "Sales Orders", href: "/sales", icon: FiShoppingCart, industry: "RETAIL" },
-  { moduleCode: "SALES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
+  { moduleCode: "INVOICES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
   { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL, MEDICAL_SHOP" },
  
   // Restaurant Industry Modules

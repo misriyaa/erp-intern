@@ -110,7 +110,7 @@ export default function Sidebar({ isOpen, onClose }) {
     if (item.adminOnly && !isAdmin) {
       return false;
     }
-    if (isCashier && !isAdmin && !isManager) {
+    if (isCashier && !isAdmin && !isManager && (isRestaurant || industryCode?.includes("LAUNDRY"))) {
       const cashierHrefs = ["/restaurant/pos", "/restaurant/orders", "/laundry/pos", "/laundry/orders"];
       if (!cashierHrefs.includes(item.href)) {
         return false;
