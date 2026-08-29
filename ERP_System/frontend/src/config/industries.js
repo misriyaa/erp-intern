@@ -228,6 +228,8 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "LAUNDRY", label: "Processing Queue", href: "/laundry/processing", icon: FiClock, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Ready Orders", href: "/laundry/ready", icon: FiCheckCircle, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Pickup / Deliveries", href: "/laundry/delivery", icon: FiTruck, industry: "LAUNDRY" },
+  { moduleCode: "CUSTOMERS", label: "Customers", href: "/customers", icon: FiUsers, industry: "LAUNDRY" },
+  { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Laundry Reports", href: "/laundry/reports", icon: FiBarChart2, industry: "LAUNDRY" },
 
   // Medical Shop Industry Modules

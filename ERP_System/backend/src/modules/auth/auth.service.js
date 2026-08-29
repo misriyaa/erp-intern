@@ -79,6 +79,12 @@ const loginService = async (login, password) => {
   const rawRole = (employee.roleRef?.name || employee.role || "Employee").trim();
   const normalizedRole = rawRole.toUpperCase().replace(/\s+/g, "_");
 
+  // If Laundry industry, apply strictly role-based permissions
+  if (industryCodeUpper === "LAUNDRY" && !normalizedRole.includes("SUPER") && !normalizedRole.includes("ADMIN")) {
+    const { getLaundryRoleModules } = await import("../../config/laundryPermissions.js");
+    enabledModuleCodes = getLaundryRoleModules(normalizedRole);
+  }
+
   // If Restaurant industry, apply default role-based modules
   if (industryCodeUpper === "RESTAURANT" && !normalizedRole.includes("SUPER") && !normalizedRole.includes("ADMIN")) {
     if (normalizedRole.includes("MANAGER")) {
@@ -103,6 +109,7 @@ const loginService = async (login, password) => {
       enabledModuleCodes = ["RESTAURANT", "KITCHEN", "KDS"];
     }
   }
+
 
   return {
     success: true,

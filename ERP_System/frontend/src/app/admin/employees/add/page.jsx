@@ -821,10 +821,60 @@ export default function AddEmployeePage() {
                 {formData.role && (
                   <div className={styles.card} style={{ marginTop: "24px" }}>
                     <h2 className={styles.cardTitle}>
-                      {isRestaurant || isRetail ? "Automatic Role Permissions" : "Module Access Permissions"}
+                      {isRestaurant || isRetail || isLaundry ? "Automatic Role Permissions" : "Module Access Permissions"}
                     </h2>
 
-                    {isRestaurant ? (
+                    {isLaundry ? (
+                      <div style={{ padding: "16px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155" }}>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 12px 0" }}>
+                          Access is automatically assigned based on the selected role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
+                        </p>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {(formData.role === "Manager" || formData.role === "Admin") && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Full Laundry ERP Operational & Management Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Laundry POS, Active Orders, Outlets & Branches, Services & Categories, Garment Tracking, Processing Queue, Ready Orders, Pickup & Deliveries, Customers, Employees & Staff, Laundry Reports
+                              </div>
+                            </>
+                          )}
+                          {formData.role === "Cashier" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Cashier POS & Billing Operations</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Laundry POS, Active Orders, Customers, Pickup / Deliveries
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Outlets & Branches, Services & Categories, Employees / Staff, Laundry Reports
+                              </div>
+                            </>
+                          )}
+                          {formData.role === "Processing Staff" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Laundry Processing Operations</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Active Orders, Garment Tracking & Barcode Scan, Processing Queue, Ready Orders
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Laundry POS, Services & Categories, Outlets, Employees / Staff, Reports, Customers
+                              </div>
+                            </>
+                          )}
+                          {formData.role === "Delivery Driver" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Delivery & Dispatch Operations</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Ready Orders, Pickup / Deliveries
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Laundry POS, Active Orders, Processing Queue, Garment Tracking, Services, Outlets, Employees, Reports
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : isRestaurant ? (
                       <div style={{ padding: "16px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155" }}>
                         <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 12px 0" }}>
                           Access is automatically assigned based on the selected role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
@@ -961,6 +1011,7 @@ export default function AddEmployeePage() {
                     )}
                   </div>
                 )}
+
 
               </div>
 

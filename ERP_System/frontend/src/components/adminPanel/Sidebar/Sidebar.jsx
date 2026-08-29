@@ -7,6 +7,8 @@ import { useSettings } from "@/context/SettingsContext";
 import { useCompany } from "@/context/CompanyContext";
 import { MASTER_NAVIGATION_CATALOG } from "@/config/industries";
 import { restaurantService } from "@/services/restaurantService";
+import { canAccessLaundryRoute } from "@/config/laundryPermissions";
+
 
 import {
   FiGrid,
@@ -145,8 +147,22 @@ export default function Sidebar({ isOpen, onClose }) {
     if (item.adminOnly && !isAdmin) {
       return false;
     }
-    if (isCashier && !isAdmin && !isManager && (isRestaurant || industryCode?.includes("LAUNDRY"))) {
-      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders", "/laundry/pos", "/laundry/orders"];
+
+    const codeUpper = (industryCode || "").toUpperCase();
+
+    // Dedicated Laundry ERP RBAC dynamic sidebar filtering
+    if (codeUpper === "LAUNDRY") {
+      if (item.href === "/dashboard") {
+        return false;
+      }
+      if (item.industry && item.industry !== "LAUNDRY" && !item.industry.includes("LAUNDRY")) {
+        return false;
+      }
+      return canAccessLaundryRoute(user, item.href);
+    }
+
+    if (isCashier && !isAdmin && !isManager && isRestaurant) {
+      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders"];
       if (!cashierHrefs.includes(item.href)) {
         return false;
       }
@@ -163,7 +179,6 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
-    const codeUpper = (industryCode || "").toUpperCase();
     if (item.href === "/dashboard" && ["RESTAURANT", "LAUNDRY"].includes(codeUpper)) {
       return false;
     }
@@ -179,6 +194,7 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
+
 
     // Custom filtering for Manager in Gym industry
     if (isGym && isManager) {

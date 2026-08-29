@@ -43,6 +43,7 @@ export default function EmployeePage() {
     isTextile,
     isRestaurant,
     isRetail,
+    isLaundry,
   } = useCompany();
 
   const { settings, logoUrl } = useSettings();
@@ -638,6 +639,28 @@ export default function EmployeePage() {
     }
 
 
+    else if (isLaundry) {
+      combined = [
+        {
+          id: "Manager",
+          name: "Manager",
+        },
+        {
+          id: "Cashier",
+          name: "Cashier",
+        },
+        {
+          id: "Processing Staff",
+          name: "Processing Staff",
+        },
+        {
+          id: "Delivery Driver",
+          name: "Delivery Driver",
+        },
+      ];
+    }
+
+
     else {
       combined = [
         {
@@ -1191,9 +1214,9 @@ export default function EmployeePage() {
 
       const updateData = {
         ...formData,
-        permissions:
-          selectedModules,
+        permissions: isLaundry ? undefined : selectedModules,
       };
+
 
 
       const response =
@@ -2912,7 +2935,56 @@ export default function EmployeePage() {
                       borderTop: "1px solid #334155",
                     }}
                   >
-                    {isRetail ? (
+                    {isLaundry ? (
+                      <div>
+                        <h3
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            color: "#f8fafc",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Automatic Role Permissions
+                        </h3>
+
+                        <div style={{ padding: "14px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155", marginTop: "8px" }}>
+                          <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 10px 0" }}>
+                            Access is automatically assigned based on role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
+                          </p>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {(formData.role === "Manager" || formData.role === "Admin") && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Full Laundry ERP Operational & Management Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Laundry POS, Active Orders, Outlets & Branches, Services & Categories, Garment Tracking, Processing Queue, Ready Orders, Pickup & Deliveries, Customers, Employees & Staff, Laundry Reports</div>
+                              </>
+                            )}
+                            {formData.role === "Cashier" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Cashier POS & Billing Operations</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Laundry POS, Active Orders, Customers, Pickup / Deliveries</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Outlets & Branches, Services & Categories, Employees / Staff, Laundry Reports</div>
+                              </>
+                            )}
+                            {formData.role === "Processing Staff" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Laundry Processing Operations</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Active Orders, Garment Tracking & Barcode Scan, Processing Queue, Ready Orders</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Laundry POS, Services & Categories, Outlets, Employees / Staff, Reports, Customers</div>
+                              </>
+                            )}
+                            {formData.role === "Delivery Driver" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Delivery & Dispatch Operations</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Ready Orders, Pickup / Deliveries</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Laundry POS, Active Orders, Processing Queue, Garment Tracking, Services, Outlets, Employees, Reports</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : isRetail ? (
                       <div>
                         <h3
                           style={{

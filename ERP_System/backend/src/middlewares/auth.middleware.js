@@ -134,6 +134,12 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
             }
           }
 
+          // Laundry default role permissions fallback
+          if (industryCode.includes("LAUNDRY") && !isSuper && !roleUpper.includes("ADMIN")) {
+            const { getLaundryRoleModules } = await import("../config/laundryPermissions.js");
+            userModules = getLaundryRoleModules(roleUpper);
+          }
+
           // Restaurant default role permissions fallback
           if (industryCode.includes("RESTAURANT") && !isSuper && !roleUpper.includes("ADMIN")) {
             if (roleUpper.includes("MANAGER")) {
@@ -158,6 +164,7 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
               userModules = ["RESTAURANT", "KITCHEN", "KDS"];
             }
           }
+
 
           if (isSuper) {
             const clientCompanyHeader = req.headers["x-company-override"];
