@@ -101,6 +101,26 @@ class SalesService {
       }
     }
 
+    if (!customerId) {
+      let defaultCust = await prisma.customer.findFirst({
+        where: { name: "Walk-in Customer" },
+      }).catch(() => null);
+
+      if (!defaultCust) {
+        defaultCust = await prisma.customer.create({
+          data: {
+            name: "Walk-in Customer",
+            phone: "0000000000",
+            email: "walkin@store.local",
+            address: "In-Store Counter",
+          },
+        }).catch(() => null);
+      }
+      if (defaultCust) {
+        customerId = defaultCust.id;
+      }
+    }
+
     const payload = {
       branchId,
       orderNumber: finalOrderNumber,
@@ -119,7 +139,48 @@ class SalesService {
       await reduceInventoryStock(data.items, finalOrderNumber, "POS Sale");
     }
 
-    return await salesRepository.create(payload);
+    const createdOrder = await salesRepository.create(payload);
+
+    // Auto-create corresponding Invoice in database
+    try {
+      const invoiceNumber = `INV-${finalOrderNumber.replace(/^SO-/, "")}`;
+      const existingInv = await prisma.invoice.findFirst({
+        where: { invoiceNumber },
+      }).catch(() => null);
+
+      if (!existingInv && branchId && customerId) {
+        await prisma.invoice.create({
+          data: {
+            branchId,
+            salesOrderId: createdOrder.id,
+            customerId,
+            invoiceNumber,
+            invoiceDate: payload.orderDate,
+            subtotal: totalAmount,
+            taxAmount,
+            discountAmount,
+            totalAmount: netAmount,
+            paidAmount: netAmount,
+            balanceAmount: 0,
+            paymentStatus: "PAID",
+            status: "PAID",
+            notes: `POS Sale Order ${finalOrderNumber}`,
+            items: {
+              create: (data.items || []).map((item) => ({
+                productId: item.productId || item.id,
+                quantity: Number(item.quantity || item.qty || 1),
+                unitPrice: Number(item.unitPrice || item.price || 0),
+                totalPrice: Number(item.totalPrice || (Number(item.price || item.unitPrice || 0) * Number(item.quantity || item.qty || 1))),
+              })),
+            },
+          },
+        });
+      }
+    } catch (invErr) {
+      console.error("Auto invoice creation error:", invErr.message);
+    }
+
+    return createdOrder;
   }
 
   // ===================================

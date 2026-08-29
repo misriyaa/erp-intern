@@ -4,82 +4,141 @@ import { FiEye, FiPrinter } from "react-icons/fi";
 
 export default function InvoiceTable({ invoices = [], onView, onPrint }) {
   return (
-    <div className="bg-white rounded-xl shadow overflow-x-auto">
-      <table className="min-w-full">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Invoice No
+    <div style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.03)", overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
+        <thead>
+          <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Invoice Number
             </th>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Customer
             </th>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Cashier
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Date
             </th>
-            <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Reference / Order Number
+            </th>
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>
+              Amount
+            </th>
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>
               Payment Status
             </th>
-            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Total Amount
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>
+              Invoice Status
             </th>
-            <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <th style={{ padding: "14px 18px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>
               Actions
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody>
           {invoices.length === 0 ? (
             <tr>
-              <td colSpan={7} className="text-center py-10 text-gray-500 font-medium">
-                No Completed Invoices Found
+              <td colSpan={8} style={{ textAlign: "center", padding: "40px 20px", color: "#64748b", fontWeight: "500" }}>
+                No invoices found.
               </td>
             </tr>
           ) : (
             invoices.map((invoice) => {
-              const statusColor = "bg-green-100 text-green-700 border border-green-200";
+              const paymentStatus = invoice.paymentStatus || (invoice.status === "COMPLETED" ? "Paid" : "Pending");
+              const isPaid = paymentStatus.toUpperCase() === "PAID";
+              const isPending = paymentStatus.toUpperCase() === "PENDING";
+              const invoiceStatus = invoice.status || (isPaid ? "PAID" : "DRAFT");
 
               return (
-                <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
-                    {invoice.invoiceNo}
+                <tr key={invoice.id} style={{ borderBottom: "1px solid #f1f5f9", transition: "background-color 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
+                  <td style={{ padding: "14px 18px", fontWeight: "700", color: "#1e293b", whiteSpace: "nowrap" }}>
+                    {invoice.invoiceNumber || invoice.invoiceNo}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                    {invoice.customer}
+                  <td style={{ padding: "14px 18px", fontWeight: "600", color: "#334155", whiteSpace: "nowrap" }}>
+                    {invoice.customerName || invoice.customer || "Walk-in Customer"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                    {invoice.cashier}
+                  <td style={{ padding: "14px 18px", color: "#64748b", whiteSpace: "nowrap" }}>
+                    {invoice.date || (invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split("T")[0] : "N/A")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                    {invoice.date}
+                  <td style={{ padding: "14px 18px", color: "#475569", whiteSpace: "nowrap" }}>
+                    {invoice.referenceNumber || invoice.salesOrderNumber || invoice.orderNumber || invoice.invoiceNumber || "N/A"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColor}`}>
-                      {invoice.paymentStatus}
+                  <td style={{ padding: "14px 18px", textAlign: "right", fontWeight: "800", color: "#0f172a", whiteSpace: "nowrap" }}>
+                    ₹{Number(invoice.totalAmount ?? invoice.total ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </td>
+                  <td style={{ padding: "14px 18px", textAlign: "center", whiteSpace: "nowrap" }}>
+                    <span style={{
+                      display: "inline-block",
+                      padding: "3px 10px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      backgroundColor: isPaid ? "#ecfdf5" : isPending ? "#fef3c7" : "#fee2e2",
+                      color: isPaid ? "#16a34a" : isPending ? "#d97706" : "#dc2626",
+                    }}>
+                      {paymentStatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-gray-900">
-                    ₹{invoice.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  <td style={{ padding: "14px 18px", textAlign: "center", whiteSpace: "nowrap" }}>
+                    <span style={{
+                      display: "inline-block",
+                      padding: "3px 10px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      backgroundColor: "#e0e7ff",
+                      color: "#3730a3",
+                    }}>
+                      {invoiceStatus}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex justify-center gap-3">
+                  <td style={{ padding: "14px 18px", textAlign: "center", whiteSpace: "nowrap" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
                       <button
+                        type="button"
                         onClick={() => onView(invoice)}
-                        className="flex items-center gap-1.5 bg-blue-50 text-blue-600 border border-blue-200 px-3.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all text-sm font-semibold cursor-pointer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          backgroundColor: "#eff6ff",
+                          color: "#2563eb",
+                          border: "1px solid #bfdbfe",
+                          padding: "6px 12px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#2563eb"; e.currentTarget.style.color = "#ffffff"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#eff6ff"; e.currentTarget.style.color = "#2563eb"; }}
                         title="View Details"
                       >
-                        <FiEye size={15} />
+                        <FiEye size={14} />
                         <span>View</span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => onPrint(invoice)}
-                        className="flex items-center gap-1.5 bg-gray-50 text-gray-700 border border-gray-200 px-3.5 py-1.5 rounded-lg hover:bg-gray-800 hover:text-white hover:border-gray-800 transition-all text-sm font-semibold cursor-pointer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          backgroundColor: "#f8fafc",
+                          color: "#334155",
+                          border: "1px solid #cbd5e1",
+                          padding: "6px 12px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#1e293b"; e.currentTarget.style.color = "#ffffff"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; e.currentTarget.style.color = "#334155"; }}
                         title="Print Invoice"
                       >
-                        <FiPrinter size={15} />
+                        <FiPrinter size={14} />
                         <span>Print</span>
                       </button>
                     </div>

@@ -20,6 +20,8 @@ import apiClient from "@/services/apiClient";
 
 import styles from "./viewUnits.module.css";
 import { useAlert } from "@/context/AlertContext";
+import { useCompany } from "@/context/CompanyContext";
+import { useRouter } from "next/navigation";
 
 const emptyForm = {
   name: "",
@@ -28,6 +30,10 @@ const emptyForm = {
 };
 
 export default function UnitsPage() {
+  const router = useRouter();
+  const { isGym, isTextile, isRestaurant, isLaundry, isMedical } = useCompany();
+  const isRetail = !isGym && !isTextile && !isRestaurant && !isLaundry && !isMedical;
+
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -44,8 +50,12 @@ export default function UnitsPage() {
   const { showSuccess, showError, showConfirm } = useAlert();
 
   useEffect(() => {
+    if (isRetail) {
+      router.replace("/admin/products/view");
+      return;
+    }
     fetchUnits();
-  }, []);
+  }, [isRetail]);
 
   const fetchUnits = async () => {
     try {

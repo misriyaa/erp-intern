@@ -1,93 +1,132 @@
-
 "use client";
 
-import { useState, useMemo } from "react";
-import useSales from "@/hooks/useSales";
-import { FiSearch, FiRefreshCw, FiFileText } from "react-icons/fi";
+import { useState, useMemo, useEffect } from "react";
+import { FiSearch, FiRefreshCw, FiFileText, FiFilter } from "react-icons/fi";
 import InvoiceTable from "./components/InvoiceTable";
 import InvoicePreview from "./components/InvoicePreview";
 import PrintInvoice from "./components/PrintInvoice";
+import apiClient from "@/services/apiClient";
 
 export default function InvoicesPage() {
-  const { sales, loading, error, refresh } = useSales();
-
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("ALL");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceToPrint, setInvoiceToPrint] = useState(null);
 
-  // Filter completed / paid invoices
-  const completedInvoices = useMemo(() => {
-    return sales.filter((sale) => {
-      const isCompleted = sale.paymentStatus === "Paid";
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-      if (!isCompleted) return false;
+      const [invRes, salesRes] = await Promise.allSettled([
+        apiClient.get("/invoices"),
+        apiClient.get("/sales"),
+      ]);
 
-      const search = searchQuery.toLowerCase();
+      let list = [];
+      if (invRes.status === "fulfilled" && invRes.value.data?.data) {
+        const rawInv = Array.isArray(invRes.value.data.data) ? invRes.value.data.data : [];
+        list = [...rawInv];
+      }
 
-      const matchesSearch =
-        (sale.invoiceNo || "").toLowerCase().includes(search) ||
-        (sale.customer || "").toLowerCase().includes(search);
+      // Also merge sales orders as fallback if not in invoices
+      if (salesRes.status === "fulfilled" && salesRes.value.data?.data) {
+        const rawSales = Array.isArray(salesRes.value.data.data) ? salesRes.value.data.data : [];
+        rawSales.forEach((sale) => {
+          const invNum = sale.orderNumber || `SO-${sale.id}`;
+          if (!list.some((i) => i.invoiceNumber === invNum || i.salesOrderId === sale.id || i.id === sale.id)) {
+            list.push({
+              id: sale.id,
+              invoiceNumber: invNum,
+              invoiceNo: invNum,
+              customerName: sale.customerName || sale.customer || "Walk-in Customer",
+              customer: sale.customerName || sale.customer || "Walk-in Customer",
+              date: sale.orderDate ? new Date(sale.orderDate).toISOString().split("T")[0] : new Date(sale.createdAt || Date.now()).toISOString().split("T")[0],
+              referenceNumber: sale.orderNumber || invNum,
+              salesOrderNumber: sale.orderNumber || invNum,
+              totalAmount: Number(sale.netAmount || sale.totalAmount || 0),
+              total: Number(sale.netAmount || sale.totalAmount || 0),
+              subTotal: Number(sale.totalAmount || 0),
+              tax: Number(sale.taxAmount || 0),
+              discount: Number(sale.discountAmount || 0),
+              paymentStatus: sale.status === "COMPLETED" ? "PAID" : (sale.status === "CANCELLED" ? "CANCELLED" : "PENDING"),
+              status: sale.status || "PAID",
+              paymentMethod: sale.paymentMethod || "Cash",
+              items: sale.items || [],
+            });
+          }
+        });
+      }
 
-      return matchesSearch;
+      setInvoices(list);
+    } catch (err) {
+      console.error("Failed to load invoices:", err);
+      setError(err.message || "Failed to load invoices");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      const q = searchQuery.toLowerCase().trim();
+      const num = (inv.invoiceNumber || inv.invoiceNo || "").toLowerCase();
+      const cust = (inv.customerName || inv.customer || "").toLowerCase();
+      const ref = (inv.referenceNumber || inv.salesOrderNumber || "").toLowerCase();
+      const matchesSearch = !q || num.includes(q) || cust.includes(q) || ref.includes(q);
+
+      const status = (inv.paymentStatus || "").toUpperCase();
+      const matchesPayment =
+        paymentFilter === "ALL" ||
+        (paymentFilter === "PAID" && (status === "PAID" || status === "COMPLETED")) ||
+        (paymentFilter === "PENDING" && (status === "PENDING" || status === "UNPAID"));
+
+      return matchesSearch && matchesPayment;
     });
-  }, [sales, searchQuery]);
+  }, [invoices, searchQuery, paymentFilter]);
 
   const handlePrint = (invoice) => {
     setInvoiceToPrint(invoice);
-
     setTimeout(() => {
       window.print();
     }, 150);
   };
 
-  // Loading
   if (loading) {
     return (
       <div
         className="no-print"
         style={{
-          minHeight: "100vh",
+          minHeight: "80vh",
           background: "#f8fafc",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          gap: "12px",
         }}
       >
-        <div
+        <FiRefreshCw
+          size={26}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            color: "#6b7280",
+            color: "#2563eb",
+            animation: "spin 1s linear infinite",
           }}
-        >
-          <FiRefreshCw
-            size={24}
-            style={{
-              color: "#2563eb",
-              animation: "spin 1s linear infinite",
-            }}
-          />
-
-          <span
-            style={{
-              fontSize: "18px",
-              fontWeight: "600",
-            }}
-          >
-            Loading Invoices...
-          </span>
-        </div>
-
+        />
+        <span style={{ fontSize: "16px", fontWeight: "600", color: "#64748b" }}>
+          Loading Invoices...
+        </span>
         <style jsx>{`
           @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
           }
         `}</style>
       </div>
@@ -117,75 +156,53 @@ export default function InvoicesPage() {
             alignItems: "center",
             justifyContent: "space-between",
             gap: "16px",
-            marginBottom: "32px",
+            marginBottom: "24px",
             flexWrap: "wrap",
           }}
         >
-          {/* TITLE */}
           <div>
             <h1
               style={{
                 margin: 0,
-                fontSize: "30px",
-                lineHeight: "1.2",
+                fontSize: "26px",
                 fontWeight: "800",
-                color: "#111827",
+                color: "#0f172a",
                 display: "flex",
                 alignItems: "center",
-                gap: "12px",
+                gap: "10px",
               }}
             >
-              <FiFileText
-                size={28}
-                style={{
-                  color: "#2563eb",
-                }}
-              />
-
+              <FiFileText size={26} style={{ color: "#2563eb" }} />
               <span>Invoices & Billing</span>
             </h1>
-
-            <p
-              style={{
-                margin: "8px 0 0",
-                fontSize: "14px",
-                color: "#6b7280",
-                lineHeight: "1.5",
-              }}
-            >
-              View, preview, and print invoices generated from completed POS
-              sales.
+            <p style={{ margin: "6px 0 0", fontSize: "14px", color: "#64748b" }}>
+              View, preview, and print invoices generated from store sales and customer orders.
             </p>
           </div>
 
           {/* REFRESH BUTTON */}
           <button
-            onClick={refresh}
+            onClick={fetchInvoices}
             type="button"
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
               gap: "8px",
-              border: "1px solid #d1d5db",
+              border: "1px solid #cbd5e1",
               background: "#ffffff",
-              color: "#374151",
-              padding: "10px 16px",
+              color: "#334155",
+              padding: "9px 16px",
               borderRadius: "10px",
-              fontSize: "14px",
-              fontWeight: "600",
+              fontSize: "13px",
+              fontWeight: "700",
               cursor: "pointer",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              transition: "all 0.2s ease",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              transition: "all 0.15s ease",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f3f4f6";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#ffffff";
-            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f1f5f9")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
           >
-            <FiRefreshCw size={15} />
+            <FiRefreshCw size={14} />
             <span>Refresh Data</span>
           </button>
         </div>
@@ -197,33 +214,13 @@ export default function InvoicesPage() {
               background: "#fef2f2",
               border: "1px solid #fecaca",
               color: "#b91c1c",
-              padding: "16px 20px",
+              padding: "14px 18px",
               borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-              marginBottom: "24px",
-              maxWidth: "600px",
-              boxSizing: "border-box",
+              marginBottom: "20px",
+              fontSize: "14px",
             }}
           >
-            <p
-              style={{
-                margin: "0 0 5px",
-                fontSize: "14px",
-                fontWeight: "700",
-              }}
-            >
-              Failed to load sales database
-            </p>
-
-            <p
-              style={{
-                margin: 0,
-                fontSize: "13px",
-                color: "#dc2626",
-              }}
-            >
-              {error}
-            </p>
+            <strong>Error:</strong> {error}
           </div>
         )}
 
@@ -231,11 +228,11 @@ export default function InvoicesPage() {
         <div
           style={{
             background: "#ffffff",
-            padding: "20px",
-            borderRadius: "16px",
-            border: "1px solid #f1f5f9",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-            marginBottom: "24px",
+            padding: "16px 20px",
+            borderRadius: "14px",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            marginBottom: "20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -244,85 +241,83 @@ export default function InvoicesPage() {
           }}
         >
           {/* SEARCH */}
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "450px",
-            }}
-          >
+          <div style={{ position: "relative", width: "100%", maxWidth: "420px" }}>
             <FiSearch
-              size={18}
+              size={17}
               style={{
                 position: "absolute",
-                left: "15px",
+                left: "14px",
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "#9ca3af",
+                color: "#94a3b8",
                 pointerEvents: "none",
               }}
             />
-
             <input
               type="text"
-              placeholder="Search by Invoice No or Customer name..."
+              placeholder="Search by Invoice #, Customer, or Order #..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: "100%",
-                height: "46px",
-                boxSizing: "border-box",
-                padding: "0 16px 0 44px",
+                height: "42px",
+                padding: "0 16px 0 40px",
                 background: "#f8fafc",
-                border: "1px solid #e5e7eb",
-                borderRadius: "10px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "9px",
                 outline: "none",
-                fontSize: "14px",
+                fontSize: "13px",
+                color: "#1e293b",
                 fontWeight: "500",
-                color: "#1f2937",
-                transition: "all 0.2s ease",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#3b82f6";
-                e.currentTarget.style.boxShadow =
-                  "0 0 0 3px rgba(59,130,246,0.12)";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "#e5e7eb";
-                e.currentTarget.style.boxShadow = "none";
               }}
             />
           </div>
 
-          {/* COUNT */}
-          <div
-            style={{
-              padding: "9px 16px",
-              background: "#f8fafc",
-              border: "1px solid #f1f5f9",
-              borderRadius: "10px",
-              color: "#6b7280",
-              fontSize: "13px",
-              fontWeight: "600",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Showing{" "}
-            <span
+          {/* PAYMENT FILTER BUTTONS */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {["ALL", "PAID", "PENDING"].map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setPaymentFilter(status)}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  border: "1px solid",
+                  borderColor: paymentFilter === status ? "#2563eb" : "#cbd5e1",
+                  backgroundColor: paymentFilter === status ? "#2563eb" : "#ffffff",
+                  color: paymentFilter === status ? "#ffffff" : "#475569",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {status === "ALL" ? "All Invoices" : status === "PAID" ? "Paid" : "Pending"}
+              </button>
+            ))}
+
+            <div
               style={{
-                color: "#111827",
+                padding: "7px 14px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                color: "#64748b",
+                fontSize: "12px",
                 fontWeight: "700",
+                whiteSpace: "nowrap",
+                marginLeft: "8px",
               }}
             >
-              {completedInvoices.length}
-            </span>{" "}
-            Invoice(s)
+              Showing <strong style={{ color: "#0f172a" }}>{filteredInvoices.length}</strong> Invoice(s)
+            </div>
           </div>
         </div>
 
         {/* INVOICE TABLE */}
         <InvoiceTable
-          invoices={completedInvoices}
+          invoices={filteredInvoices}
           onView={(invoice) => setSelectedInvoice(invoice)}
           onPrint={handlePrint}
         />
@@ -339,4 +334,3 @@ export default function InvoicesPage() {
     </>
   );
 }
-

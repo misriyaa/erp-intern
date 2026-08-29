@@ -68,6 +68,7 @@ export default function OrderPanel({
   onDeleteDraft,
 }) {
   const [customerSearch, setCustomerSearch] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
@@ -108,6 +109,16 @@ export default function OrderPanel({
   const handleSelectPayment = onSelectPayment || setSelectedPayment;
   const effectiveTaxRate = taxRate ?? activeTaxRate ?? 10;
 
+  // Matching customers for live search
+  const matchingCustomers = customers.filter((c) => {
+    if (!customerSearchQuery.trim()) return true;
+    const q = customerSearchQuery.toLowerCase().trim();
+    const name = (c.name || "").toLowerCase();
+    const phone = (c.phone || "").toLowerCase();
+    const email = (c.email || "").toLowerCase();
+    return name.includes(q) || phone.includes(q) || email.includes(q);
+  });
+
   // Calculations
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const discountAmount = Number(discountValue) || 0;
@@ -146,9 +157,13 @@ export default function OrderPanel({
           </div>
 
           <button
-            className="pos-customer-action-btn"
+            className={`pos-customer-action-btn ${customerSearch ? "primary" : ""}`}
             title="Search Customer"
-            onClick={() => setCustomerSearch((prev) => !prev)}
+            type="button"
+            onClick={() => {
+              setCustomerSearch((prev) => !prev);
+              setCustomerSearchQuery("");
+            }}
           >
             <IconSearch />
           </button>
@@ -156,11 +171,144 @@ export default function OrderPanel({
           <button
             className="pos-customer-action-btn primary"
             title="Add Customer"
+            type="button"
             onClick={() => setShowAddCustomerModal(true)}
           >
             <IconPlus />
           </button>
         </div>
+
+        {/* Dynamic Live Customer Search Popover */}
+        {customerSearch && (
+          <div
+            style={{
+              marginTop: "8px",
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: "10px",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+              padding: "10px",
+              zIndex: 30,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+              <div style={{ position: "relative", flex: 1 }}>
+                <IconSearch
+                  style={{
+                    position: "absolute",
+                    left: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#94a3b8",
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search by Name, Phone, or Email..."
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px 8px 32px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "13px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomerSearch(false);
+                  setCustomerSearchQuery("");
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748b",
+                  padding: "4px",
+                }}
+              >
+                <IconClose />
+              </button>
+            </div>
+
+            <div style={{ maxHeight: "180px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+              <div
+                onClick={() => {
+                  handleCustomerChange?.("");
+                  setCustomerSearch(false);
+                  setCustomerSearchQuery("");
+                }}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: !customer ? "700" : "500",
+                  backgroundColor: !customer ? "#eff6ff" : "transparent",
+                  color: !customer ? "#2563eb" : "#334155",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>Walk-in Customer (Default)</span>
+                {!customer && <IconCheck style={{ color: "#2563eb" }} />}
+              </div>
+
+              {matchingCustomers.length === 0 ? (
+                <div style={{ padding: "8px 10px", color: "#94a3b8", fontSize: "12px", textAlign: "center" }}>
+                  No matching customers found
+                </div>
+              ) : (
+                matchingCustomers.map((c) => {
+                  const isSelected = customer === c.id;
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        handleCustomerChange?.(c.id);
+                        setCustomerSearch(false);
+                        setCustomerSearchQuery("");
+                      }}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        backgroundColor: isSelected ? "#eff6ff" : "transparent",
+                        color: isSelected ? "#2563eb" : "#1e293b",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        transition: "background-color 0.1s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = "#f8fafc";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: isSelected ? "700" : "600" }}>{c.name}</div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>
+                          {c.phone ? `Phone: ${c.phone}` : ""} {c.email ? `• ${c.email}` : ""}
+                        </div>
+                      </div>
+                      {isSelected && <IconCheck style={{ color: "#2563eb" }} />}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
 

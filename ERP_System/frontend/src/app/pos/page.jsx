@@ -73,11 +73,7 @@ export default function POSPage() {
 
         if (rawProductList.length > 0) {
           const retailOnly = rawProductList.filter(
-            (p) =>
-              !p.sku?.startsWith("TEX-") &&
-              !p.sku?.startsWith("FAB-") &&
-              !p.description?.includes("[TEXTILE]") &&
-              p.isTextile !== true
+            (p) => p.productType !== "RAW_MATERIAL" && p.status !== "INACTIVE"
           );
 
           const mapped = retailOnly.map((p) => {
@@ -88,17 +84,24 @@ export default function POSPage() {
                   : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : Number(p.initialStock || 0)));
 
             const brandObj = p.brand || rawBrandList.find((b) => b.id === p.brandId);
-            const brandName = typeof brandObj === "object" ? (brandObj?.name || brandObj?.brandName) : (brandObj || "Generic");
+            const brandName = typeof brandObj === "object" ? (brandObj?.name || brandObj?.brandName) : (brandObj || "");
+
+            const categoryObj = p.category || rawCategoryList.find((c) => c.id === p.categoryId);
+            const categoryName = typeof categoryObj === "object" ? (categoryObj?.name || categoryObj?.categoryName) : (categoryObj || "");
 
             return {
-              id: p.id,
+              id: p.id || p._id,
+              _id: p.id || p._id,
               name: p.name,
               sku: p.sku || p.code || p.id,
               code: p.sku || p.code || p.id,
               barcode: p.barcode || p.sku || p.code || "",
               price: Number(p.sellingPrice) || 0,
+              sellingPrice: Number(p.sellingPrice) || 0,
+              costPrice: Number(p.costPrice) || 0,
               stock: stockQty,
-              category: p.category?.name || p.categoryName || "Others",
+              category: categoryName || "General",
+              categoryId: p.categoryId || categoryObj?.id || null,
               brand: brandName || "Generic",
               brandId: p.brandId || brandObj?.id || null,
               imageUrl: p.image
@@ -118,15 +121,18 @@ export default function POSPage() {
   }, []);
 
   const categoryNames = useMemo(() => {
-    return ["All", ...categories.map((c) => (typeof c === "object" ? c.name : c)).filter(Boolean)];
-  }, [categories]);
+    const fromApi = categories.map((c) => (typeof c === "object" ? c.name : c)).filter(Boolean);
+    const fromProducts = products.map((p) => p.category).filter(Boolean);
+    const unique = Array.from(new Set([...fromApi, ...fromProducts])).filter((c) => c !== "All");
+    return ["All", ...unique];
+  }, [categories, products]);
 
   const brandNames = useMemo(() => {
-    const list = brands
-      .map((b) => (typeof b === "object" ? (b.name || b.brandName) : b))
-      .filter((name) => Boolean(name) && name !== "All");
-    return ["All", ...Array.from(new Set(list))];
-  }, [brands]);
+    const fromApi = brands.map((b) => (typeof b === "object" ? (b.name || b.brandName) : b)).filter(Boolean);
+    const fromProducts = products.map((p) => p.brand).filter((b) => Boolean(b) && b !== "Generic");
+    const unique = Array.from(new Set([...fromApi, ...fromProducts])).filter((b) => b !== "All");
+    return ["All", ...unique];
+  }, [brands, products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -206,8 +212,10 @@ export default function POSPage() {
 
     const found = products.find(
       (p) =>
-        p.sku.toLowerCase() === code.toLowerCase() ||
-        p.code.toLowerCase() === code.toLowerCase()
+        (p.barcode && p.barcode.toLowerCase() === code.toLowerCase()) ||
+        (p.sku && p.sku.toLowerCase() === code.toLowerCase()) ||
+        (p.code && p.code.toLowerCase() === code.toLowerCase()) ||
+        (p.id && p.id.toLowerCase() === code.toLowerCase())
     );
 
     if (found) {
@@ -220,6 +228,7 @@ export default function POSPage() {
       if (res.success && res.data) {
         const foundDb = res.data.find(
           (p) =>
+            (p.barcode && p.barcode.toLowerCase() === code.toLowerCase()) ||
             p.sku?.toLowerCase() === code.toLowerCase() ||
             p.id?.toLowerCase() === code.toLowerCase()
         );

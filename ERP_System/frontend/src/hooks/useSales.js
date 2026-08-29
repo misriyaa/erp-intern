@@ -28,16 +28,20 @@ export default function useSales() {
 
         return {
           id: sale.id,
-          invoiceNo: sale.orderNumber || "INV-N/A",
-          customer: sale.customerName || "Walk-in Customer",
+          orderNumber: sale.orderNumber || sale.invoiceNumber || "SO-N/A",
+          invoiceNo: sale.orderNumber || sale.invoiceNumber || "SO-N/A",
+          customer: sale.customerName || sale.customer || "Walk-in Customer",
+          branch: sale.branch?.name || "Main Branch",
           cashier: "Admin",
           date: formattedDate,
-          paymentMethod: "Cash",
+          paymentMethod: sale.paymentMethod || "Cash",
           paymentStatus,
+          orderStatus: sale.status || "CONFIRMED",
           subTotal: Number(sale.totalAmount || 0),
           discount: Number(sale.discountAmount || 0),
           tax: Number(sale.taxAmount || 0),
           total: Number(sale.netAmount || sale.totalAmount || 0),
+          totalAmount: Number(sale.netAmount || sale.totalAmount || 0),
           items: sale.items || [],
         };
       });
