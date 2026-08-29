@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { getCustomers, createCustomer } from "@/services/customerService";
 import { laundryService } from "@/services/laundryService";
 import { showSuccess, showError, showWarning } from "@/utils/swal";
-import { getLaundries } from "@/services/laundryService"; // wait, laundryService.getLaundries exists
 import {
   FiUsers,
   FiShoppingBag,
