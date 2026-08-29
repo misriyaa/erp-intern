@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import styles from "./RestaurantPOS.module.css";
 import { restaurantService } from "@/services/restaurantService";
 import { getCustomers } from "@/services/customerService";
 import { useCompany } from "@/context/CompanyContext";
@@ -775,27 +776,18 @@ function RestaurantPOSContent() {
   }
 
   return (
-    <div style={{ display: "flex", height: "calc(100vh - 80px)", backgroundColor: "#f8fafc", overflow: "hidden" }}>
+    <div className={styles.posLayout}>
       {/* LEFT & CENTER PANEL: Menu & Controls */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRight: "1px solid #e2e8f0" }}>
+      <div className={styles.leftPanel}>
         {/* Top Control Bar */}
-        <div style={{ padding: "14px 20px", backgroundColor: "#fff", borderBottom: "1px solid #e2e8f0", display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+        <div className={styles.topControlBar}>
           {/* Order Type Selector */}
-          <div style={{ display: "flex", backgroundColor: "#f1f5f9", padding: "4px", borderRadius: "8px" }}>
+          <div className={styles.orderTypeGroup}>
             {["DINE_IN", "TAKEAWAY", "DELIVERY"].map((type) => (
               <button
                 key={type}
                 onClick={() => handleOrderTypeChange(type)}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: "6px",
-                  border: "none",
-                  fontWeight: "700",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  backgroundColor: orderType === type ? "#2563eb" : "transparent",
-                  color: orderType === type ? "#fff" : "#475569",
-                }}
+                className={`${styles.orderTypeBtn} ${orderType === type ? styles.orderTypeBtnActive : ""}`}
               >
                 {type.replace("_", " ")}
               </button>
@@ -807,7 +799,7 @@ function RestaurantPOSContent() {
             <select
               value={selectedTableId}
               onChange={(e) => handleTableChange(e.target.value)}
-              style={{ padding: "7px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: "600", fontSize: "13px" }}
+              className={styles.selectInput}
             >
               <option value="">Select Table...</option>
               {tables.map((t) => {
@@ -824,35 +816,20 @@ function RestaurantPOSContent() {
             </select>
           )}
 
-
-
           {/* Search Box */}
           <input
             type="text"
             placeholder="Search dish..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ flex: 1, minWidth: "140px", padding: "7px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+            className={styles.searchInput}
           />
 
           {/* TOP RIGHT TOOLBAR BUTTONS */}
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className={styles.toolBarGroup}>
             <button
               onClick={() => setShowReadyModal(true)}
-              style={{
-                padding: "7px 12px",
-                backgroundColor: readyOrders.length > 0 ? "#10b981" : "#059669",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                fontWeight: "700",
-                fontSize: "12px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                boxShadow: readyOrders.length > 0 ? "0 0 10px rgba(16, 185, 129, 0.4)" : "none",
-              }}
+              className={`${styles.actionBtn} ${readyOrders.length > 0 ? styles.readyBtnActive : ""}`}
             >
               <FiBell size={14} /> Ready ({readyOrders.length})
             </button>
@@ -862,7 +839,7 @@ function RestaurantPOSContent() {
                 loadHeldOrders();
                 setShowHeldModal(true);
               }}
-              style={{ padding: "7px 12px", backgroundColor: "#64748b", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}
+              className={styles.actionBtn}
             >
               <FiClock size={14} /> Held Orders
             </button>
@@ -874,7 +851,7 @@ function RestaurantPOSContent() {
                     loadHeldBills();
                     setShowHeldBillsModal(true);
                   }}
-                  style={{ padding: "7px 12px", backgroundColor: "#d97706", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}
+                  className={styles.actionBtn}
                 >
                   <FiPauseCircle size={14} /> Held Bills
                 </button>
@@ -884,7 +861,7 @@ function RestaurantPOSContent() {
                     loadOrderHistory();
                     setShowHistoryModal(true);
                   }}
-                  style={{ padding: "7px 12px", backgroundColor: "#0f172a", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}
+                  className={styles.actionBtn}
                 >
                   <FiList size={14} /> Order History
                 </button>
@@ -895,22 +872,22 @@ function RestaurantPOSContent() {
 
         {/* INLINE READY TO SERVE SECTION */}
         {readyOrders.length > 0 && (
-          <div style={{ padding: "14px 20px", backgroundColor: "#ecfdf5", borderBottom: "2px solid #10b981", display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ padding: "14px 20px", backgroundColor: "#eff6ff", borderBottom: "2px solid #2563eb", display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: "800", color: "#065f46", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <FiBell size={16} color="#059669" /> READY TO SERVE ORDERS ({readyOrders.length})
+              <span style={{ fontWeight: "800", color: "#1e40af", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <FiBell size={16} color="#2563eb" /> READY TO SERVE ORDERS ({readyOrders.length})
               </span>
-              <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: "#a7f3d0", color: "#065f46", padding: "2px 8px", borderRadius: "10px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: "#dbeafe", color: "#1e40af", padding: "2px 8px", borderRadius: "10px" }}>
                 Kitchen Completed
               </span>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "10px" }}>
               {readyOrders.map((ro) => (
-                <div key={ro.id} style={{ backgroundColor: "#ffffff", border: "1px solid #a7f3d0", borderRadius: "8px", padding: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                <div key={ro.id} style={{ backgroundColor: "#ffffff", border: "1px solid #dbeafe", borderRadius: "8px", padding: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span style={{ fontWeight: "800", fontSize: "14px", color: "#0f172a" }}>Table {ro.tableNumber}</span>
-                    <span style={{ fontSize: "12px", fontWeight: "700", color: "#059669" }}>#{ro.orderNumber}</span>
+                    <span style={{ fontSize: "12px", fontWeight: "700", color: "#2563eb" }}>#{ro.orderNumber}</span>
                   </div>
 
                   <div style={{ fontSize: "12px", color: "#475569", marginBottom: "10px" }}>
@@ -926,7 +903,7 @@ function RestaurantPOSContent() {
                     style={{
                       width: "100%",
                       padding: "7px",
-                      backgroundColor: "#10b981",
+                      backgroundColor: "#2563eb",
                       color: "#fff",
                       border: "none",
                       borderRadius: "6px",
@@ -948,20 +925,10 @@ function RestaurantPOSContent() {
         )}
 
         {/* Categories Pills */}
-        <div style={{ padding: "10px 20px", backgroundColor: "#fff", borderBottom: "1px solid #e2e8f0", display: "flex", gap: "8px", overflowX: "auto" }}>
+        <div className={styles.categoryBar}>
           <button
             onClick={() => setActiveCategoryId("ALL")}
-            style={{
-              padding: "6px 14px",
-              borderRadius: "16px",
-              border: "none",
-              fontWeight: "700",
-              fontSize: "12px",
-              cursor: "pointer",
-              backgroundColor: activeCategoryId === "ALL" ? "#0f172a" : "#f1f5f9",
-              color: activeCategoryId === "ALL" ? "#fff" : "#475569",
-              whiteSpace: "nowrap",
-            }}
+            className={`${styles.categoryPill} ${activeCategoryId === "ALL" ? styles.categoryPillActive : ""}`}
           >
             All Items
           </button>
@@ -969,17 +936,7 @@ function RestaurantPOSContent() {
             <button
               key={cat.id}
               onClick={() => setActiveCategoryId(cat.id)}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "16px",
-                border: "none",
-                fontWeight: "700",
-                fontSize: "12px",
-                cursor: "pointer",
-                backgroundColor: activeCategoryId === cat.id ? "#0f172a" : "#f1f5f9",
-                color: activeCategoryId === cat.id ? "#fff" : "#475569",
-                whiteSpace: "nowrap",
-              }}
+              className={`${styles.categoryPill} ${activeCategoryId === cat.id ? styles.categoryPillActive : ""}`}
             >
               {cat.name}
             </button>
@@ -987,42 +944,32 @@ function RestaurantPOSContent() {
         </div>
 
         {/* Menu Items Grid */}
-        <div style={{ flex: 1, padding: "16px", overflowY: "auto" }}>
+        <div className={styles.menuGridArea}>
           {restaurants.length === 0 ? (
-            <div style={{ padding: "48px 20px", textAlign: "center", backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <div className={styles.emptyBoxContainer}>
               <FiShoppingBag size={48} color="#94a3b8" style={{ marginBottom: "12px" }} />
               <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: "0 0 6px 0" }}>No Restaurant Outlets Available</h3>
             </div>
           ) : filteredMenuItems.length === 0 ? (
-            <div style={{ padding: "48px 20px", textAlign: "center", backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <div className={styles.emptyBoxContainer}>
               <FiShoppingBag size={48} color="#94a3b8" style={{ marginBottom: "12px" }} />
               <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: "0 0 6px 0" }}>No Menu Items Found</h3>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: "14px", alignContent: "start" }}>
+            <div className={styles.dishGrid}>
               {filteredMenuItems.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => handleAddToCart(item)}
-                  style={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "10px",
-                    padding: "14px",
-                    cursor: "pointer",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                  }}
+                  className={styles.dishCard}
                 >
                   <div>
-                    <div style={{ fontSize: "14px", fontWeight: "700", color: "#0f172a", marginBottom: "4px" }}>{item.name}</div>
-                    <div style={{ fontSize: "12px", color: "#64748b" }}>{item.category?.name}</div>
+                    <div className={styles.dishName}>{item.name}</div>
+                    <div className={styles.dishCategory}>{item.category?.name}</div>
                   </div>
-                  <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "15px", fontWeight: "800", color: "#059669" }}>₹{parseFloat(item.sellingPrice).toFixed(2)}</span>
-                    <span style={{ backgroundColor: "#2563eb", color: "#fff", width: "24px", height: "24px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div className={styles.dishFooter}>
+                    <span className={styles.dishPrice}>₹{parseFloat(item.sellingPrice).toFixed(2)}</span>
+                    <span className={styles.addBadge}>
                       <FiPlus size={14} />
                     </span>
                   </div>
@@ -1034,11 +981,11 @@ function RestaurantPOSContent() {
       </div>
 
       {/* RIGHT PANEL: Current Cart & Checkout */}
-      <div style={{ width: "400px", backgroundColor: "#fff", display: "flex", flexDirection: "column" }}>
+      <div className={styles.rightPanel}>
         {/* Cart Header */}
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className={styles.cartHeader}>
           <div>
-            <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>
+            <h3 className={styles.cartTitle}>
               {activeOrder ? `Order #${activeOrder.orderNumber}` : "Current Order"}
             </h3>
             <div style={{ fontSize: "12px", color: "#64748b", display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
@@ -1077,31 +1024,31 @@ function RestaurantPOSContent() {
               )}
             </div>
           </div>
-          <button onClick={() => { setCart([]); setActiveOrder(null); }} style={{ color: "#ef4444", border: "none", background: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          <button onClick={() => { setCart([]); setActiveOrder(null); }} className={styles.clearBtn}>
             Clear Cart
           </button>
         </div>
 
         {/* Cart Items List */}
-        <div style={{ flex: 1, padding: "14px 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div className={styles.cartItemsList}>
           {cart.length === 0 ? (
             <p style={{ color: "#94a3b8", textAlign: "center", margin: "auto", fontSize: "14px" }}>Cart is empty. Select menu dishes.</p>
           ) : (
             cart.map((item) => (
-              <div key={item.menuItemId} style={{ padding: "10px 12px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+              <div key={item.menuItemId} className={styles.cartItemRow}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "13px" }}>{item.name}</div>
-                  <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "13px" }}>
+                  <div className={styles.cartItemName}>{item.name}</div>
+                  <div className={styles.cartItemTotal}>
                     ₹{(item.unitPrice * item.quantity).toFixed(2)}
                   </div>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
                   <div style={{ fontSize: "12px", color: "#64748b" }}>₹{item.unitPrice.toFixed(2)} each</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <button onClick={() => handleUpdateQty(item.menuItemId, -1)} style={{ padding: "2px 8px", backgroundColor: "#fff", border: "1px solid #cbd5e1", borderRadius: "4px", fontWeight: "700" }}>-</button>
+                  <div className={styles.qtyControls}>
+                    <button onClick={() => handleUpdateQty(item.menuItemId, -1)} className={styles.qtyBtn}>-</button>
                     <span style={{ fontWeight: "700", fontSize: "13px" }}>{item.quantity}</span>
-                    <button onClick={() => handleUpdateQty(item.menuItemId, 1)} style={{ padding: "2px 8px", backgroundColor: "#fff", border: "1px solid #cbd5e1", borderRadius: "4px", fontWeight: "700" }}>+</button>
+                    <button onClick={() => handleUpdateQty(item.menuItemId, 1)} className={styles.qtyBtn}>+</button>
                   </div>
                 </div>
               </div>
@@ -1110,46 +1057,33 @@ function RestaurantPOSContent() {
         </div>
 
         {/* Cart Totals & Actions */}
-        <div style={{ padding: "16px 20px", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
+        <div className={styles.cartFooter}>
           {/* Financial Totals (Only visible to Cashier / Admin) */}
           {canDoBilling && (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "4px" }}>
+              <div className={styles.calcRow}>
                 <span>Subtotal</span>
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "4px" }}>
+              <div className={styles.calcRow}>
                 <span>Tax (5%)</span>
                 <span>₹{taxAmount.toFixed(2)}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "17px", fontWeight: "800", color: "#0f172a", marginTop: "6px", paddingTop: "6px", borderTop: "1px solid #cbd5e1" }}>
+              <div className={styles.totalRow}>
                 <span>Total</span>
-                <span style={{ color: "#059669" }}>₹{totalAmount.toFixed(2)}</span>
+                <span style={{ color: "#2563eb" }}>₹{totalAmount.toFixed(2)}</span>
               </div>
             </>
           )}
 
           {/* Action Buttons Matrix based on Role */}
-          <div style={{ display: "grid", gridTemplateColumns: canDoBilling ? "1fr 1fr 1fr" : "1fr 1fr", gap: "8px", marginTop: "14px" }}>
+          <div className={styles.btnGrid}>
             {/* WAITER: HOLD ORDER BUTTON */}
             {isWaiter && (
               <button
                 onClick={handleHoldOrder}
                 disabled={cart.length === 0}
-                style={{
-                  padding: "10px",
-                  backgroundColor: "#475569",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontWeight: "700",
-                  fontSize: "12px",
-                  cursor: cart.length === 0 ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "4px",
-                }}
+                className={`${styles.posFooterBtn} ${styles.holdBtn}`}
               >
                 <FiPauseCircle size={14} /> Hold Order
               </button>
@@ -1160,20 +1094,7 @@ function RestaurantPOSContent() {
               <button
                 onClick={handleHoldBill}
                 disabled={cart.length === 0 && !activeOrder}
-                style={{
-                  padding: "10px",
-                  backgroundColor: "#d97706",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontWeight: "700",
-                  fontSize: "12px",
-                  cursor: cart.length === 0 && !activeOrder ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "4px",
-                }}
+                className={`${styles.posFooterBtn} ${styles.holdBtn}`}
               >
                 <FiPauseCircle size={14} /> Hold Bill
               </button>
@@ -1183,20 +1104,7 @@ function RestaurantPOSContent() {
             <button
               onClick={handleSendKOT}
               disabled={cart.length === 0}
-              style={{
-                padding: "10px",
-                backgroundColor: "#f59e0b",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                fontWeight: "700",
-                fontSize: "12px",
-                cursor: cart.length === 0 ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px",
-              }}
+              className={`${styles.posFooterBtn} ${styles.sendBtn}`}
             >
               <FiSend size={14} /> Send to Kitchen
             </button>
@@ -1206,20 +1114,7 @@ function RestaurantPOSContent() {
               <button
                 onClick={() => setShowPayModal(true)}
                 disabled={cart.length === 0 && !activeOrder}
-                style={{
-                  padding: "10px",
-                  backgroundColor: "#10b981",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontWeight: "700",
-                  fontSize: "12px",
-                  cursor: cart.length === 0 && !activeOrder ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "4px",
-                }}
+                className={`${styles.posFooterBtn} ${styles.payBtn}`}
               >
                 <FiCreditCard size={14} /> Pay & Bill
               </button>

@@ -363,7 +363,6 @@ export default function RestaurantReportsPage() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                borderLeft: "4px solid #10b981",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -375,13 +374,13 @@ export default function RestaurantReportsPage() {
                     ₹{overview.totalSales.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#d1fae5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
                   <FiDollarSign />
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "14px", fontSize: "12px" }}>
                 {overview.salesGrowthPercent >= 0 ? (
-                  <span style={{ color: "#16a34a", fontWeight: "700", display: "inline-flex", alignItems: "center" }}>
+                  <span style={{ color: "#2563eb", fontWeight: "700", display: "inline-flex", alignItems: "center" }}>
                     <FiArrowUpRight size={14} /> +{overview.salesGrowthPercent.toFixed(1)}%
                   </span>
                 ) : (
@@ -404,7 +403,6 @@ export default function RestaurantReportsPage() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                borderLeft: "4px solid #2563eb",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -421,7 +419,7 @@ export default function RestaurantReportsPage() {
                 </div>
               </div>
               <div style={{ marginTop: "14px", fontSize: "12px", color: "#64748b" }}>
-                <strong style={{ color: "#16a34a" }}>{overview.completedOrdersCount} completed</strong> • {overview.totalOrders - overview.completedOrdersCount} in progress/other
+                <strong style={{ color: "#2563eb" }}>{overview.completedOrdersCount} completed</strong> • {overview.totalOrders - overview.completedOrdersCount} in progress/other
               </div>
             </div>
 
@@ -436,7 +434,6 @@ export default function RestaurantReportsPage() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                borderLeft: "4px solid #8b5cf6",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -448,7 +445,7 @@ export default function RestaurantReportsPage() {
                     ₹{overview.averageOrderValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#f3e8ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
                   <FiTrendingUp />
                 </div>
               </div>
@@ -468,7 +465,6 @@ export default function RestaurantReportsPage() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                borderLeft: "4px solid #f59e0b",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -477,13 +473,13 @@ export default function RestaurantReportsPage() {
                     <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       Live Active Orders
                     </span>
-                    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#f59e0b" }}></span>
+                    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#2563eb" }}></span>
                   </div>
-                  <div style={{ fontSize: "26px", fontWeight: "800", color: "#f59e0b", marginTop: "6px" }}>
+                  <div style={{ fontSize: "26px", fontWeight: "800", color: "#2563eb", marginTop: "6px" }}>
                     {overview.liveActiveOrders} <span style={{ fontSize: "14px", fontWeight: "500", color: "#64748b" }}>Active</span>
                   </div>
                 </div>
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
                   <FiActivity />
                 </div>
               </div>
@@ -503,7 +499,6 @@ export default function RestaurantReportsPage() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                borderLeft: "4px solid #06b6d4",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -515,7 +510,7 @@ export default function RestaurantReportsPage() {
                     {overview.totalCustomers} <span style={{ fontSize: "14px", fontWeight: "500", color: "#64748b" }}>Patrons</span>
                   </div>
                 </div>
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#cffafe", color: "#0891b2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
                   <FiUsers />
                 </div>
               </div>
@@ -637,7 +632,7 @@ export default function RestaurantReportsPage() {
                   const icon =
                     ch.type === "DINE_IN" ? <FiCoffee /> : ch.type === "TAKEAWAY" ? <FiShoppingBag /> : <FiTruck />;
                   const color =
-                    ch.type === "DINE_IN" ? "#2563eb" : ch.type === "TAKEAWAY" ? "#f59e0b" : "#8b5cf6";
+                    ch.type === "DINE_IN" ? "#2563eb" : ch.type === "TAKEAWAY" ? "#1d4ed8" : "#1e40af";
                   return (
                     <div key={ch.type}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "13px" }}>
@@ -695,34 +690,18 @@ export default function RestaurantReportsPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px" }}>
               {Object.entries(reportData?.orderAnalytics?.statusBreakdown || {}).map(([st, count]) => {
-                const badgeColor =
-                  st === "COMPLETED"
-                    ? "#059669"
-                    : st === "CANCELLED"
-                    ? "#dc2626"
-                    : st === "CONFIRMED" || st === "PREPARING" || st === "READY"
-                    ? "#2563eb"
-                    : "#64748b";
-                const bg =
-                  st === "COMPLETED"
-                    ? "#d1fae5"
-                    : st === "CANCELLED"
-                    ? "#fee2e2"
-                    : st === "CONFIRMED" || st === "PREPARING" || st === "READY"
-                    ? "#eff6ff"
-                    : "#f1f5f9";
                 return (
                   <div
                     key={st}
                     style={{
-                      background: bg,
+                      background: "#ffffff",
                       padding: "12px 14px",
                       borderRadius: "10px",
-                      border: `1px solid ${bg}`,
+                      border: "1px solid #e2e8f0",
                       textAlign: "center",
                     }}
                   >
-                    <div style={{ fontSize: "11px", fontWeight: "800", color: badgeColor, letterSpacing: "0.5px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#2563eb", letterSpacing: "0.5px" }}>
                       {st}
                     </div>
                     <div style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", marginTop: "4px" }}>
@@ -832,7 +811,7 @@ export default function RestaurantReportsPage() {
                         <td style={{ padding: "12px 14px", textAlign: "right", color: "#64748b" }}>
                           ₹{item.unitPrice.toFixed(2)}
                         </td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: "800", color: "#16a34a" }}>
+                        <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: "800", color: "#2563eb" }}>
                           ₹{item.totalRevenue.toFixed(2)}
                         </td>
                       </tr>
@@ -947,12 +926,12 @@ export default function RestaurantReportsPage() {
                           width: `${pay.percentage}%`,
                           backgroundColor:
                             pay.method === "CASH"
-                              ? "#10b981"
-                              : pay.method === "UPI"
-                              ? "#8b5cf6"
-                              : pay.method === "CARD"
                               ? "#2563eb"
-                              : "#f59e0b",
+                              : pay.method === "UPI"
+                              ? "#1d4ed8"
+                              : pay.method === "CARD"
+                              ? "#1e40af"
+                              : "#3b82f6",
                           borderRadius: "999px",
                         }}
                       />
