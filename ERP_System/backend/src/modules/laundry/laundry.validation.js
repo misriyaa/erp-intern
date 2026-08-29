@@ -26,35 +26,35 @@ export const createServiceValidation = [
 
 export const createOrderValidation = [
   body("laundryId").notEmpty().isUUID().withMessage("Laundry ID is required"),
-  body("branchId").optional({ checkFalsy: true }).isUUID().withMessage("Branch ID must be a valid UUID"),
-  body("customerId").optional({ checkFalsy: true }).isUUID().withMessage("Customer ID must be a valid UUID"),
+  body("branchId").optional({ nullable: true, checkFalsy: true }).isUUID().withMessage("Branch ID must be a valid UUID"),
+  body("customerId").optional({ nullable: true, checkFalsy: true }).isUUID().withMessage("Customer ID must be a valid UUID"),
   body("subtotal").notEmpty().isFloat({ min: 0 }).withMessage("Subtotal must be 0 or greater"),
-  body("discountAmount").optional().isFloat({ min: 0 }).withMessage("Discount must be 0 or greater"),
-  body("taxAmount").optional().isFloat({ min: 0 }).withMessage("Tax must be 0 or greater"),
+  body("discountAmount").optional({ nullable: true }).isFloat({ min: 0 }).withMessage("Discount must be 0 or greater"),
+  body("taxAmount").optional({ nullable: true }).isFloat({ min: 0 }).withMessage("Tax must be 0 or greater"),
   body("totalAmount").notEmpty().isFloat({ min: 0 }).withMessage("Total amount must be 0 or greater"),
-  body("paidAmount").optional().isFloat({ min: 0 }).withMessage("Paid amount must be 0 or greater"),
-  body("specialInstructions").optional({ checkFalsy: true }).trim(),
+  body("paidAmount").optional({ nullable: true }).isFloat({ min: 0 }).withMessage("Paid amount must be 0 or greater"),
+  body("specialInstructions").optional({ nullable: true, checkFalsy: true }).trim(),
   body("items").isArray({ min: 1 }).withMessage("Order must contain at least 1 item"),
   body("items.*.serviceId").notEmpty().isUUID().withMessage("Item service ID is required"),
   body("items.*.garmentType").notEmpty().withMessage("Item garment type is required").trim(),
   body("items.*.quantity").isInt({ min: 1 }).withMessage("Item quantity must be at least 1"),
   body("items.*.unitPrice").isFloat({ min: 0 }).withMessage("Item unit price must be 0 or greater"),
-  body("items.*.discountAmount").optional().isFloat({ min: 0 }),
-  body("items.*.taxAmount").optional().isFloat({ min: 0 }),
+  body("items.*.discountAmount").optional({ nullable: true }).isFloat({ min: 0 }),
+  body("items.*.taxAmount").optional({ nullable: true }).isFloat({ min: 0 }),
   body("items.*.totalAmount").isFloat({ min: 0 }),
-  body("items.*.notes").optional({ checkFalsy: true }).trim(),
+  body("items.*.notes").optional({ nullable: true, checkFalsy: true }).trim(),
   
   // Payment info if checking out with payment
-  body("payment").optional(),
-  body("payment.method").optional().isIn(["CASH", "CARD", "BANK", "WALLET", "OTHER"]),
-  body("payment.amount").optional().isFloat({ min: 0 }),
-  body("payment.referenceNumber").optional().trim(),
+  body("payment").optional({ nullable: true }),
+  body("payment.method").optional({ nullable: true }).isIn(["CASH", "CARD", "BANK", "WALLET", "OTHER"]),
+  body("payment.amount").optional({ nullable: true }).isFloat({ min: 0 }),
+  body("payment.referenceNumber").optional({ nullable: true, checkFalsy: true }).trim(),
   
   // Optional home delivery info
-  body("delivery").optional(),
-  body("delivery.deliveryAddress").optional().notEmpty().withMessage("Delivery address is required"),
-  body("delivery.phone").optional().notEmpty().withMessage("Delivery phone is required"),
-  body("delivery.deliveryDate").optional().isISO8601().withMessage("Invalid delivery date"),
+  body("delivery").optional({ nullable: true }),
+  body("delivery.deliveryAddress").optional({ nullable: true }).notEmpty().withMessage("Delivery address is required"),
+  body("delivery.phone").optional({ nullable: true }).notEmpty().withMessage("Delivery phone is required"),
+  body("delivery.deliveryDate").optional({ nullable: true }).isISO8601().withMessage("Invalid delivery date"),
 ];
 
 export const updateOrderStatusValidation = [

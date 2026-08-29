@@ -79,12 +79,41 @@ export default function LaundryPOS() {
         setSelectedLaundryId(lndList[0].id);
       }
 
-      const rawCustList = custRes.data || custRes || [];
-      const walkInObj = { id: "WALK_IN", name: "🚶 Walk-in Customer", phone: "N/A" };
-      setCustomers([walkInObj, ...rawCustList]);
-      setSelectedCustomerId("WALK_IN");
+      const rawCustList = Array.isArray(custRes?.data) ? custRes.data : Array.isArray(custRes) ? custRes : [];
+      let walkInCust = rawCustList.find(c => c.name?.toLowerCase().includes("walk-in"));
+      
+      // If Walk-in Customer doesn't exist in DB, create one so it has a valid DB UUID
+      if (!walkInCust) {
+        try {
+          const createdWalkIn = await createCustomer({
+            name: "Walk-in Customer",
+            phone: "0000000000",
+            email: "walkin@laundry.local",
+            address: "Counter Outlet"
+          });
+          if (createdWalkIn && (createdWalkIn.id || createdWalkIn.data?.id)) {
+            walkInCust = createdWalkIn.data || createdWalkIn;
+            rawCustList.unshift(walkInCust);
+          }
+        } catch (e) {
+          // Soft fallback
+        }
+      }
+
+      const formattedList = rawCustList.map(c => ({
+        id: c.id,
+        name: c.name?.toLowerCase().includes("walk-in") ? `🚶 ${c.name}` : c.name,
+        phone: c.phone || "N/A"
+      }));
+
+      setCustomers(formattedList);
+      if (walkInCust?.id) {
+        setSelectedCustomerId(walkInCust.id);
+      } else if (formattedList.length > 0) {
+        setSelectedCustomerId(formattedList[0].id);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error loading initial Laundry POS data:", err);
     } finally {
       setLoading(false);
     }
@@ -103,29 +132,32 @@ export default function LaundryPOS() {
         setSelServiceId(serviceList[0].id);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching services for laundry outlet:", err);
     }
   };
 
   const handleCreateCustomer = async (e) => {
     e.preventDefault();
-    if (!newCustName || !newCustPhone) return;
+    if (!newCustName || !newCustPhone) {
+      showWarning("Required Fields", "Please enter customer name and phone.");
+      return;
+    }
 
     try {
       const res = await createCustomer({
-        name: newCustName,
-        phone: newCustPhone,
-        email: newCustEmail || null,
+        name: newCustName.trim(),
+        phone: newCustPhone.trim(),
+        email: newCustEmail?.trim() || null,
         address: ""
       });
       if (res) {
         // reload customer list
         const custRes = await getCustomers();
-        const updatedList = custRes.data || custRes || [];
+        const updatedList = Array.isArray(custRes?.data) ? custRes.data : Array.isArray(custRes) ? custRes : [];
         setCustomers(updatedList);
         // find created customer and select them
-        const matched = updatedList.find(c => c.phone === newCustPhone);
-        if (matched) {
+        const matched = updatedList.find(c => c.phone === newCustPhone.trim()) || res.data || res;
+        if (matched?.id) {
           setSelectedCustomerId(matched.id);
         }
         setShowAddCustomerModal(false);
@@ -135,16 +167,25 @@ export default function LaundryPOS() {
         showSuccess("Customer Added", "Customer created successfully!");
       }
     } catch (err) {
-      showError("Customer Error", "Failed to create customer: " + err.message);
+      showError("Customer Error", "Failed to create customer: " + (err.response?.data?.message || err.message));
     }
   };
 
   const handleAddToCart = () => {
-    if (!selServiceId) return;
+    if (!selServiceId) {
+      showWarning("Service Required", "Please select a laundry service.");
+      return;
+    }
     const service = services.find(s => s.id === selServiceId);
-    if (!service) return;
+    if (!service) {
+      showWarning("Invalid Service", "The chosen service was not found.");
+      return;
+    }
 
-    const garmentName = selGarment === "Other" ? (customGarment.trim() || "Other") : selGarment;
+    const garmentName = selGarment === "Other" ? (customGarment.trim() || "Other Garment") : selGarment;
+    const quantity = Math.max(1, parseInt(selQty) || 1);
+    const unitPrice = parseFloat(service.price) || 0;
+    const itemTotal = quantity * unitPrice;
 
     const existingIndex = cart.findIndex(
       item => item.serviceId === selServiceId && item.garmentType === garmentName
@@ -152,8 +193,12 @@ export default function LaundryPOS() {
 
     if (existingIndex > -1) {
       const updated = [...cart];
-      updated[existingIndex].quantity += selQty;
+      updated[existingIndex].quantity += quantity;
       updated[existingIndex].totalAmount = updated[existingIndex].quantity * updated[existingIndex].unitPrice;
+      if (selNotes) {
+        updated[existingIndex].specialInstructions = selNotes;
+        updated[existingIndex].notes = selNotes;
+      }
       setCart(updated);
     } else {
       setCart([
@@ -162,10 +207,11 @@ export default function LaundryPOS() {
           serviceId: selServiceId,
           serviceName: service.name,
           garmentType: garmentName,
-          quantity: selQty,
-          unitPrice: parseFloat(service.price),
-          totalAmount: selQty * parseFloat(service.price),
-          notes: selNotes,
+          quantity,
+          unitPrice,
+          totalAmount: itemTotal,
+          specialInstructions: selNotes || "",
+          notes: selNotes || "",
         }
       ]);
     }
@@ -189,61 +235,103 @@ export default function LaundryPOS() {
   };
 
   // Calculations
-  const subtotal = cart.reduce((sum, item) => sum + item.totalAmount, 0);
-  const discountAmount = discountVal;
+  const subtotal = cart.reduce((sum, item) => sum + (Number(item.totalAmount) || 0), 0);
+  const discountAmount = Number(discountVal) || 0;
   const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = parseFloat((taxableAmount * (taxRate / 100)).toFixed(2));
-  const totalAmount = taxableAmount + taxAmount;
+  const taxAmount = parseFloat((taxableAmount * ((Number(taxRate) || 0) / 100)).toFixed(2));
+  const totalAmount = parseFloat((taxableAmount + taxAmount).toFixed(2));
 
   const handleCheckoutSubmit = async () => {
     if (!selectedCustomerId) {
-      showWarning("Customer Required", "Please select a customer first.");
+      showWarning("Customer Required", "Please select a valid customer for this order.");
+      return;
+    }
+    if (!selectedLaundryId) {
+      showWarning("Outlet Required", "Please ensure a laundry outlet profile is selected.");
       return;
     }
     if (cart.length === 0) {
-      showWarning("Cart Empty", "Please add at least one item to the cart.");
+      showWarning("Cart Empty", "Please add at least one garment to the cart before checkout.");
       return;
     }
 
-    try {
-      const currentLaundry = laundries.find(l => l.id === selectedLaundryId);
-      const payload = {
-        laundryId: selectedLaundryId,
-        branchId: currentLaundry?.branchId || null,
-        customerId: selectedCustomerId === "WALK_IN" ? null : selectedCustomerId,
-        subtotal,
-        discountAmount,
-        taxAmount,
-        totalAmount,
-        paidAmount,
-        specialInstructions: notes,
-        items: cart.map(i => ({
-          serviceId: i.serviceId,
-          garmentType: i.garmentType,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          totalAmount: i.totalAmount,
-          notes: i.notes
-        })),
-        payment: paidAmount > 0 ? {
-          method: paymentMethod,
-          amount: paidAmount,
-        } : null,
-      };
+    // Validate each item
+    for (let idx = 0; idx < cart.length; idx++) {
+      const item = cart[idx];
+      if (!item.serviceId) {
+        showWarning("Invalid Item", `Item #${idx + 1} (${item.garmentType}) is missing a valid service ID.`);
+        return;
+      }
+      if (!item.garmentType) {
+        showWarning("Invalid Item", `Item #${idx + 1} is missing a garment type.`);
+        return;
+      }
+      if (Number(item.quantity) < 1) {
+        showWarning("Invalid Quantity", `Quantity for ${item.garmentType} must be at least 1.`);
+        return;
+      }
+    }
 
+    const currentLaundry = laundries.find(l => l.id === selectedLaundryId);
+    const numSubtotal = Number(subtotal.toFixed(2));
+    const numDiscount = Number(discountAmount.toFixed(2));
+    const numTax = Number(taxAmount.toFixed(2));
+    const numTotal = Number(totalAmount.toFixed(2));
+    const numPaid = Number((Number(paidAmount) || 0).toFixed(2));
+
+    const payload = {
+      laundryId: selectedLaundryId,
+      branchId: currentLaundry?.branchId || null,
+      customerId: selectedCustomerId,
+      subtotal: numSubtotal,
+      discountAmount: numDiscount,
+      taxAmount: numTax,
+      totalAmount: numTotal,
+      paidAmount: numPaid,
+      specialInstructions: notes || "",
+      items: cart.map(i => ({
+        serviceId: i.serviceId,
+        garmentType: i.garmentType,
+        quantity: parseInt(i.quantity),
+        unitPrice: parseFloat(Number(i.unitPrice).toFixed(2)),
+        discountAmount: 0,
+        taxAmount: 0,
+        totalAmount: parseFloat(Number(i.totalAmount || (i.quantity * i.unitPrice)).toFixed(2)),
+        notes: i.specialInstructions || i.notes || ""
+      })),
+      payment: numPaid > 0 ? {
+        method: paymentMethod || "CASH",
+        amount: numPaid,
+      } : null,
+    };
+
+    console.log("Submitting Laundry Order Payload:", payload);
+
+    try {
       const res = await laundryService.createOrder(payload);
-      if (res.success) {
-        setCreatedOrder(res.data);
+      if (res.success || res.data || res.id) {
+        const orderRecord = res.data || res;
+        setCreatedOrder(orderRecord);
         setCheckoutSuccess(true);
         // Clear POS state
         setCart([]);
         setDiscountVal(0);
         setNotes("");
         setPaidAmount(0);
-        showSuccess("Order Placed", "Laundry order created successfully!");
+        showSuccess("Order Placed", `Laundry order #${orderRecord.orderNumber || "CONFIRMED"} created successfully!`);
+      } else {
+        showError("Checkout Failed", res.message || "Failed to create laundry order.");
       }
     } catch (err) {
-      showError("Checkout Failed", "Checkout failed: " + err.message);
+      console.error("Laundry Checkout Error Response:", err.response?.data || err);
+      const backendError =
+        err.response?.data?.message ||
+        (Array.isArray(err.response?.data?.errors)
+          ? err.response.data.errors.map(e => e.msg).join(", ")
+          : null) ||
+        err.message ||
+        "Checkout failed. Please check the order details and try again.";
+      showError("Checkout Failed", backendError);
     }
   };
 

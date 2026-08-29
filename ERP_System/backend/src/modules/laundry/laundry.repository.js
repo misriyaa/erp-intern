@@ -130,19 +130,61 @@ export const deleteServiceRepo = async (id) => {
 export const createOrderRepo = async (companyId, orderData, itemsData, paymentData, deliveryData) => {
   return await prisma.$transaction(async (tx) => {
     // Generate order number
-    const count = await tx.laundryOrder.count({
-      where: { companyId },
-    });
-    const orderNumber = `LND-${(count + 1).toString().padStart(4, "0")}`;
+    const totalCount = await tx.laundryOrder.count();
+    let orderNumber = `LND-${(totalCount + 1).toString().padStart(4, "0")}`;
+    const existing = await tx.laundryOrder.findFirst({ where: { orderNumber } });
+    if (existing) {
+      orderNumber = `LND-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100).toString().padStart(2, "0")}`;
+    }
 
     const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-    const cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
-    const cleanBranchId = isUUID(orderData.branchId) ? orderData.branchId : null;
+    let cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+    let cleanBranchId = isUUID(orderData.branchId) ? orderData.branchId : null;
+
+    // Resolve Customer (Ensure a valid database customer ID exists)
+    if (!cleanCustomerId) {
+      let defaultCustomer = await tx.customer.findFirst({
+        where: {
+          name: "Walk-in Customer",
+          ...(companyId ? { companyId } : {}),
+        },
+      });
+
+      if (!defaultCustomer) {
+        defaultCustomer = await tx.customer.create({
+          data: {
+            name: "Walk-in Customer",
+            phone: `0000000000-${Date.now().toString().slice(-4)}`,
+            email: `walkin-${Date.now()}@laundry.local`,
+            address: "Over the Counter",
+            companyId: companyId || null,
+          },
+        });
+      }
+      cleanCustomerId = defaultCustomer.id;
+    }
+
+    // Resolve Branch
+    if (!cleanBranchId) {
+      const laundryProfile = await tx.laundry.findUnique({
+        where: { id: orderData.laundryId },
+      });
+      if (laundryProfile && isUUID(laundryProfile.branchId)) {
+        cleanBranchId = laundryProfile.branchId;
+      } else {
+        const defaultBranch = await tx.branch.findFirst({
+          where: companyId ? { companyId } : undefined,
+        });
+        if (defaultBranch) {
+          cleanBranchId = defaultBranch.id;
+        }
+      }
+    }
 
     // Create the Order
     const order = await tx.laundryOrder.create({
       data: {
-        companyId,
+        companyId: companyId || null,
         laundryId: orderData.laundryId,
         branchId: cleanBranchId,
         customerId: cleanCustomerId,
@@ -179,7 +221,11 @@ export const createOrderRepo = async (companyId, orderData, itemsData, paymentDa
 
       // Create individual garments for barcode tracking
       for (let i = 0; i < item.quantity; i++) {
-        const tagNumber = `${orderNumber}-${garmentSeq.toString().padStart(3, "0")}`;
+        let tagNumber = `${orderNumber}-${garmentSeq.toString().padStart(3, "0")}`;
+        const existingTag = await tx.laundryGarment.findUnique({ where: { tagNumber } }).catch(() => null);
+        if (existingTag) {
+          tagNumber = `${orderNumber}-${garmentSeq.toString().padStart(3, "0")}-${Math.floor(Math.random() * 1000)}`;
+        }
         await tx.laundryGarment.create({
           data: {
             orderItemId: orderItem.id,
@@ -218,14 +264,14 @@ export const createOrderRepo = async (companyId, orderData, itemsData, paymentDa
       });
     }
 
-    // Process payment if amount paid > 0
-    if (paymentData && parseFloat(paymentData.amount) > 0) {
+    // Process payment if amount paid > 0 and branch is available
+    if (paymentData && parseFloat(paymentData.amount) > 0 && cleanBranchId) {
       const payNumber = paymentData.paymentNumber || `PAY-LND-${Date.now().toString().slice(-6)}`;
       await tx.payment.create({
         data: {
-          companyId,
-          branchId: orderData.branchId,
-          customerId: orderData.customerId,
+          companyId: companyId || null,
+          branchId: cleanBranchId,
+          customerId: cleanCustomerId,
           laundryOrderId: order.id,
           paymentNumber: payNumber,
           paymentDate: new Date(),
@@ -235,12 +281,15 @@ export const createOrderRepo = async (companyId, orderData, itemsData, paymentDa
           status: "PAID",
           notes: `Payment for Laundry Order ${orderNumber}`,
         },
+      }).catch((payErr) => {
+        console.warn("Non-fatal payment record log:", payErr.message);
       });
     }
 
     return await tx.laundryOrder.findUnique({
       where: { id: order.id },
       include: {
+        customer: true,
         items: {
           include: {
             service: true,
