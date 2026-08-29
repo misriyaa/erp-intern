@@ -14,22 +14,171 @@ class InvoiceRepository {
   // Get All Invoices
   // ==========================================
   async findAll() {
-    return await prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
+      include: {
+        items: true,
+      },
       orderBy: {
         createdAt: "desc",
       },
-    });
+    }).catch(() => []);
+
+    const enrichedInvoices = await Promise.all(
+      invoices.map(async (inv) => {
+        let customerName = "Walk-in Customer";
+        let customerPhone = "";
+        let customerEmail = "";
+        if (inv.customerId) {
+          const customer = await prisma.customer.findUnique({
+            where: { id: inv.customerId },
+            select: { name: true, phone: true, email: true },
+          }).catch(() => null);
+          if (customer) {
+            customerName = customer.name;
+            customerPhone = customer.phone || "";
+            customerEmail = customer.email || "";
+          }
+        }
+
+        let salesOrderNumber = null;
+        if (inv.salesOrderId) {
+          const so = await prisma.salesOrder.findUnique({
+            where: { id: inv.salesOrderId },
+            select: { orderNumber: true },
+          }).catch(() => null);
+          if (so) {
+            salesOrderNumber = so.orderNumber;
+          }
+        }
+
+        return {
+          ...inv,
+          customerName,
+          customer: customerName,
+          customerPhone,
+          customerEmail,
+          salesOrderNumber: salesOrderNumber || inv.invoiceNumber,
+          referenceNumber: salesOrderNumber || inv.invoiceNumber,
+          total: Number(inv.totalAmount || 0),
+          totalAmount: Number(inv.totalAmount || 0),
+          date: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString().split("T")[0] : new Date(inv.createdAt).toISOString().split("T")[0],
+          invoiceNo: inv.invoiceNumber,
+        };
+      })
+    );
+
+    // Also include sales orders as invoices so no transaction is missed
+    const salesOrders = await prisma.salesOrder.findMany({
+      orderBy: { createdAt: "desc" },
+    }).catch(() => []);
+
+    const salesInvoices = await Promise.all(
+      salesOrders.map(async (so) => {
+        const invNum = `INV-${so.orderNumber.replace(/^SO-/, "")}`;
+        if (enrichedInvoices.some((i) => i.invoiceNumber === invNum || i.salesOrderId === so.id || i.invoiceNo === invNum || i.id === so.id)) {
+          return null;
+        }
+
+        let customerName = "Walk-in Customer";
+        let customerPhone = "";
+        let customerEmail = "";
+        if (so.customerId) {
+          const customer = await prisma.customer.findUnique({
+            where: { id: so.customerId },
+            select: { name: true, phone: true, email: true },
+          }).catch(() => null);
+          if (customer) {
+            customerName = customer.name;
+            customerPhone = customer.phone || "";
+            customerEmail = customer.email || "";
+          }
+        }
+
+        return {
+          id: so.id,
+          companyId: so.companyId,
+          branchId: so.branchId,
+          salesOrderId: so.id,
+          customerId: so.customerId,
+          invoiceNumber: invNum,
+          invoiceNo: invNum,
+          customerName,
+          customer: customerName,
+          customerPhone,
+          customerEmail,
+          salesOrderNumber: so.orderNumber,
+          referenceNumber: so.orderNumber,
+          date: so.orderDate ? new Date(so.orderDate).toISOString().split("T")[0] : new Date(so.createdAt).toISOString().split("T")[0],
+          subtotal: Number(so.totalAmount || 0),
+          taxAmount: Number(so.taxAmount || 0),
+          discountAmount: Number(so.discountAmount || 0),
+          totalAmount: Number(so.netAmount || so.totalAmount || 0),
+          total: Number(so.netAmount || so.totalAmount || 0),
+          paidAmount: Number(so.netAmount || so.totalAmount || 0),
+          balanceAmount: 0,
+          paymentStatus: so.status === "COMPLETED" ? "PAID" : (so.status === "CANCELLED" ? "CANCELLED" : "PENDING"),
+          status: so.status || "PAID",
+          notes: `Sales Order ${so.orderNumber}`,
+          items: [],
+        };
+      })
+    );
+
+    const nonNullSalesInvoices = salesInvoices.filter(Boolean);
+    return [...enrichedInvoices, ...nonNullSalesInvoices];
   }
 
   // ==========================================
   // Get Invoice By ID
   // ==========================================
   async findById(id) {
-    return await prisma.invoice.findUnique({
-      where: {
-        id,
+    const inv = await prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        items: true,
       },
-    });
+    }).catch(() => null);
+
+    if (!inv) return null;
+
+    let customerName = "Walk-in Customer";
+    let customerPhone = "";
+    let customerEmail = "";
+    if (inv.customerId) {
+      const customer = await prisma.customer.findUnique({
+        where: { id: inv.customerId },
+        select: { name: true, phone: true, email: true },
+      }).catch(() => null);
+      if (customer) {
+        customerName = customer.name;
+        customerPhone = customer.phone || "";
+        customerEmail = customer.email || "";
+      }
+    }
+
+    let salesOrderNumber = null;
+    if (inv.salesOrderId) {
+      const so = await prisma.salesOrder.findUnique({
+        where: { id: inv.salesOrderId },
+        select: { orderNumber: true },
+      }).catch(() => null);
+      if (so) {
+        salesOrderNumber = so.orderNumber;
+      }
+    }
+
+    return {
+      ...inv,
+      customerName,
+      customer: customerName,
+      customerPhone,
+      customerEmail,
+      salesOrderNumber: salesOrderNumber || inv.invoiceNumber,
+      referenceNumber: salesOrderNumber || inv.invoiceNumber,
+      total: Number(inv.totalAmount || 0),
+      date: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString().split("T")[0] : new Date(inv.createdAt).toISOString().split("T")[0],
+      invoiceNo: inv.invoiceNumber,
+    };
   }
 
   // ==========================================

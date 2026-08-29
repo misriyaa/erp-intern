@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import DashboardNav from "../DashboardNav/DashboardNav";
 import apiClient from "@/services/apiClient";
+import { useCompany } from "@/context/CompanyContext";
 import {
   AreaChart,
   Area,
@@ -25,488 +27,508 @@ import {
   CheckCircle2,
   XCircle,
   ArrowUpRight,
+  ArrowDownRight,
   Boxes,
   ShoppingCart,
   Building2,
   FileBarChart2,
   ChevronDown,
+  Plus,
+  Inbox,
+  AlertCircle,
+  RefreshCw,
+  Award,
+  PackageX,
+  PlusCircle,
+  CheckSquare,
 } from "lucide-react";
 
 import styles from "./DashboardHome.module.css";
 
 /* =========================
-   MOCK DATA
+   STAT CARD COMPONENT
 ========================= */
-
-const deliveries = [
-  {
-    title: "Supplier Restock — Main Warehouse",
-    date: "18 Aug 2026",
-    time: "09:10 AM – 10:30 AM",
-    tone: "blue",
-  },
-  {
-    title: "Stock Audit — Main Branch",
-    date: "21 Aug 2026",
-    time: "11:00 AM – 01:00 PM",
-    tone: "rose",
-  },
-];
-
-const revenueByQuarter = [
-  { q: "Q1 '25", collected: 62, target: 100 },
-  { q: "Q2 '25", collected: 78, target: 100 },
-  { q: "Q3 '25", collected: 55, target: 100 },
-  { q: "Q4 '25", collected: 70, target: 100 },
-  { q: "Q1 '26", collected: 84, target: 100 },
-  { q: "Q2 '26", collected: 60, target: 100 },
-  { q: "Q3 '26", collected: 91, target: 100 },
-];
-
-const earnings = [
-  { m: "Feb", v: 32 },
-  { m: "Mar", v: 48 },
-  { m: "Apr", v: 30 },
-  { m: "May", v: 55 },
-  { m: "Jun", v: 41 },
-  { m: "Jul", v: 60 },
-  { m: "Aug", v: 52 },
-];
-
-const stockStatus = [
-  {
-    name: "In stock",
-    value: 412,
-    color: "#3B4CCA",
-  },
-  {
-    name: "Low stock",
-    value: 34,
-    color: "#F5A623",
-  },
-  {
-    name: "Out of stock",
-    value: 9,
-    color: "#E11D48",
-  },
-];
-
-const topCategories = [
-  {
-    name: "Groceries",
-    pct: 88,
-    color: "#3B4CCA",
-  },
-  {
-    name: "Electronics",
-    pct: 71,
-    color: "#0F9D77",
-  },
-  {
-    name: "Home & Living",
-    pct: 64,
-    color: "#3B4CCA",
-  },
-  {
-    name: "Beauty",
-    pct: 52,
-    color: "#16A34A",
-  },
-  {
-    name: "Apparel",
-    pct: 45,
-    color: "#F5A623",
-  },
-  {
-    name: "Stationery",
-    pct: 30,
-    color: "#E11D48",
-  },
-];
-
-const activity = [
-  {
-    title: "New PO approved",
-    sub: "PO-2291 to Al Rai Trading Co.",
-    img: "🧾",
-  },
-  {
-    title: "Stock received",
-    sub: "412 units — Salmiya branch",
-    img: "📦",
-  },
-  {
-    title: "Return processed",
-    sub: "Order #10432, 3 items",
-    img: "↩️",
-  },
-  {
-    title: "New supplier onboarded",
-    sub: "Gulf Fresh Distributors",
-    img: "🤝",
-  },
-];
-
-const notices = [
-  {
-    title: "New pricing policy rollout",
-    added: "11 Aug 2026",
-    chip: "3 Days",
-  },
-  {
-    title: "Ramadan stock planning kickoff",
-    added: "05 Aug 2026",
-    chip: "9 Days",
-  },
-  {
-    title: "Supplier contract renewals due",
-    added: "28 Jul 2026",
-    chip: "16 Days",
-  },
-];
-
-const todos = [
-  {
-    title: "Confirm delivery slot — Al Rai",
-    time: "01:00 PM",
-    status: "Completed",
-    done: true,
-  },
-  {
-    title: "Review low-stock alerts",
-    time: "03:30 PM",
-    status: "In progress",
-    done: false,
-  },
-  {
-    title: "Approve leave — 2 employees",
-    time: "04:50 PM",
-    status: "Yet to start",
-    done: false,
-  },
-];
-
-const approvals = [
-  {
-    name: "Fahad K.",
-    role: "Warehouse Lead",
-    tag: "Leave",
-    tagTone: "rose",
-    detail: "12–13 May",
-  },
-  {
-    name: "Meera S.",
-    role: "Cashier",
-    tag: "Shift swap",
-    tagTone: "amber",
-    detail: "14 May",
-  },
-];
-
-const quickActions = [
-  {
-    label: "Inventory",
-    icon: Boxes,
-    tone: "amber",
-  },
-  {
-    label: "Orders",
-    icon: ShoppingCart,
-    tone: "green",
-  },
-  {
-    label: "Suppliers",
-    icon: Building2,
-    tone: "rose",
-  },
-  {
-    label: "Reports",
-    icon: FileBarChart2,
-    tone: "sky",
-  },
-];
-
-const toneMap = {
-  amber: {
-    bg: "#FCEFD9",
-    fg: "#8A5A00",
-    icon: "#F5A623",
-  },
-  green: {
-    bg: "#E1F5EC",
-    fg: "#0F6E4E",
-    icon: "#16A34A",
-  },
-  rose: {
-    bg: "#FBE7EA",
-    fg: "#9A1B34",
-    icon: "#E11D48",
-  },
-  sky: {
-    bg: "#E6F0FD",
-    fg: "#134487",
-    icon: "#3B4CCA",
-  },
-};
-
-/* =========================
-   CARD HEADER
-========================= */
-
-function CardHeader({ title, control }) {
+function StatCard({ label, value, delta, isPositive = true, onClick, interactive = false }) {
   return (
-    <div className={styles.cardHeader}>
-      <h3 className={styles.cardTitle}>{title}</h3>
+    <div
+      className={`${styles.statCard} ${interactive ? styles.interactiveCard : ""}`}
+      onClick={onClick}
+      style={{ cursor: interactive ? "pointer" : "default" }}
+    >
+      <div>
+        <p className={styles.statLabel}>{label}</p>
+        <p className={styles.statValue}>{value}</p>
+      </div>
 
-      {control && (
-        <button className={styles.cardControl}>
-          {control}
-          <ChevronDown size={14} />
-        </button>
+      {delta && (
+        <span
+          className={`${styles.statDelta} ${
+            isPositive ? styles.statPositive : styles.statNegative
+          }`}
+        >
+          {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+          {delta}
+        </span>
       )}
     </div>
   );
 }
 
 /* =========================
-   STAT CARD
+   EMPTY STATE COMPONENT
 ========================= */
-
-function Stat({ label, value, delta, tone = "green" }) {
-  const good = tone === "green";
-
+function EmptyState({ icon: Icon = Inbox, title = "No data available", subtitle = "" }) {
   return (
-    <div className={styles.statCard}>
-      <div>
-        <p className={styles.statLabel}>{label}</p>
-        <p className={styles.statValue}>{value}</p>
-      </div>
-
-      <span
-        className={`${styles.statDelta} ${
-          good ? styles.statPositive : styles.statNegative
-        }`}
-      >
-        <ArrowUpRight size={13} />
-        {delta}
-      </span>
+    <div className={styles.emptyState}>
+      <Icon size={28} style={{ color: "#94a3b8", opacity: 0.7 }} />
+      <p className={styles.emptyStateText}>{title}</p>
+      {subtitle && <p className={styles.emptyStateSubtext}>{subtitle}</p>}
     </div>
   );
 }
 
 /* =========================
-   MAIN DASHBOARD
+   MAIN COMPONENT
 ========================= */
-
 export default function DashboardHome() {
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalEmployees: 0,
-    totalCategories: 0,
-    totalValue: 0,
-    totalEarnings: 0,
-    totalOutstanding: 0,
+  const router = useRouter();
+  const { user } = useCompany();
+
+  // State Management
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Filters
+  const [selectedBranch, setSelectedBranch] = useState("ALL");
+  const [datePeriod, setDatePeriod] = useState("30days");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+
+  // Data States (All strictly dynamic, starting from null/empty)
+  const [summary, setSummary] = useState({
+    activeProductsFormatted: "0 Items",
+    productDelta: "0.0%",
+    productDeltaPositive: true,
+    activeStaffFormatted: "0 Staff",
+    staffDelta: "0.0%",
+    staffDeltaPositive: true,
+    lowStockFormatted: "0 Items",
+    lowStockDelta: "0.0%",
+    totalInventoryValueFormatted: "₹0",
+    inventoryDelta: "0.0%",
+    totalEarningsFormatted: "₹0",
+    earningsDelta: "0.0%",
+    earningsDeltaPositive: true,
+    totalOutstandingFormatted: "₹0",
+    shrinkageCost: 0,
+    currency: "₹",
+  });
+
+  const [stockHealth, setStockHealth] = useState({
     inStock: 0,
     lowStock: 0,
     outOfStock: 0,
+    totalSkus: 0,
+    branches: [{ id: "ALL", name: "All Branches" }],
   });
-  const [earningsChart, setEarningsChart] = useState([]);
+
+  const [topPerformer, setTopPerformer] = useState(null);
+  const [bestSellingProduct, setBestSellingProduct] = useState(null);
+  const [revenueChart, setRevenueChart] = useState([]);
+  const [earningsTrend, setEarningsTrend] = useState([]);
+  const [topCategories, setTopCategories] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [notices, setNotices] = useState([]);
+  const [todos, setTodos] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
-  const [liveTopCategories, setLiveTopCategories] = useState([]);
-  const [liveDeliveriesData, setLiveDeliveriesData] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+  // Modals for creating quick Notice or Todo
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [newNoticeTitle, setNewNoticeTitle] = useState("");
+  const [newNoticeDesc, setNewNoticeDesc] = useState("");
+  const [newNoticeDays, setNewNoticeDays] = useState(7);
 
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+  const [showTodoModal, setShowTodoModal] = useState(false);
+  const [newTodoTitle, setNewTodoTitle] = useState("");
+  const [newTodoPriority, setNewTodoPriority] = useState("Medium");
 
-  const fetchDashboardStats = async () => {
+  // Fetch complete dynamic dashboard overview from backend
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get("/reports/dashboard-summary");
+      setError(null);
+
+      const params = {
+        branchId: selectedBranch,
+        period: datePeriod,
+      };
+
+      if (datePeriod === "custom" && customStart && customEnd) {
+        params.startDate = customStart;
+        params.endDate = customEnd;
+      }
+
+      const res = await apiClient.get("/dashboard/overview", { params });
+
       if (res.data?.success && res.data?.data) {
-        const {
-          stats: fetchedStats,
-          earningsChart: fetchedChart,
-          recentActivities: fetchedActivities,
-          topCategories: fetchedTopCats,
-          deliveries: fetchedDeliveries,
-        } = res.data.data;
-        setStats(fetchedStats || {});
-        setEarningsChart(fetchedChart || []);
-        setRecentActivities(fetchedActivities || []);
-        if (Array.isArray(fetchedTopCats) && fetchedTopCats.length > 0) {
-          setLiveTopCategories(fetchedTopCats);
-        }
-        if (Array.isArray(fetchedDeliveries) && fetchedDeliveries.length > 0) {
-          setLiveDeliveriesData(fetchedDeliveries);
-        }
+        const d = res.data.data;
+        if (d.summary) setSummary(d.summary);
+        if (d.stockHealth) setStockHealth(d.stockHealth);
+        setTopPerformer(d.topPerformer || null);
+        setBestSellingProduct(d.bestSellingProduct || null);
+        setRevenueChart(d.revenueChart || []);
+        setEarningsTrend(d.earningsTrend || []);
+        setTopCategories(d.topCategories || []);
+        setUpcomingEvents(d.upcomingEvents || []);
+        setPendingApprovals(d.pendingApprovals || []);
+        setNotices(d.notices || []);
+        setTodos(d.todos || []);
+        setRecentActivities(d.recentActivities || []);
       }
     } catch (err) {
-      console.error("Dashboard stats fetch error:", err);
+      console.error("Dashboard overview fetch error:", err);
+      setError("Unable to load live dashboard data. Please check your connection.");
     } finally {
       setLoading(false);
     }
+  }, [selectedBranch, datePeriod, customStart, customEnd]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // Handle task checkbox toggle
+  const handleToggleTodo = async (todoId, currentStatus) => {
+    const newStatus = currentStatus === "Completed" ? "Pending" : "Completed";
+    try {
+      // Optimistic update
+      setTodos((prev) =>
+        prev.map((t) =>
+          t.id === todoId ? { ...t, status: newStatus, done: newStatus === "Completed" } : t
+        )
+      );
+      await apiClient.patch(`/dashboard/todos/${todoId}/toggle`, { status: newStatus });
+    } catch (err) {
+      console.error("Failed to toggle todo status:", err);
+      fetchDashboardData();
+    }
   };
 
+  // Handle Create Notice
+  const handleCreateNotice = async (e) => {
+    e.preventDefault();
+    if (!newNoticeTitle.trim()) return;
+
+    try {
+      const expDate = new Date();
+      expDate.setDate(expDate.getDate() + Number(newNoticeDays || 7));
+
+      await apiClient.post("/dashboard/notices", {
+        title: newNoticeTitle,
+        description: newNoticeDesc,
+        branchId: selectedBranch,
+        expiryDate: expDate.toISOString(),
+      });
+
+      setShowNoticeModal(false);
+      setNewNoticeTitle("");
+      setNewNoticeDesc("");
+      fetchDashboardData();
+    } catch (err) {
+      console.error("Failed to create notice:", err);
+    }
+  };
+
+  // Handle Create Todo
+  const handleCreateTodo = async (e) => {
+    e.preventDefault();
+    if (!newTodoTitle.trim()) return;
+
+    try {
+      await apiClient.post("/dashboard/todos", {
+        title: newTodoTitle,
+        priority: newTodoPriority,
+        branchId: selectedBranch,
+      });
+
+      setShowTodoModal(false);
+      setNewTodoTitle("");
+      fetchDashboardData();
+    } catch (err) {
+      console.error("Failed to create todo:", err);
+    }
+  };
+
+  // Stock status pie data
   const dynamicStockStatus = [
-    { name: "In stock", value: stats.inStock || 0, color: "#3B4CCA" },
-    { name: "Low stock", value: stats.lowStock || 0, color: "#F5A623" },
-    { name: "Out of stock", value: stats.outOfStock || 0, color: "#E11D48" },
+    { name: "In stock", value: stockHealth.inStock || 0, color: "#3B4CCA" },
+    { name: "Low stock", value: stockHealth.lowStock || 0, color: "#F5A623" },
+    { name: "Out of stock", value: stockHealth.outOfStock || 0, color: "#E11D48" },
   ];
 
-  const donutTotal = dynamicStockStatus.reduce(
-    (total, item) => total + item.value,
-    0
-  );
+  const totalStockItems =
+    (stockHealth.inStock || 0) + (stockHealth.lowStock || 0) + (stockHealth.outOfStock || 0);
 
   return (
     <div className={styles.dashboard}>
       <div className={styles.container}>
         <DashboardNav />
 
-        {/* HEADER */}
+        {/* HEADER & FILTERS */}
         <div className={styles.header}>
           <div>
             <h1 className={styles.pageTitle}>Retail Executive Overview</h1>
-
             <p className={styles.pageSubtitle}>
-              Live System Telemetry & Operations
+              Live System Telemetry & Operations • {user?.companyName || "Enterprise"}
             </p>
           </div>
 
-          <button className={styles.notificationButton}>
-            <Bell size={18} />
-          </button>
+          <div className={styles.controlsBar}>
+            {/* Branch Selector */}
+            <select
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              className={styles.selectControl}
+              aria-label="Filter by branch"
+            >
+              {(stockHealth.branches || [{ id: "ALL", name: "All Branches" }]).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Date Range Selector */}
+            <select
+              value={datePeriod}
+              onChange={(e) => setDatePeriod(e.target.value)}
+              className={styles.selectControl}
+              aria-label="Filter by date period"
+            >
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="this_year">This Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+
+            {datePeriod === "custom" && (
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className={styles.selectControl}
+                />
+                <span style={{ fontSize: "12px", color: "#64748b" }}>to</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className={styles.selectControl}
+                />
+              </div>
+            )}
+
+            <button
+              className={styles.notificationButton}
+              onClick={fetchDashboardData}
+              title="Refresh Dashboard Data"
+            >
+              <RefreshCw size={18} className={loading ? styles.skeletonPulse : ""} />
+            </button>
+          </div>
         </div>
 
-        {/* KPI */}
+        {/* ERROR STATE BANNER */}
+        {error && (
+          <div
+            style={{
+              padding: "16px",
+              marginBottom: "24px",
+              borderRadius: "12px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              color: "#991b1b",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <AlertCircle size={20} />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={fetchDashboardData}
+              style={{
+                padding: "6px 12px",
+                background: "#dc2626",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "6px",
+                fontWeight: "600",
+                cursor: "pointer",
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* 1. TOP 4 DYNAMIC KPIS */}
         <div className={styles.kpiGrid}>
-          <Stat
+          <StatCard
             label="Total Active Products"
-            value={stats.totalProducts ? `${stats.totalProducts} Items` : "0 Items"}
-            delta="+12.4%"
+            value={summary.activeProductsFormatted}
+            delta={summary.productDelta}
+            isPositive={summary.productDeltaPositive}
+            onClick={() => router.push("/admin/products")}
+            interactive={true}
           />
 
-          <Stat
+          <StatCard
             label="Active Staff Members"
-            value={stats.totalEmployees ? `${stats.totalEmployees} Staff` : "0 Staff"}
-            delta="+4.1%"
+            value={summary.activeStaffFormatted}
+            delta={summary.staffDelta}
+            isPositive={summary.staffDeltaPositive}
+            onClick={() => router.push("/admin/employees")}
+            interactive={true}
           />
 
-          <Stat
+          <StatCard
             label="Low Stock Warnings"
-            value={stats.lowStock ? `${stats.lowStock} Items` : "0 Items"}
-            delta="-2.1%"
-            tone="red"
+            value={summary.lowStockFormatted}
+            delta={summary.lowStockDelta}
+            isPositive={false}
+            onClick={() => router.push("/admin/inventory")}
+            interactive={true}
           />
 
-          <Stat
+          <StatCard
             label="Total Inventory Value"
-            value={stats.totalValue ? `₹${stats.totalValue.toLocaleString()}` : "₹0.00"}
-            delta="+8.2%"
+            value={summary.totalInventoryValueFormatted}
+            delta={summary.inventoryDelta}
+            isPositive={true}
+            onClick={() => router.push("/admin/inventory")}
+            interactive={true}
           />
         </div>
 
-        {/* DELIVERY / HIGHLIGHTS / STOCK */}
+        {/* 2. UPCOMING DELIVERIES / TOP HIGHLIGHTS / STOCK HEALTH */}
         <div className={styles.threeColumnGrid}>
-
-          {/* DELIVERY */}
+          {/* UPCOMING EVENTS / DELIVERIES */}
           <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Upcoming Schedule</h3>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>Live</span>
+            </div>
+
             <div className={styles.deliveryList}>
-              {(liveDeliveriesData.length > 0 ? liveDeliveriesData : deliveries).map((delivery, index) => (
-                <div
-                  key={delivery.title}
-                  className={`${styles.deliveryItem} ${
-                    delivery.tone === "rose"
-                      ? styles.deliveryRose
-                      : ""
-                  }`}
-                >
-                  <p className={styles.deliveryTitle}>
-                    <Truck size={14} />
-                    {delivery.title}
-                  </p>
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((delivery, index) => (
+                  <div
+                    key={index}
+                    className={`${styles.deliveryItem} ${
+                      delivery.tone === "rose" ? styles.deliveryRose : ""
+                    }`}
+                  >
+                    <p className={styles.deliveryTitle}>
+                      <Truck size={14} />
+                      {delivery.title}
+                    </p>
 
-                  <p className={styles.deliveryMeta}>
-                    <Calendar size={12} />
-                    {delivery.date}
-                  </p>
+                    <p className={styles.deliveryMeta}>
+                      <Calendar size={12} />
+                      {delivery.date}
+                    </p>
 
-                  <p className={styles.deliveryMeta}>
-                    <Clock size={12} />
-                    {delivery.time}
+                    <p className={styles.deliveryMeta}>
+                      <Clock size={12} />
+                      {delivery.time}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <EmptyState
+                  icon={Calendar}
+                  title="No upcoming events"
+                  subtitle="No supplier deliveries or stock audits scheduled"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* HIGHLIGHTS (TOP PERFORMER & BEST-SELLING SKU) */}
+          <div className={styles.highlightGrid}>
+            {/* TOP PERFORMER */}
+            <div className={`${styles.highlightCard} ${styles.highlightGreen}`}>
+              {topPerformer ? (
+                <div>
+                  <p className={styles.highlightLabel}>Top performer</p>
+                  <p className={styles.highlightTitle}>{topPerformer.name}</p>
+                  <p className={styles.highlightDescription}>
+                    {topPerformer.role} · {topPerformer.branch}
+                  </p>
+                  <p style={{ fontSize: "12px", color: "#065f46", marginTop: "8px", fontWeight: "600" }}>
+                    {topPerformer.detail}
                   </p>
                 </div>
-              ))}
+              ) : (
+                <div>
+                  <p className={styles.highlightLabel}>Top performer</p>
+                  <p className={styles.highlightTitle} style={{ fontSize: "16px", color: "#64748b" }}>
+                    No performance data
+                  </p>
+                  <p className={styles.highlightDescription}>
+                    Transactions will rank top staff automatically.
+                  </p>
+                </div>
+              )}
+              <div className={styles.highlightIcon}>🏆</div>
+            </div>
+
+            {/* BEST-SELLING SKU */}
+            <div className={`${styles.highlightCard} ${styles.highlightBlue}`}>
+              {bestSellingProduct ? (
+                <div>
+                  <p className={styles.highlightLabel}>Best-selling SKU</p>
+                  <p className={styles.highlightTitle}>{bestSellingProduct.name}</p>
+                  <p className={styles.highlightDescription}>
+                    {bestSellingProduct.category} · {bestSellingProduct.unitsSold} units sold
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className={styles.highlightLabel}>Best-selling SKU</p>
+                  <p className={styles.highlightTitle} style={{ fontSize: "16px", color: "#64748b" }}>
+                    No sales data available
+                  </p>
+                  <p className={styles.highlightDescription}>
+                    Completed sales will identify top products.
+                  </p>
+                </div>
+              )}
+              <div className={styles.highlightIcon}>🛒</div>
             </div>
           </div>
 
-          {/* HIGHLIGHTS */}
-          <div className={styles.highlightGrid}>
-
-            <div
-              className={`${styles.highlightCard} ${styles.highlightGreen}`}
-            >
-              <div>
-                <p className={styles.highlightLabel}>
-                  Top performer
-                </p>
-
-                <p className={styles.highlightTitle}>
-                  Rasha M.
-                </p>
-
-                <p className={styles.highlightDescription}>
-                  Store Manager, Hawally
-                </p>
-              </div>
-
-              <div className={styles.highlightIcon}>
-                🏆
-              </div>
-            </div>
-
-            <div
-              className={`${styles.highlightCard} ${styles.highlightBlue}`}
-            >
-              <div>
-                <p className={styles.highlightLabel}>
-                  Best-selling SKU
-                </p>
-
-                <p className={styles.highlightTitle}>
-                  Al Marai Milk 1L
-                </p>
-
-                <p className={styles.highlightDescription}>
-                  Groceries · 1,204 units
-                </p>
-              </div>
-
-              <div className={styles.highlightIcon}>
-                🛒
-              </div>
-            </div>
-
-          </div>
-
-          {/* STOCK */}
+          {/* STOCK HEALTH */}
           <div className={styles.card}>
-
-            <CardHeader
-              title="Stock health"
-              control="All branches"
-            />
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Stock health</h3>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                {selectedBranch === "ALL" ? "All Branches" : "Selected Outlet"}
+              </span>
+            </div>
 
             <div className={styles.stockHealth}>
-
               <div className={styles.stockChart}>
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={dynamicStockStatus}
@@ -516,11 +538,7 @@ export default function DashboardHome() {
                       paddingAngle={2}
                     >
                       {dynamicStockStatus.map((item) => (
-                        <Cell
-                          key={item.name}
-                          fill={item.color}
-                          stroke="none"
-                        />
+                        <Cell key={item.name} fill={item.color} stroke="none" />
                       ))}
                     </Pie>
                   </PieChart>
@@ -529,129 +547,100 @@ export default function DashboardHome() {
 
               <div className={styles.stockList}>
                 {dynamicStockStatus.map((item) => (
-                  <div
-                    key={item.name}
-                    className={styles.stockRow}
-                  >
+                  <div key={item.name} className={styles.stockRow}>
                     <span className={styles.stockName}>
-                      <span
-                        className={styles.stockDot}
-                        style={{
-                          background: item.color,
-                        }}
-                      />
-
+                      <span className={styles.stockDot} style={{ background: item.color }} />
                       {item.name}
                     </span>
-
-                    <span className={styles.stockValue}>
-                      {item.value}
-                    </span>
+                    <span className={styles.stockValue}>{item.value}</span>
                   </div>
                 ))}
-
                 <p className={styles.stockTotal}>
-                  {donutTotal} SKUs tracked
+                  {stockHealth.totalSkus || totalStockItems} SKUs tracked
                 </p>
               </div>
-
             </div>
           </div>
         </div>
 
-        {/* REVENUE / APPROVALS */}
+        {/* 3. REVENUE COLLECTION CHART & PENDING APPROVALS */}
         <div className={styles.twoColumnGrid}>
-
+          {/* REVENUE CHART */}
           <div className={styles.card}>
-            <CardHeader
-              title="Revenue collection"
-              control="Last 7 quarters"
-            />
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Revenue collection</h3>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>Quarterly Trends</span>
+            </div>
 
             <div className={styles.revenueChart}>
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <BarChart
-                  data={revenueByQuarter}
-                  barGap={4}
-                >
-                  <XAxis
-                    dataKey="q"
-                    tick={{
-                      fontSize: 11,
-                      fill: "#94A3B8",
-                    }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-
-                  <YAxis
-                    tick={{
-                      fontSize: 11,
-                      fill: "#94A3B8",
-                    }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-
-                  <Tooltip
-                    cursor={{
-                      fill: "#F5F6FA",
-                    }}
-                    contentStyle={{
-                      borderRadius: 10,
-                      border: "1px solid #E2E8F0",
-                      fontSize: 12,
-                    }}
-                  />
-
-                  <Bar
-                    dataKey="target"
-                    fill="#E5E9F5"
-                    radius={[4, 4, 0, 0]}
-                    name="Target"
-                  />
-
-                  <Bar
-                    dataKey="collected"
-                    fill="#3B4CCA"
-                    radius={[4, 4, 0, 0]}
-                    name="Collected"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {revenueChart.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueChart} barGap={4}>
+                    <XAxis
+                      dataKey="q"
+                      tick={{ fontSize: 11, fill: "#94A3B8" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#94A3B8" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#F5F6FA" }}
+                      contentStyle={{
+                        borderRadius: 10,
+                        border: "1px solid #E2E8F0",
+                        fontSize: 12,
+                      }}
+                      formatter={(val) => [`₹${Number(val).toLocaleString()}`, "Amount"]}
+                    />
+                    <Bar
+                      dataKey="target"
+                      fill="#E5E9F5"
+                      radius={[4, 4, 0, 0]}
+                      name="Target"
+                    />
+                    <Bar
+                      dataKey="collected"
+                      fill="#3B4CCA"
+                      radius={[4, 4, 0, 0]}
+                      name="Collected"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState
+                  icon={FileBarChart2}
+                  title="No revenue data available"
+                  subtitle="Complete sales and invoices to generate telemetry"
+                />
+              )}
             </div>
           </div>
 
-          {/* APPROVALS */}
+          {/* PENDING APPROVALS */}
           <div className={styles.card}>
-
-            <CardHeader
-              title="Pending approvals"
-              control="Today"
-            />
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Pending approvals</h3>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                {pendingApprovals.length} pending
+              </span>
+            </div>
 
             <div className={styles.approvalList}>
-              {approvals.map((approval) => {
-                const tone = toneMap[approval.tagTone];
-
-                return (
-                  <div
-                    key={approval.name}
-                    className={styles.approvalItem}
-                  >
+              {pendingApprovals.length > 0 ? (
+                pendingApprovals.map((approval) => (
+                  <div key={approval.id} className={styles.approvalItem}>
                     <div className={styles.approvalTop}>
-
                       <p className={styles.approvalName}>
                         {approval.name}
-
                         <span
                           className={styles.approvalTag}
                           style={{
-                            background: tone.bg,
-                            color: tone.fg,
+                            background: approval.tagTone === "rose" ? "#FBE7EA" : "#FCEFD9",
+                            color: approval.tagTone === "rose" ? "#9A1B34" : "#8A5A00",
                           }}
                         >
                           {approval.tag}
@@ -661,332 +650,488 @@ export default function DashboardHome() {
                       <div className={styles.approvalActions}>
                         <button
                           className={`${styles.approvalButton} ${styles.approve}`}
+                          onClick={() => router.push("/admin/purchases")}
+                          title="View & Approve"
                         >
                           <CheckCircle2 size={13} />
-                        </button>
-
-                        <button
-                          className={`${styles.approvalButton} ${styles.reject}`}
-                        >
-                          <XCircle size={13} />
                         </button>
                       </div>
                     </div>
 
                     <p className={styles.approvalRole}>
-                      {approval.role} · {approval.detail}
+                      {approval.role} · {approval.detail} · {approval.date}
                     </p>
                   </div>
-                );
-              })}
+                ))
+              ) : (
+                <EmptyState
+                  icon={CheckCircle2}
+                  title="No pending approvals"
+                  subtitle="All orders and requests are approved"
+                />
+              )}
             </div>
           </div>
         </div>
 
-        {/* QUICK ACTIONS */}
+        {/* 4. QUICK ACTIONS */}
         <div className={styles.quickActionsGrid}>
-          {quickActions.map((action) => {
-            const tone = toneMap[action.tone];
-            const Icon = action.icon;
+          <button
+            className={styles.quickAction}
+            style={{ background: "#FCEFD9" }}
+            onClick={() => router.push("/admin/inventory")}
+          >
+            <span className={styles.quickActionLeft}>
+              <span className={styles.quickActionIcon} style={{ background: "#F5A623" }}>
+                <Boxes size={16} />
+              </span>
+              <span className={styles.quickActionLabel} style={{ color: "#8A5A00" }}>
+                Inventory
+              </span>
+            </span>
+            <ArrowUpRight size={15} style={{ color: "#8A5A00" }} />
+          </button>
 
-            return (
-              <button
-                key={action.label}
-                className={styles.quickAction}
-                style={{
-                  background: tone.bg,
-                }}
-              >
-                <span className={styles.quickActionLeft}>
+          <button
+            className={styles.quickAction}
+            style={{ background: "#E1F5EC" }}
+            onClick={() => router.push("/admin/sales")}
+          >
+            <span className={styles.quickActionLeft}>
+              <span className={styles.quickActionIcon} style={{ background: "#16A34A" }}>
+                <ShoppingCart size={16} />
+              </span>
+              <span className={styles.quickActionLabel} style={{ color: "#0F6E4E" }}>
+                Orders & Sales
+              </span>
+            </span>
+            <ArrowUpRight size={15} style={{ color: "#0F6E4E" }} />
+          </button>
 
-                  <span
-                    className={styles.quickActionIcon}
-                    style={{
-                      background: tone.icon,
-                    }}
-                  >
-                    <Icon size={16} />
-                  </span>
+          <button
+            className={styles.quickAction}
+            style={{ background: "#FBE7EA" }}
+            onClick={() => router.push("/admin/suppliers")}
+          >
+            <span className={styles.quickActionLeft}>
+              <span className={styles.quickActionIcon} style={{ background: "#E11D48" }}>
+                <Building2 size={16} />
+              </span>
+              <span className={styles.quickActionLabel} style={{ color: "#9A1B34" }}>
+                Suppliers
+              </span>
+            </span>
+            <ArrowUpRight size={15} style={{ color: "#9A1B34" }} />
+          </button>
 
-                  <span
-                    className={styles.quickActionLabel}
-                    style={{
-                      color: tone.fg,
-                    }}
-                  >
-                    {action.label}
-                  </span>
-                </span>
-
-                <ArrowUpRight
-                  size={15}
-                  style={{
-                    color: tone.fg,
-                  }}
-                />
-              </button>
-            );
-          })}
+          <button
+            className={styles.quickAction}
+            style={{ background: "#E6F0FD" }}
+            onClick={() => router.push("/admin/reports")}
+          >
+            <span className={styles.quickActionLeft}>
+              <span className={styles.quickActionIcon} style={{ background: "#3B4CCA" }}>
+                <FileBarChart2 size={16} />
+              </span>
+              <span className={styles.quickActionLabel} style={{ color: "#134487" }}>
+                Reports & Audit
+              </span>
+            </span>
+            <ArrowUpRight size={15} style={{ color: "#134487" }} />
+          </button>
         </div>
 
-        {/* EARNINGS / NOTICE / OUTSTANDING */}
+        {/* 5. EARNINGS / NOTICE BOARD / OUTSTANDING */}
         <div className={styles.threeColumnGrid}>
-
-          {/* EARNINGS */}
+          {/* TOTAL EARNINGS */}
           <div className={styles.card}>
-            <p className={styles.smallLabel}>
-              Total earnings
-            </p>
-
-            <p className={styles.largeValue}>
-              ₹{stats.totalEarnings ? stats.totalEarnings.toLocaleString() : "0"}
-            </p>
+            <p className={styles.smallLabel}>Total earnings (Period)</p>
+            <p className={styles.largeValue}>{summary.totalEarningsFormatted}</p>
 
             <div className={styles.earningsChart}>
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <AreaChart data={earningsChart.length > 0 ? earningsChart : earnings}>
-                  <defs>
-                    <linearGradient
-                      id="earningsGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="0%"
-                        stopColor="#3B4CCA"
-                        stopOpacity={0.3}
-                      />
-
-                      <stop
-                        offset="100%"
-                        stopColor="#3B4CCA"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-
-                  <XAxis dataKey={earningsChart.length > 0 ? "name" : "m"} hide />
-
-                  <Area
-                    type="monotone"
-                    dataKey={earningsChart.length > 0 ? "earnings" : "v"}
-                    stroke="#3B4CCA"
-                    strokeWidth={2}
-                    fill="url(#earningsGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {earningsTrend.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={earningsTrend}>
+                    <defs>
+                      <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3B4CCA" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#3B4CCA" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" hide />
+                    <Area
+                      type="monotone"
+                      dataKey="earnings"
+                      stroke="#3B4CCA"
+                      strokeWidth={2}
+                      fill="url(#earningsGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState icon={FileBarChart2} title="No earnings data" />
+              )}
             </div>
           </div>
 
-          {/* NOTICE */}
+          {/* NOTICE BOARD */}
           <div className={styles.card}>
-
-            <CardHeader
-              title="Notice board"
-              control="View all"
-            />
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Notice board</h3>
+              <button
+                className={styles.addInlineBtn}
+                onClick={() => setShowNoticeModal(true)}
+              >
+                <Plus size={13} /> Add
+              </button>
+            </div>
 
             <div className={styles.noticeList}>
-              {notices.map((notice) => (
-                <div
-                  key={notice.title}
-                  className={styles.noticeItem}
-                >
-                  <div>
-                    <p className={styles.noticeTitle}>
-                      {notice.title}
-                    </p>
-
-                    <p className={styles.noticeDate}>
-                      Added on: {notice.added}
-                    </p>
+              {notices.length > 0 ? (
+                notices.map((notice) => (
+                  <div key={notice.id} className={styles.noticeItem}>
+                    <div>
+                      <p className={styles.noticeTitle}>{notice.title}</p>
+                      <p className={styles.noticeDate}>Added on: {notice.added}</p>
+                    </div>
+                    <span className={styles.noticeChip}>{notice.chip}</span>
                   </div>
-
-                  <span className={styles.noticeChip}>
-                    {notice.chip}
-                  </span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <EmptyState
+                  icon={Inbox}
+                  title="No active notices"
+                  subtitle="Add announcements for staff and branch members"
+                />
+              )}
             </div>
           </div>
 
-          {/* OUTSTANDING */}
+          {/* OUTSTANDING / SHRINKAGE */}
           <div className={styles.outstandingStack}>
-
             <div className={styles.outstandingCard}>
               <div>
-                <p className={styles.smallLabel}>
-                  Total outstanding
-                </p>
-
-                <p className={styles.outstandingValue}>
-                  ₹{(stats.totalOutstanding || 0).toLocaleString("en-IN")}
-                </p>
+                <p className={styles.smallLabel}>Total outstanding</p>
+                <p className={styles.outstandingValue}>{summary.totalOutstandingFormatted}</p>
               </div>
-
-              <span
-                className={`${styles.outstandingChange} ${styles.danger}`}
-              >
-                1.2%
+              <span className={`${styles.outstandingChange} ${styles.danger}`}>
+                Unpaid Invoices
               </span>
             </div>
 
             <div className={styles.outstandingCard}>
               <div>
-                <p className={styles.smallLabel}>
-                  Fine / shrinkage recovered
-                </p>
-
+                <p className={styles.smallLabel}>Damage / Shrinkage loss</p>
                 <p className={styles.outstandingValue}>
-                  KD 456
+                  {summary.currency}
+                  {(summary.shrinkageCost || 0).toLocaleString("en-IN")}
                 </p>
               </div>
-
-              <span
-                className={`${styles.outstandingChange} ${styles.success}`}
-              >
-                1.2%
+              <span className={`${styles.outstandingChange} ${styles.success}`}>
+                {summary.shrinkageCost > 0 ? "Recorded" : "Zero Loss"}
               </span>
             </div>
-
           </div>
         </div>
 
-        {/* CATEGORIES / ACTIVITY / TODO */}
+        {/* 6. TOP CATEGORIES / RECENT ACTIVITY / TODO */}
         <div className={styles.threeColumnGrid}>
-
           {/* CATEGORIES */}
           <div className={styles.card}>
-
-            <CardHeader
-              title="Top categories"
-              control="This month"
-            />
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Top categories</h3>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>Units Sold Share</span>
+            </div>
 
             <div className={styles.categoryInfo}>
-              Share of total units sold this month, by category.
+              Share of total units sold in the selected period.
             </div>
 
             <div className={styles.categoryList}>
-              {(liveTopCategories.length > 0 ? liveTopCategories : topCategories).map((category) => (
-                <div
-                  key={category.name}
-                  className={styles.categoryRow}
-                >
-                  <div className={styles.categoryLabel}>
-                    <span>{category.name}</span>
-                    <span>{category.pct}%</span>
-                  </div>
+              {topCategories.length > 0 ? (
+                topCategories.map((category) => (
+                  <div key={category.name} className={styles.categoryRow}>
+                    <div className={styles.categoryLabel}>
+                      <span>{category.name}</span>
+                      <span>
+                        {category.units} units ({category.pct}%)
+                      </span>
+                    </div>
 
-                  <div className={styles.categoryProgress}>
-                    <div
-                      className={styles.categoryBar}
-                      style={{
-                        width: `${category.pct}%`,
-                        background: category.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ACTIVITY */}
-          <div className={styles.card}>
-
-            <CardHeader
-              title="Recent activity"
-              control="This month"
-            />
-
-            <div className={styles.activityList}>
-              {(recentActivities.length > 0 ? recentActivities : activity).map((item, index) => (
-                <div
-                  key={index}
-                  className={styles.activityItem}
-                >
-                  <span className={styles.activityIcon}>
-                    {item.icon || item.img}
-                  </span>
-
-                  <div>
-                    <p className={styles.activityTitle}>
-                      {item.title}
-                    </p>
-
-                    <p className={styles.activitySubtitle}>
-                      {item.sub}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* TODO */}
-          <div className={styles.card}>
-
-            <CardHeader
-              title="To-do"
-              control="Today"
-            />
-
-            <div className={styles.todoList}>
-              {todos.map((todo) => (
-                <div
-                  key={todo.title}
-                  className={styles.todoItem}
-                >
-                  <div className={styles.todoLeft}>
-
-                    <input
-                      type="checkbox"
-                      checked={todo.done}
-                      readOnly
-                      className={styles.todoCheckbox}
-                    />
-
-                    <div>
-                      <p
-                        className={`${styles.todoTitle} ${
-                          todo.done
-                            ? styles.todoCompleted
-                            : ""
-                        }`}
-                      >
-                        {todo.title}
-                      </p>
-
-                      <p className={styles.todoTime}>
-                        {todo.time}
-                      </p>
+                    <div className={styles.categoryProgress}>
+                      <div
+                        className={styles.categoryBar}
+                        style={{
+                          width: `${category.pct}%`,
+                          background: category.color,
+                        }}
+                      />
                     </div>
                   </div>
+                ))
+              ) : (
+                <EmptyState
+                  icon={Inbox}
+                  title="No category sales data available"
+                  subtitle="Category volume will calculate upon sales completion"
+                />
+              )}
+            </div>
+          </div>
 
-                  <span
-                    className={`${styles.todoStatus} ${
-                      todo.status === "Completed"
-                        ? styles.statusCompleted
-                        : todo.status === "In progress"
-                        ? styles.statusProgress
-                        : styles.statusPending
-                    }`}
-                  >
-                    {todo.status}
-                  </span>
-                </div>
-              ))}
+          {/* RECENT ACTIVITY */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>Recent activity</h3>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>Live Audit Log</span>
+            </div>
+
+            <div className={styles.activityList}>
+              {recentActivities.length > 0 ? (
+                recentActivities.map((item, index) => (
+                  <div key={item.id || index} className={styles.activityItem}>
+                    <span className={styles.activityIcon}>{item.icon}</span>
+                    <div>
+                      <p className={styles.activityTitle}>{item.title}</p>
+                      <p className={styles.activitySubtitle}>{item.sub}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState
+                  icon={Inbox}
+                  title="No recent activity"
+                  subtitle="System actions will log here in real-time"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* TODO LIST */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>To-do list</h3>
+              <button
+                className={styles.addInlineBtn}
+                onClick={() => setShowTodoModal(true)}
+              >
+                <Plus size={13} /> Add
+              </button>
+            </div>
+
+            <div className={styles.todoList}>
+              {todos.length > 0 ? (
+                todos.map((todo) => (
+                  <div key={todo.id} className={styles.todoItem}>
+                    <div className={styles.todoLeft}>
+                      <input
+                        type="checkbox"
+                        checked={todo.done}
+                        onChange={() => handleToggleTodo(todo.id, todo.status)}
+                        className={styles.todoCheckbox}
+                        aria-label={`Mark ${todo.title} as completed`}
+                      />
+
+                      <div>
+                        <p
+                          className={`${styles.todoTitle} ${
+                            todo.done ? styles.todoCompleted : ""
+                          }`}
+                        >
+                          {todo.title}
+                        </p>
+                        <p className={styles.todoTime}>{todo.time}</p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`${styles.todoStatus} ${
+                        todo.done
+                          ? styles.statusCompleted
+                          : todo.status === "In progress"
+                          ? styles.statusProgress
+                          : styles.statusPending
+                      }`}
+                    >
+                      {todo.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <EmptyState
+                  icon={CheckSquare}
+                  title="No tasks for today"
+                  subtitle="Add operational tasks and reminders above"
+                />
+              )}
             </div>
           </div>
         </div>
 
+        {/* MODAL: ADD NOTICE */}
+        {showNoticeModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 100,
+              padding: "16px",
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: "16px",
+                padding: "24px",
+                maxWidth: "480px",
+                width: "100%",
+                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+              }}
+            >
+              <h3 style={{ margin: "0 0 16px 0", fontSize: "18px", color: "#0f172a" }}>
+                Add Company Notice
+              </h3>
+              <form onSubmit={handleCreateNotice}>
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
+                    Notice Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. New pricing policy rollout"
+                    value={newNoticeTitle}
+                    onChange={(e) => setNewNoticeTitle(e.target.value)}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Notice details..."
+                    value={newNoticeDesc}
+                    onChange={(e) => setNewNoticeDesc(e.target.value)}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
+                    Expires In (Days)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newNoticeDays}
+                    onChange={(e) => setNewNoticeDays(e.target.value)}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowNoticeModal(false)}
+                    style={{ padding: "8px 16px", background: "#f1f5f9", border: "none", borderRadius: "8px", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{ padding: "8px 16px", background: "#3b4cca", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+                  >
+                    Post Notice
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: ADD TODO */}
+        {showTodoModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 100,
+              padding: "16px",
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: "16px",
+                padding: "24px",
+                maxWidth: "440px",
+                width: "100%",
+                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+              }}
+            >
+              <h3 style={{ margin: "0 0 16px 0", fontSize: "18px", color: "#0f172a" }}>
+                Add New Task / To-Do
+              </h3>
+              <form onSubmit={handleCreateTodo}>
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
+                    Task Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Review supplier inventory restock"
+                    value={newTodoTitle}
+                    onChange={(e) => setNewTodoTitle(e.target.value)}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
+                    Priority
+                  </label>
+                  <select
+                    value={newTodoPriority}
+                    onChange={(e) => setNewTodoPriority(e.target.value)}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  >
+                    <option value="Low">Low Priority</option>
+                    <option value="Medium">Medium Priority</option>
+                    <option value="High">High Priority</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowTodoModal(false)}
+                    style={{ padding: "8px 16px", background: "#f1f5f9", border: "none", borderRadius: "8px", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{ padding: "8px 16px", background: "#3b4cca", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+                  >
+                    Create Task
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

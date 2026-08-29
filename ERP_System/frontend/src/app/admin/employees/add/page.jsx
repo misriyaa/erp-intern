@@ -12,10 +12,11 @@ import { getRoles } from "@/services/roleService";
 import { getBranches } from "@/services/branchService";
 import { restaurantService } from "@/services/restaurantService";
 import { useCompany } from "@/context/CompanyContext";
+import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
 
 export default function AddEmployeePage() {
   const router = useRouter();
-  const { user, company, industryCode, isRestaurant } = useCompany();
+  const { user, company, industryCode, isRestaurant, isRetail } = useCompany();
 
   const [roles, setRoles] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -115,6 +116,19 @@ export default function AddEmployeePage() {
   }, [industryCode]);
 
   useEffect(() => {
+    if (!formData.role) {
+      setSelectedModules([]);
+      return;
+    }
+
+    if (isRetail) {
+      const normalized = normalizeRetailRole(formData.role);
+      if (normalized && RETAIL_ROLE_ACCESS[normalized]) {
+        setSelectedModules(RETAIL_ROLE_ACCESS[normalized]);
+        return;
+      }
+    }
+
     if (formData.role === "Manager") {
       const defaultManagerModules = [
         "DASHBOARD",
@@ -144,22 +158,34 @@ export default function AddEmployeePage() {
     } else if (formData.role === "Admin") {
       setSelectedModules(availableModules.map((m) => m.code));
     } else if (formData.role === "Cashier") {
-      const defaultCashierModules = ["SALES", "POS", "DASHBOARD", "RESTAURANT", "LAUNDRY"];
+      const defaultCashierModules = ["SALES", "POS", "CUSTOMERS", "INVOICES", "DASHBOARD", "RESTAURANT", "LAUNDRY"];
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultCashierModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Inventory Manager") {
+      const defaultInvModules = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "DASHBOARD", "STOCK-TRANSFER"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultInvModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Purchase Manager") {
+      const defaultPurchModules = ["PURCHASES", "SUPPLIERS", "INVENTORY", "WAREHOUSE", "PRODUCTS", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultPurchModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Accountant") {
+      const defaultAcctModules = ["SALES", "PURCHASES", "INVOICES", "REPORTS", "PAYMENTS", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultAcctModules.includes(c));
       setSelectedModules(valid);
     } else if (formData.role === "Processing Staff" || formData.role === "Delivery Driver") {
       const defaultProcModules = ["LAUNDRY", "DASHBOARD"];
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultProcModules.includes(c));
-      setSelectedModules(valid);
-    } else if (formData.role === "Inventory Manager") {
-      const defaultInvModules = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "DASHBOARD", "STOCK-TRANSFER"];
-      const valid = availableModules
-        .map((m) => m.code)
-        .filter((c) => defaultInvModules.includes(c));
       setSelectedModules(valid);
     } else if (formData.role === "Trainer") {
       const defaultTrainerModules = ["DASHBOARD", "ATTENDANCE", "TRAINERS"];
@@ -297,9 +323,12 @@ export default function AddEmployeePage() {
     } else {
       // Retail / default
       combined = [
-        { id: "Manager", name: "Manager" },
+        { id: "Store Manager", name: "Store Manager" },
         { id: "Cashier", name: "Cashier" },
         { id: "Inventory Manager", name: "Inventory Manager" },
+        { id: "Purchase Manager", name: "Purchase Manager" },
+        { id: "Accountant", name: "Accountant" },
+        { id: "Manager", name: "Manager" },
       ];
     }
 
@@ -792,7 +821,7 @@ export default function AddEmployeePage() {
                 {formData.role && (
                   <div className={styles.card} style={{ marginTop: "24px" }}>
                     <h2 className={styles.cardTitle}>
-                      {isRestaurant ? "Automatic Role Permissions" : "Module Access Permissions"}
+                      {isRestaurant || isRetail ? "Automatic Role Permissions" : "Module Access Permissions"}
                     </h2>
 
                     {isRestaurant ? (
@@ -834,6 +863,50 @@ export default function AddEmployeePage() {
                               <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Kitchen Display Access</div>
                               <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Kitchen Display System (KDS)</div>
                               <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: POS, Billing, Orders Management, Reports</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : isRetail ? (
+                      <div style={{ padding: "16px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155" }}>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 12px 0" }}>
+                          Access is automatically assigned based on the assigned role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
+                        </p>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {(normalizeRetailRole(formData.role) === "STORE_MANAGER" || formData.role === "Manager" || formData.role === "Admin") && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Full Store Operational Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Dashboard, POS Terminal, Barcode Printing, Products, Categories, Brands, Warehouse Management, Customers, Suppliers, Purchases, Sales Orders, Invoices, Store Outlets & Branches, Employees / Staff, Reports & Analytics</div>
+                              <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "2px" }}>• Restricted: Super Admin system settings, other ERP modes</div>
+                            </>
+                          )}
+                          {normalizeRetailRole(formData.role) === "CASHIER" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Cashier Billing & Terminal Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Dashboard, POS Terminal, Customers, Barcode Printing, Invoices / Receipts</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: Products setup, Categories, Brands, Warehouse, Suppliers, Purchases, Employees, Reports, Store Settings</div>
+                            </>
+                          )}
+                          {normalizeRetailRole(formData.role) === "INVENTORY_MANAGER" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Inventory & Stock Tracking Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Dashboard, Products Setup, Categories, Brands, Barcode Printing, Warehouse Management</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: POS Terminal, Purchases, Sales Orders, Invoices, Employees, Financial Reports</div>
+                            </>
+                          )}
+                          {normalizeRetailRole(formData.role) === "PURCHASE_MANAGER" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Purchasing & Vendor Management Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Dashboard, Products, Categories, Brands, Suppliers, Purchases, Warehouse Management</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: POS Terminal, Sales Orders, Invoices, Employees, Accounting Reports</div>
+                            </>
+                          )}
+                          {normalizeRetailRole(formData.role) === "ACCOUNTANT" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Financial Accounting & Audit Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>Dashboard, POS Sales History (view-only), Sales Orders, Invoices, Purchases (view), Customers (view), Suppliers (view), Reports & Analytics</div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>✗ Restricted: Operational POS Terminal, Barcode Printing, Product setup, Categories, Brands, Warehouse, Employees, Store Settings</div>
                             </>
                           )}
                         </div>

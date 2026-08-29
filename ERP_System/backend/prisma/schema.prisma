@@ -117,6 +117,8 @@ model Company {
   laundries          Laundry[]
   laundryOrders      LaundryOrder[]
   medicines          Medicine[]
+  notices            Notice[]
+  todos              Todo[]
 
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
@@ -1196,7 +1198,7 @@ model Payment {
   companyId String?  @map("company_id")
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  branchId        String? @map("branch_id") @db.Uuid
+  branchId        String  @map("branch_id") @db.Uuid
   customerId      String? @map("customer_id") @db.Uuid
   supplierId      String? @map("supplier_id") @db.Uuid
   invoiceId       String? @map("invoice_id") @db.Uuid
@@ -2094,10 +2096,10 @@ model LaundryOrder {
   laundry             Laundry            @relation(fields: [laundryId], references: [id], onDelete: Cascade)
   companyId           String?            @map("company_id")
   company             Company?           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  branchId            String?
-  branch              Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  customerId          String?            @map("customer_id") @db.Uuid
-  customer            Customer?          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  branchId            String
+  branch              Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customerId          String             @map("customer_id") @db.Uuid
+  customer            Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
   orderNumber         String
   status              LaundryOrderStatus @default(RECEIVED)
   subtotal            Decimal            @db.Decimal(18, 2)
@@ -2285,4 +2287,51 @@ model PrescriptionItem {
 
   @@index([prescriptionId])
   @@index([medicineId])
+}
+
+// ==========================================
+// NOTICE / ANNOUNCEMENT SYSTEM
+// ==========================================
+
+model Notice {
+  id          String    @id @default(uuid())
+  title       String
+  description String?   @db.Text
+  expiryDate  DateTime?
+  createdBy   String?
+  companyId   String?
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId    String?
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([branchId])
+  @@map("notices")
+}
+
+// ==========================================
+// TO-DO / TASK SYSTEM
+// ==========================================
+
+model Todo {
+  id          String    @id @default(uuid())
+  title       String
+  description String?   @db.Text
+  assignedTo  String?
+  assignedBy  String?
+  dueDate     DateTime?
+  status      String    @default("Pending") // Pending, In progress, Completed
+  priority    String    @default("Medium")  // Low, Medium, High
+  companyId   String?
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([assignedTo])
+  @@map("todos")
 }

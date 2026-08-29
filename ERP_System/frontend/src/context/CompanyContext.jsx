@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
+import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
 
 const CompanyContext = createContext(null);
 
@@ -146,7 +147,26 @@ export function CompanyProvider({ children }) {
       return true;
     }
 
-    // 1. RESTAURANT ERP - Priority Role Access Defaults (Never dependent on manual permissions)
+    // 1. RETAIL ERP - Priority Automated Role-Based Access Rules
+    if (isRetail) {
+      const normalizedRetail = normalizeRetailRole(roleUpper);
+      if (normalizedRetail && RETAIL_ROLE_ACCESS[normalizedRetail]) {
+        const allowedModules = RETAIL_ROLE_ACCESS[normalizedRetail];
+        const isAllowed = allowedModules.some((allowed) => {
+          if (allowed === codeUpper) return true;
+          if (allowed === "INVENTORY" && (codeUpper === "WAREHOUSE" || codeUpper === "WAREHOUSES" || codeUpper === "STOCK_TRANSFER" || codeUpper === "STOCK-TRANSFER")) return true;
+          if (allowed === "WAREHOUSE" && (codeUpper === "INVENTORY" || codeUpper === "STOCK_TRANSFER" || codeUpper === "STOCK-TRANSFER")) return true;
+          if (allowed === "POS" && codeUpper === "POS") return true;
+          if (allowed === "POS_HISTORY" && (codeUpper === "POS_HISTORY" || codeUpper === "POS-HISTORY")) return true;
+          if (allowed === "BARCODE_PRINT" && (codeUpper === "BARCODE_PRINT" || codeUpper === "BARCODE-PRINT")) return true;
+          if (allowed === "SALES" && (codeUpper === "SALES" || codeUpper === "INVOICES")) return true;
+          return false;
+        });
+        return isAllowed;
+      }
+    }
+
+    // 2. RESTAURANT ERP - Priority Role Access Defaults (Never dependent on manual permissions)
     if (isRestaurant) {
       if (roleUpper.includes("MANAGER")) {
         const managerModules = [
@@ -177,8 +197,8 @@ export function CompanyProvider({ children }) {
       }
     }
 
-    // 2. If explicit module permissions are set for this employee/user
-    if (Array.isArray(modules) && modules.length > 0) {
+    // 3. If explicit module permissions are set for other ERP employees
+    if (Array.isArray(modules) && modules.length > 0 && !isRetail) {
       const formattedModules = modules.map((m) => (m || "").toUpperCase());
       const hasDirectAccess = formattedModules.some((mUpper) => {
         if (mUpper === codeUpper) return true;
@@ -195,18 +215,13 @@ export function CompanyProvider({ children }) {
       return hasDirectAccess;
     }
 
-    // 3. Other Industry Role-based overrides/filters
-    if (roleUpper.includes("CASHIER")) {
-      const allowed = ["SALES", "POS", "DASHBOARD", "RESTAURANT", "LAUNDRY", "MEDICAL_SHOP", "MEDICAL", "CUSTOMERS", "INVOICES"];
-      if (!allowed.includes(codeUpper)) {
-        return false;
-      }
-    } else if (roleUpper === "BRAND_MANAGER") {
+    // 4. Other Industry Role-based overrides/filters
+    if (roleUpper.includes("BRAND_MANAGER")) {
       const allowed = ["PRODUCTS", "CATEGORIES", "BRANDS", "PURCHASES", "DASHBOARD"];
       if (!allowed.includes(codeUpper)) {
         return false;
       }
-    } else if (roleUpper === "WAREHOUSE_MANAGER" || roleUpper === "INVENTORY_MANAGER") {
+    } else if (roleUpper.includes("WAREHOUSE_MANAGER") || roleUpper.includes("INVENTORY_MANAGER")) {
       const allowed = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "DASHBOARD", "STOCK-TRANSFER"];
       if (!allowed.includes(codeUpper)) {
         return false;
@@ -246,7 +261,7 @@ export function CompanyProvider({ children }) {
       }
     }
 
-    // 4. Industry checks
+    // 5. Default industry checks
     if (isRetail && ["DASHBOARD", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS", "RESTAURANT"].includes(codeUpper)) {
       return true;
     }

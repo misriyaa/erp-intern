@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
 
-export default function PurchaseTable({ purchases = [], onDelete }) {
+export default function PurchaseTable({ purchases = [], onDelete, readOnly = false }) {
   return (
     <div style={{ width: "100%", overflowX: "auto" }}>
       <table className="table">
@@ -87,24 +87,26 @@ export default function PurchaseTable({ purchases = [], onDelete }) {
                       >
                         <FiEye size={15} />
                       </Link>
-                      <Link
-                        href={`/purchases/edit/${item.id}`}
-                        style={{
-                          width: "32px",
-                          height: "32px",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: "#ffffff",
-                          color: "#2563eb",
-                          border: "1px solid #dfe5eb",
-                          borderRadius: "6px",
-                        }}
-                        title="Edit Order"
-                      >
-                        <FiEdit2 size={15} />
-                      </Link>
-                      {onDelete && (
+                      {!readOnly && (
+                        <Link
+                          href={`/purchases/edit/${item.id}`}
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "#ffffff",
+                            color: "#2563eb",
+                            border: "1px solid #dfe5eb",
+                            borderRadius: "6px",
+                          }}
+                          title="Edit Order"
+                        >
+                          <FiEdit2 size={15} />
+                        </Link>
+                      )}
+                      {!readOnly && onDelete && (
                         <button
                           onClick={() => onDelete(item.id)}
                           style={{

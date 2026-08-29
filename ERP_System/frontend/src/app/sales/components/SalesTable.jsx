@@ -8,21 +8,21 @@ export default function SalesTable({ sales = [] }) {
       <table className="table">
         <thead>
           <tr>
-            <th>Invoice</th>
+            <th>Order Number</th>
             <th>Customer</th>
-            <th>Cashier</th>
             <th>Date</th>
-            <th>Payment</th>
-            <th style={{ textAlign: "center" }}>Status</th>
-            <th style={{ textAlign: "right" }}>Total</th>
-            <th style={{ textAlign: "center" }}>Action</th>
+            <th>Branch</th>
+            <th style={{ textAlign: "right" }}>Total Amount</th>
+            <th style={{ textAlign: "center" }}>Payment Status</th>
+            <th style={{ textAlign: "center" }}>Order Status</th>
+            <th style={{ textAlign: "center" }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {sales.length === 0 && (
             <tr>
-              <td colSpan={8} style={{ textAlign: "center", padding: "30px 0" }}>
-                No Sales Found
+              <td colSpan={8} style={{ textAlign: "center", padding: "40px 0", color: "#64748b", fontWeight: "500" }}>
+                No sales orders found.
               </td>
             </tr>
           )}
@@ -38,19 +38,31 @@ export default function SalesTable({ sales = [] }) {
             return (
               <tr key={sale.id}>
                 <td style={{ fontWeight: "700", color: "#1f344d" }}>
-                  {sale.invoiceNo}
+                  {sale.orderNumber || sale.invoiceNo}
                 </td>
-                <td>{sale.customer}</td>
-                <td>{sale.cashier}</td>
+                <td style={{ fontWeight: "600" }}>{sale.customer}</td>
                 <td>{sale.date}</td>
-                <td>{sale.paymentMethod}</td>
+                <td>{sale.branch || "Main Branch"}</td>
+                <td style={{ textAlign: "right", fontWeight: "700", color: "#1f344d" }}>
+                  ₹{Number(sale.totalAmount ?? sale.total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </td>
                 <td style={{ textAlign: "center" }}>
                   <span className={statusClass}>
                     {sale.paymentStatus}
                   </span>
                 </td>
-                <td style={{ textAlign: "right", fontWeight: "700", color: "#1f344d" }}>
-                  ₹{sale.total.toLocaleString()}
+                <td style={{ textAlign: "center" }}>
+                  <span style={{
+                    display: "inline-block",
+                    padding: "3px 9px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    backgroundColor: sale.orderStatus === "CANCELLED" ? "#fee2e2" : "#e0e7ff",
+                    color: sale.orderStatus === "CANCELLED" ? "#dc2626" : "#3730a3"
+                  }}>
+                    {sale.orderStatus || "CONFIRMED"}
+                  </span>
                 </td>
                 <td>
                   <div style={{ display: "flex", justifyContent: "center" }}>

@@ -29,6 +29,7 @@ import apiClient from "@/services/apiClient";
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
+import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
 
 
 export default function EmployeePage() {
@@ -41,6 +42,7 @@ export default function EmployeePage() {
     isGym,
     isTextile,
     isRestaurant,
+    isRetail,
   } = useCompany();
 
   const { settings, logoUrl } = useSettings();
@@ -639,8 +641,8 @@ export default function EmployeePage() {
     else {
       combined = [
         {
-          id: "Manager",
-          name: "Manager",
+          id: "Store Manager",
+          name: "Store Manager",
         },
         {
           id: "Cashier",
@@ -649,6 +651,18 @@ export default function EmployeePage() {
         {
           id: "Inventory Manager",
           name: "Inventory Manager",
+        },
+        {
+          id: "Purchase Manager",
+          name: "Purchase Manager",
+        },
+        {
+          id: "Accountant",
+          name: "Accountant",
+        },
+        {
+          id: "Manager",
+          name: "Manager",
         },
       ];
     }
@@ -954,12 +968,17 @@ export default function EmployeePage() {
       value,
     } = e.target;
 
-
     setFormData((previous) => ({
       ...previous,
       [name]: value,
     }));
 
+    if (name === "role" && isRetail) {
+      const normalized = normalizeRetailRole(value);
+      if (normalized && RETAIL_ROLE_ACCESS[normalized]) {
+        setSelectedModules(RETAIL_ROLE_ACCESS[normalized]);
+      }
+    }
 
     if (errors[name]) {
       setErrors((previous) => ({
@@ -992,7 +1011,6 @@ export default function EmployeePage() {
 
     setErrors({});
 
-
     const matchingOption =
       branches.find(
         (branch) =>
@@ -1004,11 +1022,16 @@ export default function EmployeePage() {
             employee.branch?.id
       );
 
-
     let existingPerms = [];
 
-
-    if (employee.permissions) {
+    if (isRetail) {
+      const normalized = normalizeRetailRole(employee.role?.name || employee.role);
+      if (normalized && RETAIL_ROLE_ACCESS[normalized]) {
+        existingPerms = RETAIL_ROLE_ACCESS[normalized];
+      } else {
+        existingPerms = RETAIL_ROLE_ACCESS.STORE_MANAGER;
+      }
+    } else if (employee.permissions) {
       try {
         existingPerms =
           typeof employee.permissions ===
@@ -1017,7 +1040,6 @@ export default function EmployeePage() {
                 employee.permissions
               )
             : employee.permissions;
-
       } catch (error) {
         if (
           typeof employee.permissions ===
@@ -1032,7 +1054,6 @@ export default function EmployeePage() {
         }
       }
     }
-
 
     setSelectedModules(
       Array.isArray(existingPerms) &&
@@ -1333,6 +1354,16 @@ export default function EmployeePage() {
       );
     }
 
+    if (
+      employee.roleRef &&
+      typeof employee.roleRef ===
+        "object"
+    ) {
+      return (
+        employee.roleRef?.name ||
+        "Employee"
+      );
+    }
 
     if (
       employee.role &&
@@ -2871,139 +2902,138 @@ export default function EmployeePage() {
 
 
                   {/* =================================================
-                      MODULE ACCESS PERMISSIONS
+                      MODULE ACCESS PERMISSIONS / AUTOMATIC ROLE PERMISSIONS
                   ================================================= */}
 
                   <div
                     style={{
-                      marginTop:
-                        "16px",
-                      paddingTop:
-                        "16px",
-                      borderTop:
-                        "1px solid #334155",
+                      marginTop: "16px",
+                      paddingTop: "16px",
+                      borderTop: "1px solid #334155",
                     }}
                   >
+                    {isRetail ? (
+                      <div>
+                        <h3
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            color: "#f8fafc",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Automatic Role Permissions
+                        </h3>
 
-                    <h3
-                      style={{
-                        fontSize:
-                          "14px",
-                        fontWeight:
-                          "600",
-                        color:
-                          "#f8fafc",
-                        marginBottom:
-                          "4px",
-                      }}
-                    >
-                      Module Access Permissions
-                    </h3>
+                        <div style={{ padding: "14px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155", marginTop: "8px" }}>
+                          <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 10px 0" }}>
+                            Access is automatically assigned based on role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
+                          </p>
 
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {(normalizeRetailRole(formData.role) === "STORE_MANAGER" || formData.role === "Manager" || formData.role === "Admin") && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Full Store Operational Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, POS Terminal, Barcode Printing, Products, Categories, Brands, Warehouse Management, Customers, Suppliers, Purchases, Sales Orders, Invoices, Store Outlets & Branches, Employees / Staff, Reports & Analytics</div>
+                              </>
+                            )}
+                            {normalizeRetailRole(formData.role) === "CASHIER" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Cashier Billing & Terminal Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, POS Terminal, Customers, Barcode Printing, Invoices / Receipts</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Products, Categories, Brands, Warehouse, Suppliers, Purchases, Employees, Reports</div>
+                              </>
+                            )}
+                            {normalizeRetailRole(formData.role) === "INVENTORY_MANAGER" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Inventory & Stock Tracking Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Products Setup, Categories, Brands, Barcode Printing, Warehouse Management</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: POS, Purchases, Sales Orders, Invoices, Employees, Reports</div>
+                              </>
+                            )}
+                            {normalizeRetailRole(formData.role) === "PURCHASE_MANAGER" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Purchasing & Vendor Management Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Products, Categories, Brands, Suppliers, Purchases, Warehouse Management</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: POS, Sales Orders, Invoices, Employees, Reports</div>
+                              </>
+                            )}
+                            {normalizeRetailRole(formData.role) === "ACCOUNTANT" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Financial Accounting & Audit Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, POS Sales History (view-only), Sales Orders, Invoices, Purchases (view), Customers (view), Suppliers (view), Reports & Analytics</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Operational POS Terminal, Barcode Printing, Product setup, Categories, Brands, Warehouse, Employees, Store Settings</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h3
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            color: "#f8fafc",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Module Access Permissions
+                        </h3>
 
-                    <p
-                      style={{
-                        fontSize:
-                          "12px",
-                        color:
-                          "#94a3b8",
-                        marginBottom:
-                          "12px",
-                      }}
-                    >
-                      Select which modules
-                      this employee can
-                      access.
-                    </p>
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            color: "#94a3b8",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          Select which modules this employee can access.
+                        </p>
 
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                            gap: "8px",
+                          }}
+                        >
+                          {availableModules.map((module) => {
+                            const isSelected = selectedModules.includes(module.code);
 
-                    <div
-                      style={{
-                        display:
-                          "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fill, minmax(220px, 1fr))",
-                        gap: "8px",
-                      }}
-                    >
-
-                      {availableModules.map(
-                        (module) => {
-
-                          const isSelected =
-                            selectedModules.includes(
-                              module.code
-                            );
-
-
-                          return (
-                            <label
-                              key={
-                                module.code
-                              }
-                              style={{
-                                display:
-                                  "flex",
-                                alignItems:
-                                  "center",
-                                gap: "8px",
-                                padding:
-                                  "8px 10px",
-                                borderRadius:
-                                  "6px",
-                                backgroundColor:
-                                  isSelected
-                                    ? "rgba(79, 70, 229, 0.1)"
-                                    : "#1e293b",
-                                border:
-                                  `1px solid ${
-                                    isSelected
-                                      ? "#4f46e5"
-                                      : "#334155"
-                                  }`,
-                                cursor:
-                                  "pointer",
-                                fontSize:
-                                  "12px",
-                                color:
-                                  "#f8fafc",
-                              }}
-                            >
-
-                              <input
-                                type="checkbox"
-                                checked={
-                                  isSelected
-                                }
-                                onChange={() =>
-                                  handleModuleToggle(
-                                    module.code
-                                  )
-                                }
+                            return (
+                              <label
+                                key={module.code}
                                 style={{
-                                  width:
-                                    "14px",
-                                  height:
-                                    "14px",
-                                  accentColor:
-                                    "#4f46e5",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  padding: "8px 10px",
+                                  borderRadius: "6px",
+                                  backgroundColor: isSelected ? "rgba(79, 70, 229, 0.1)" : "#1e293b",
+                                  border: `1px solid ${isSelected ? "#4f46e5" : "#334155"}`,
+                                  cursor: "pointer",
+                                  fontSize: "12px",
+                                  color: "#f8fafc",
                                 }}
-                              />
-
-
-                              <span>
-                                {
-                                  module.name
-                                }
-                              </span>
-
-                            </label>
-                          );
-                        }
-                      )}
-
-                    </div>
-
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleModuleToggle(module.code)}
+                                  style={{
+                                    width: "14px",
+                                    height: "14px",
+                                    accentColor: "#4f46e5",
+                                  }}
+                                />
+                                <span>{module.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
                   </div>
 
 

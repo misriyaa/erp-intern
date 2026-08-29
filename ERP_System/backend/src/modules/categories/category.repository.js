@@ -7,11 +7,14 @@ export const createCategory = async (data) => {
 };
 
 export const getAllCategories = async (companyId) => {
-  const where = companyId ? { OR: [{ companyId }, { companyId: null }] } : {};
+  const where = {};
+  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
+    where.OR = [{ companyId }, { companyId: null }];
+  }
   return await prisma.category.findMany({
     where,
     orderBy: {
-      createdAt: "desc",
+      name: "asc",
     },
   });
 };

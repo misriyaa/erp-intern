@@ -91,7 +91,11 @@ function AppShell({ children }) {
                 gap: "8px",
                 padding: "8px 18px",
                 borderRadius: "8px",
-                backgroundColor: pathname === posRoute || pathname.startsWith(posRoute) ? "#2563eb" : "rgba(255,255,255,0.08)",
+                backgroundColor:
+                  pathname === posRoute ||
+                  (pathname.startsWith(posRoute + "/") && !pathname.startsWith("/pos/history"))
+                    ? "#2563eb"
+                    : "rgba(255,255,255,0.08)",
                 color: "#ffffff",
                 fontWeight: "700",
                 fontSize: "14px",
@@ -111,7 +115,10 @@ function AppShell({ children }) {
                 gap: "8px",
                 padding: "8px 18px",
                 borderRadius: "8px",
-                backgroundColor: pathname === ordersRoute || pathname.startsWith(ordersRoute) ? "#2563eb" : "rgba(255,255,255,0.08)",
+                backgroundColor:
+                  pathname === ordersRoute || pathname.startsWith(ordersRoute + "/")
+                    ? "#2563eb"
+                    : "rgba(255,255,255,0.08)",
                 color: "#ffffff",
                 fontWeight: "700",
                 fontSize: "14px",

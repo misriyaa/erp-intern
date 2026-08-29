@@ -69,7 +69,42 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const isActivePath = (href) => {
     if (!href) return false;
-    return pathname === href || pathname.startsWith(href + "/");
+
+    // 1. Specific disambiguation for POS Terminal & POS Sales History
+    if (href === "/pos") {
+      return (
+        pathname === "/pos" ||
+        (pathname.startsWith("/pos/") && !pathname.startsWith("/pos/history"))
+      );
+    }
+    if (href === "/pos/history") {
+      return pathname === "/pos/history" || pathname.startsWith("/pos/history/");
+    }
+
+    // 2. Exact match
+    if (pathname === href) return true;
+
+    // 3. Hierarchical subroute matching with sibling protection
+    if (pathname.startsWith(href + "/")) {
+      const allCatalogHrefs = visibleNavItems.map((i) => i.href).filter(Boolean);
+      const hasMoreSpecificMatch = allCatalogHrefs.some(
+        (otherHref) =>
+          otherHref !== href &&
+          otherHref.startsWith(href) &&
+          (pathname === otherHref || pathname.startsWith(otherHref + "/"))
+      );
+      return !hasMoreSpecificMatch;
+    }
+
+    // 4. Nested administrative view matching (e.g. /admin/products/add under /admin/products/view)
+    if (href === "/admin/products/view" && pathname.startsWith("/admin/products")) {
+      return true;
+    }
+    if (href === "/admin/employees/view" && pathname.startsWith("/admin/employees")) {
+      return true;
+    }
+
+    return false;
   };
 
   const handleLinkClick = () => {
@@ -110,7 +145,7 @@ export default function Sidebar({ isOpen, onClose }) {
     if (item.adminOnly && !isAdmin) {
       return false;
     }
-    if (isCashier && !isAdmin && !isManager) {
+    if (isCashier && !isAdmin && !isManager && (isRestaurant || industryCode?.includes("LAUNDRY"))) {
       const cashierHrefs = ["/restaurant/pos", "/restaurant/orders", "/laundry/pos", "/laundry/orders"];
       if (!cashierHrefs.includes(item.href)) {
         return false;

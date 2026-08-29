@@ -23,6 +23,7 @@ import {
 import styles from "@/app/admin/products/add/addProducts.module.css";
 import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
+import { useCompany } from "@/context/CompanyContext";
 
 const DEFAULT_UNITS = [
   { id: "meter", name: "Meter", code: "m" },
@@ -58,9 +59,9 @@ const TEXTURE_FINISHES = [
   "Matte",
   "Glossy",
   "Brushed",
-  "Silky",
-  "Rough / Coarse",
   "Mercerized",
+  "Wrinkle-free",
+  "Crinkle",
 ];
 
 const initialProduct = {
@@ -68,13 +69,15 @@ const initialProduct = {
   sku: "",
   barcode: "",
   categoryId: "",
-  subcategory: "Shirting",
+  subcategory: "Shirting Fabric",
   brandId: "",
   baseUnitId: "",
   description: "",
+  status: "ACTIVE",
 
+  // Textile Fabric Specifications
   isTextile: true,
-  fabricComposition: "80% Cotton, 20% Polyester",
+  fabricComposition: "100% Cotton",
   gsm: "180",
   rollWidth: "58",
   widthUnit: "Inches",
@@ -83,8 +86,8 @@ const initialProduct = {
   pattern: "Plain / Solid",
   weaveType: "Plain weave",
   textureFinish: "Soft",
-  status: "ACTIVE",
 
+  // Inventory
   stockUnit: "Meter",
   initialStock: "500",
   openingStockDate: new Date().toISOString().split("T")[0],
@@ -113,6 +116,15 @@ const initialProduct = {
 export default function AddTextileProductPage() {
   const router = useRouter();
   const { showWarning } = useAlert();
+  const { isTextile, isRetail } = useCompany();
+
+  useEffect(() => {
+    console.log("WARNING: TextileFabricProductForm (Add) rendered. isTextile:", isTextile, "isRetail:", isRetail);
+    if (!isTextile) {
+      console.log("Redirecting non-textile user away from Textile Product Add...");
+      router.replace("/admin/products/add");
+    }
+  }, [isTextile, isRetail, router]);
 
   const [product, setProduct] = useState(initialProduct);
   const [categories, setCategories] = useState([]);

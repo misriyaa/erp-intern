@@ -342,12 +342,19 @@ export default function PosToolbar({
               <option value="All">All Categories</option>
 
               {categories
-                .filter((cat) => cat !== "All")
-                .map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
+                .filter((cat) => {
+                  const cName = typeof cat === "object" ? cat.name : cat;
+                  return cName && cName !== "All";
+                })
+                .map((cat) => {
+                  const cName = typeof cat === "object" ? cat.name : cat;
+                  const cKey = typeof cat === "object" ? (cat.id || cName) : cat;
+                  return (
+                    <option key={cKey} value={cName}>
+                      {cName}
+                    </option>
+                  );
+                })}
             </select>
 
             <IconChevronDown className="pos-select-arrow" />
@@ -365,31 +372,23 @@ export default function PosToolbar({
               <option value="All">All Brands</option>
 
               {brands
-                .filter((brand) => brand !== "All")
-                .map((brand) => (
-                  <option key={brand} value={brand}>
-                    {brand}
-                  </option>
-                ))}
+                .filter((brand) => {
+                  const bName = typeof brand === "object" ? (brand.name || brand.brandName) : brand;
+                  return bName && bName !== "All";
+                })
+                .map((brand) => {
+                  const bName = typeof brand === "object" ? (brand.name || brand.brandName) : brand;
+                  const bKey = typeof brand === "object" ? (brand.id || bName) : brand;
+                  return (
+                    <option key={bKey} value={bName}>
+                      {bName}
+                    </option>
+                  );
+                })}
             </select>
 
             <IconChevronDown className="pos-select-arrow" />
           </div>
-
-          {/* View Mode */}
-          <button
-            type="button"
-            className="pos-view-mode-btn"
-          >
-            <IconGrid width={16} height={16} />
-
-            <span>Grid</span>
-
-            <IconChevronDown
-              width={14}
-              height={14}
-            />
-          </button>
         </div>
       </div>
 

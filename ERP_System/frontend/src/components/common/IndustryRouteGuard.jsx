@@ -88,7 +88,7 @@ export default function IndustryRouteGuard({ children }) {
             marginBottom: "10px",
           }}
         >
-          Module Not Available
+          Access Denied
         </h1>
 
         <p
@@ -100,7 +100,7 @@ export default function IndustryRouteGuard({ children }) {
             marginBottom: "28px",
           }}
         >
-          The <strong>{requiredModule}</strong> module is disabled or not included in your company ({company?.name || "Your Company"}) subscription package.
+          Your role (<strong>{user?.role || user?.roleRef?.name || "Employee"}</strong>) does not have permission to access the <strong>{requiredModule}</strong> module in {company?.name || "the system"}.
         </p>
 
         <button

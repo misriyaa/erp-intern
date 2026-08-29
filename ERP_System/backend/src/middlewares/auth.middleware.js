@@ -71,6 +71,69 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
           const roleUpper = roleName.toUpperCase().replace(/\s+/g, "_");
           const isSuper = roleUpper.includes("SUPER");
 
+          // Retail default role permissions automated mapping
+          if (industryCode.includes("RETAIL") && !isSuper && !roleUpper.includes("ADMIN") && !roleUpper.includes("SUPER")) {
+            if (roleUpper.includes("STORE_MANAGER") || roleUpper.includes("STORE_OPERATIONS")) {
+              userModules = [
+                "DASHBOARD",
+                "POS",
+                "BARCODE_PRINT",
+                "PRODUCTS",
+                "CATEGORIES",
+                "BRANDS",
+                "UNITS",
+                "INVENTORY",
+                "WAREHOUSE",
+                "STOCK_TRANSFER",
+                "CUSTOMERS",
+                "SUPPLIERS",
+                "PURCHASES",
+                "SALES",
+                "INVOICES",
+                "BRANCHES",
+                "EMPLOYEES",
+                "REPORTS",
+              ];
+            } else if (roleUpper === "CASHIER" || roleUpper.includes("CASHIER") || roleUpper.includes("BILLING")) {
+              userModules = ["DASHBOARD", "POS", "CUSTOMERS", "BARCODE_PRINT", "INVOICES", "SALES"];
+            } else if (roleUpper.includes("INVENTORY_MANAGER") || roleUpper.includes("WAREHOUSE_MANAGER")) {
+              userModules = [
+                "DASHBOARD",
+                "PRODUCTS",
+                "CATEGORIES",
+                "BRANDS",
+                "UNITS",
+                "BARCODE_PRINT",
+                "INVENTORY",
+                "WAREHOUSE",
+                "STOCK_TRANSFER",
+              ];
+            } else if (roleUpper.includes("PURCHASE_MANAGER") || roleUpper.includes("PROCUREMENT_MANAGER")) {
+              userModules = [
+                "DASHBOARD",
+                "PRODUCTS",
+                "CATEGORIES",
+                "BRANDS",
+                "UNITS",
+                "SUPPLIERS",
+                "PURCHASES",
+                "INVENTORY",
+                "WAREHOUSE",
+              ];
+            } else if (roleUpper.includes("ACCOUNTANT") || roleUpper.includes("FINANCE")) {
+              userModules = [
+                "DASHBOARD",
+                "POS_HISTORY",
+                "SALES",
+                "INVOICES",
+                "PURCHASES",
+                "CUSTOMERS",
+                "SUPPLIERS",
+                "REPORTS",
+              ];
+            }
+          }
+
           // Restaurant default role permissions fallback
           if (industryCode.includes("RESTAURANT") && !isSuper && !roleUpper.includes("ADMIN")) {
             if (roleUpper.includes("MANAGER")) {

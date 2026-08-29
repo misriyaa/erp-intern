@@ -73,3 +73,15 @@ export const emitOrderStatusUpdate = (orderData) => {
     order: orderData,
   });
 };
+
+/**
+ * Emit real-time dashboard updates (e.g. sale.completed, stock.updated, employee.created)
+ */
+export const emitDashboardUpdate = (companyId, eventName = "dashboard.updated", payload = {}) => {
+  if (!io) return;
+  if (companyId) {
+    io.to(`company:${companyId}`).emit(eventName, payload);
+  }
+  // Broadcast to global dashboard listeners as well
+  io.emit(eventName, payload);
+};

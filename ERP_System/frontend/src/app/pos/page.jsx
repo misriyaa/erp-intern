@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import "./pos.css";
 
 import PosToolbar from "./components/PosToolbar";
-import CategoryTabs from "./components/CategoryTabs";
 import ProductGrid from "./components/ProductGrid";
 import OrderPanel from "./components/OrderPanel";
 import API_URL from "@/config/api";
@@ -47,102 +46,141 @@ export default function POSPage() {
   }, [activeTab]);
 
   // Fetch all POS dependencies from the database using authenticated apiClient
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [prodRes, catRes, brandRes, custRes, taxRes, discRes] = await Promise.all([
-          apiClient.get("/products").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/categories").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/brands").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/customers").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/taxes").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/discounts").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-        ]);
+  const loadData = useCallback(async () => {
+    try {
+      const [prodRes, catRes, brandRes, custRes, taxRes, discRes] = await Promise.all([
+        apiClient.get("/products").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/categories").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/brands").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/customers").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/taxes").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/discounts").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+      ]);
 
-        if (prodRes.success && prodRes.data) {
-          const retailOnly = prodRes.data.filter(
-            (p) =>
-              !p.sku?.startsWith("TEX-") &&
-              !p.description?.includes("[TEXTILE]")
-          );
+      const rawProductList = Array.isArray(prodRes?.data) ? prodRes.data : Array.isArray(prodRes) ? prodRes : [];
+      const rawCategoryList = Array.isArray(catRes?.data) ? catRes.data : Array.isArray(catRes) ? catRes : [];
+      const rawBrandList = Array.isArray(brandRes?.data) ? brandRes.data : Array.isArray(brandRes) ? brandRes : (brandRes?.brands || []);
+      const rawCustList = Array.isArray(custRes?.data) ? custRes.data : Array.isArray(custRes) ? custRes : [];
+      const rawTaxList = Array.isArray(taxRes?.data) ? taxRes.data : Array.isArray(taxRes) ? taxRes : [];
+      const rawDiscList = Array.isArray(discRes?.data) ? discRes.data : Array.isArray(discRes) ? discRes : [];
 
-          const mapped = retailOnly.map((p) => {
-            const stockQty = (p.inventories && p.inventories.length > 0)
-              ? p.inventories.reduce((sum, inv) => sum + (inv.quantity || 0), 0)
-              : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : 100);
+      setCategories(rawCategoryList);
+      setBrands(rawBrandList);
+      setCustomers(rawCustList);
+      setTaxes(rawTaxList);
+      setDiscounts(rawDiscList);
 
-            return {
-              id: p.id,
-              name: p.name,
-              sku: p.sku || p.id,
-              code: p.sku || p.id,
-              price: Number(p.sellingPrice) || 0,
-              stock: stockQty,
-              category: p.category?.name || "Others",
-              brand: p.brand?.name || "Generic",
-              imageUrl: p.image
-                ? p.image.startsWith("http")
-                  ? p.image
-                  : `http://localhost:5000${p.image.startsWith("/") ? "" : "/"}${p.image}`
-                : "",
-            };
-          });
-          setProducts(mapped);
-        }
+      if (rawProductList.length > 0) {
+        const retailOnly = rawProductList.filter(
+          (p) => p.productType !== "RAW_MATERIAL" && p.status !== "INACTIVE"
+        );
 
-        if (catRes.success && catRes.data) {
-          setCategories(catRes.data);
-        }
+        const mapped = retailOnly.map((p) => {
+          const stockQty = (p.inventories && p.inventories.length > 0)
+            ? p.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0)
+            : (p.currentStock !== undefined && p.currentStock !== null
+                ? Number(p.currentStock)
+                : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : Number(p.initialStock || 0)));
 
-        if (brandRes.success && brandRes.data) {
-          setBrands(brandRes.data);
-        }
+          const brandObj = p.brand || rawBrandList.find((b) => b.id === p.brandId);
+          const brandName = typeof brandObj === "object" ? (brandObj?.name || brandObj?.brandName) : (brandObj || "");
 
-        if (custRes.success && custRes.data) {
-          setCustomers(custRes.data);
-        }
+          const categoryObj = p.category || rawCategoryList.find((c) => c.id === p.categoryId);
+          const categoryName = typeof categoryObj === "object" ? (categoryObj?.name || categoryObj?.categoryName) : (categoryObj || "");
 
-        if (taxRes.success && taxRes.data) {
-          setTaxes(taxRes.data);
-        }
-
-        if (discRes.success && discRes.data) {
-          setDiscounts(discRes.data);
-        }
-      } catch (err) {
-        console.error("Error loading POS dynamic data:", err);
+          return {
+            id: p.id || p._id,
+            _id: p.id || p._id,
+            name: p.name,
+            sku: p.sku || p.code || p.id,
+            code: p.sku || p.code || p.id,
+            barcode: p.barcode || p.sku || p.code || "",
+            price: Number(p.sellingPrice) || 0,
+            sellingPrice: Number(p.sellingPrice) || 0,
+            costPrice: Number(p.costPrice) || 0,
+            stock: stockQty,
+            category: categoryName || "General",
+            categoryId: p.categoryId || categoryObj?.id || null,
+            brand: brandName || "Generic",
+            brandId: p.brandId || brandObj?.id || null,
+            imageUrl: p.image
+              ? p.image.startsWith("http")
+                ? p.image
+                : `http://localhost:5000${p.image.startsWith("/") ? "" : "/"}${p.image}`
+              : "",
+          };
+        });
+        setProducts(mapped);
       }
+    } catch (err) {
+      console.error("Error loading POS dynamic data:", err);
     }
-    loadData();
   }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const categoryNames = useMemo(() => {
-    return ["All", ...categories.map((c) => c.name)];
-  }, [categories]);
+    const fromApi = categories.map((c) => (typeof c === "object" ? c.name : c)).filter(Boolean);
+    const fromProducts = products.map((p) => p.category).filter(Boolean);
+    const unique = Array.from(new Set([...fromApi, ...fromProducts])).filter((c) => c !== "All");
+    return ["All", ...unique];
+  }, [categories, products]);
 
   const brandNames = useMemo(() => {
-    return ["All", ...brands.map((b) => b.name)];
-  }, [brands]);
+    const fromApi = brands.map((b) => (typeof b === "object" ? (b.name || b.brandName) : b)).filter(Boolean);
+    const fromProducts = products.map((p) => p.brand).filter((b) => Boolean(b) && b !== "Generic");
+    const unique = Array.from(new Set([...fromApi, ...fromProducts])).filter((b) => b !== "All");
+    return ["All", ...unique];
+  }, [brands, products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesCategory =
-        activeCategory === "All" || p.category === activeCategory;
+        activeCategory === "All" ||
+        p.category === activeCategory ||
+        p.category?.toLowerCase() === activeCategory?.toLowerCase();
       const matchesBrand =
-        selectedBrand === "All" || p.brand === selectedBrand;
+        selectedBrand === "All" ||
+        p.brand === selectedBrand ||
+        p.brand?.toLowerCase() === selectedBrand?.toLowerCase();
       const q = query.toLowerCase().trim();
       const matchesQuery =
         !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q);
+        p.name?.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.code?.toLowerCase().includes(q) ||
+        p.barcode?.toLowerCase().includes(q);
       return matchesCategory && matchesBrand && matchesQuery;
     });
   }, [products, activeCategory, selectedBrand, query]);
 
   const addToCart = (product) => {
+    const available = Number(product.stock ?? 0);
+    if (available <= 0) {
+      Swal.fire({
+        title: "Out of Stock",
+        text: `"${product.name}" is currently out of stock (0 available).`,
+        icon: "warning",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
     setCart((prev) => {
       const existingIndex = prev.findIndex((item) => item.id === product.id);
       if (existingIndex > -1) {
+        const currentQty = prev[existingIndex].qty;
+        if (currentQty + 1 > available) {
+          Swal.fire({
+            title: "Stock Limit Reached",
+            text: `Cannot add more than ${available} unit(s) of "${product.name}".`,
+            icon: "warning",
+            confirmButtonColor: "#f59e0b",
+          });
+          return prev;
+        }
         return prev.map((item, idx) =>
           idx === existingIndex ? { ...item, qty: item.qty + 1 } : item
         );
@@ -156,6 +194,7 @@ export default function POSPage() {
           sku: product.sku,
           price: product.price,
           qty: 1,
+          stock: available,
           imageUrl: product.imageUrl,
         },
       ];
@@ -196,8 +235,10 @@ export default function POSPage() {
 
     const found = products.find(
       (p) =>
-        p.sku.toLowerCase() === code.toLowerCase() ||
-        p.code.toLowerCase() === code.toLowerCase()
+        (p.barcode && p.barcode.toLowerCase() === code.toLowerCase()) ||
+        (p.sku && p.sku.toLowerCase() === code.toLowerCase()) ||
+        (p.code && p.code.toLowerCase() === code.toLowerCase()) ||
+        (p.id && p.id.toLowerCase() === code.toLowerCase())
     );
 
     if (found) {
@@ -210,6 +251,7 @@ export default function POSPage() {
       if (res.success && res.data) {
         const foundDb = res.data.find(
           (p) =>
+            (p.barcode && p.barcode.toLowerCase() === code.toLowerCase()) ||
             p.sku?.toLowerCase() === code.toLowerCase() ||
             p.id?.toLowerCase() === code.toLowerCase()
         );
@@ -258,6 +300,16 @@ export default function POSPage() {
   const updateQuantity = (cartId, nextQty) => {
     if (nextQty <= 0) {
       removeItem(cartId);
+      return;
+    }
+    const item = cart.find((i) => i.cartId === cartId);
+    if (item && item.stock !== undefined && nextQty > item.stock) {
+      Swal.fire({
+        title: "Stock Limit Exceeded",
+        text: `Cannot exceed available stock of ${item.stock} unit(s) for "${item.name}".`,
+        icon: "warning",
+        confirmButtonColor: "#f59e0b",
+      });
       return;
     }
     setCart((prev) =>
@@ -333,6 +385,20 @@ export default function POSPage() {
       return;
     }
 
+    // Pre-validate that all cart items have enough stock
+    for (const item of cart) {
+      const prod = products.find((p) => p.id === item.id);
+      if (prod && item.qty > (prod.stock ?? 0)) {
+        Swal.fire({
+          title: "Insufficient Stock",
+          text: `Cannot sell ${item.qty} unit(s) of "${item.name}". Only ${prod.stock ?? 0} available in stock.`,
+          icon: "error",
+          confirmButtonColor: "#ef4444",
+        });
+        return;
+      }
+    }
+
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
     const taxAmount = (subtotal - Number(discountValue)) * (activeTaxRate / 100);
     const totalAmount = subtotal;
@@ -350,6 +416,7 @@ export default function POSPage() {
       taxAmount,
       discountAmount: Number(discountValue),
       netAmount,
+      paymentMethod: selectedPayment,
       items: cart.map((item) => ({
         productId: item.id,
         quantity: item.qty,
@@ -361,8 +428,24 @@ export default function POSPage() {
     try {
       const res = await apiClient.post("/sales", salePayload).then((r) => r.data);
       if (res.success || res.id || res.data) {
+        const orderData = res.data || res;
+        const inventoryUpdates = orderData.inventoryUpdates || [];
+
+        // 1. Immediately update products stock in local state
+        if (inventoryUpdates.length > 0) {
+          setProducts((prev) =>
+            prev.map((p) => {
+              const upd = inventoryUpdates.find((u) => u.productId === p.id);
+              return upd ? { ...p, stock: upd.newQuantity } : p;
+            })
+          );
+        }
+
+        // 2. Re-fetch all dynamic product & inventory data from database
+        loadData();
+
         const completedRecord = {
-          id: res.data?.id || `sale-${Date.now()}`,
+          id: orderData.id || `sale-${Date.now()}`,
           orderNumber: salePayload.orderNumber,
           customerName,
           totalAmount,
@@ -374,47 +457,45 @@ export default function POSPage() {
         };
         saveRecentSaleLocally(completedRecord);
 
+        // Build stock summary string for alert
+        const stockSummary = inventoryUpdates
+          .map((u) => `• ${u.productName}: ${u.previousQuantity} → ${u.newQuantity} in stock`)
+          .join("<br/>");
+
         Swal.fire({
           title: "Sale Completed!",
-          text: `Invoice #${salePayload.orderNumber} created successfully! Total: ₹${netAmount.toFixed(2)}`,
+          html: `<div>
+            <p>Invoice <strong>#${salePayload.orderNumber}</strong> created successfully! Total: <strong>₹${netAmount.toFixed(2)}</strong></p>
+            ${stockSummary ? `<div style="margin-top:10px; font-size:13px; color:#059669; text-align:left; background:#ecfdf5; padding:10px; border-radius:8px;"><strong>Inventory Updated:</strong><br/>${stockSummary}</div>` : ""}
+          </div>`,
           icon: "success",
           confirmButtonColor: "#2563eb",
         });
+
         clearCart();
         setDiscountValue(0);
         setAmountReceived(0);
         setCustomer("");
       } else {
         Swal.fire({
-          title: "Sale Saved!",
-          text: `Invoice #${salePayload.orderNumber} processed successfully.`,
-          icon: "success",
+          title: "Notice",
+          text: res.message || "Sale could not be verified.",
+          icon: "warning",
           confirmButtonColor: "#2563eb",
         });
-        clearCart();
       }
     } catch (err) {
       console.error("Error completing sale:", err);
-      const fallbackRecord = {
-        id: `sale-${Date.now()}`,
-        orderNumber: salePayload.orderNumber,
-        customerName,
-        totalAmount,
-        taxAmount,
-        netAmount,
-        paymentMethod: selectedPayment,
-        date: new Date().toLocaleString(),
-        cart: [...cart],
-      };
-      saveRecentSaleLocally(fallbackRecord);
+      const errorMsg =
+        err.response?.data?.message || err.message || "Failed to process sale in database.";
 
       Swal.fire({
-        title: "Sale Completed!",
-        text: `Invoice #${salePayload.orderNumber} saved cleanly!`,
-        icon: "success",
-        confirmButtonColor: "#2563eb",
+        title: "Sale Failed",
+        text: errorMsg,
+        icon: "error",
+        confirmButtonColor: "#ef4444",
       });
-      clearCart();
+      // Do NOT clear cart so cashier can fix quantity or remove unavailable item
     }
   };
 
@@ -561,9 +642,12 @@ export default function POSPage() {
         <PosToolbar
           query={query}
           onQueryChange={setQuery}
+          selectedCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          categories={categoryNames}
           selectedBrand={selectedBrand}
           onBrandChange={setSelectedBrand}
-          brandNames={brandNames}
+          brands={brandNames}
           onBarcodeScan={addScannedBarcode}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -575,19 +659,12 @@ export default function POSPage() {
         />
 
         {activeTab === "Products" && (
-          <>
-            <CategoryTabs
-              categories={categoryNames}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-            />
-
-            <ProductGrid
-              products={filteredProducts}
-              addToCart={addToCart}
-              onAddToCart={addToCart}
-            />
-          </>
+          <ProductGrid
+            products={filteredProducts}
+            totalProducts={products.length}
+            addToCart={addToCart}
+            onAddToCart={addToCart}
+          />
         )}
 
         {activeTab === "Recent" && (

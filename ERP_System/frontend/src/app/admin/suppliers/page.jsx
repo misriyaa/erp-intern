@@ -43,7 +43,10 @@ const emptyForm = {
 };
 
 export default function SuppliersPage() {
-  const { isGym, isTextile } = useCompany();
+  const { isGym, isTextile, user } = useCompany();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase();
+  const isAccountant = roleUpper.includes("ACCOUNTANT");
+  
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -75,44 +78,25 @@ export default function SuppliersPage() {
       setLoading(true);
       const response = await getSuppliers();
       const list = response?.data || (Array.isArray(response) ? response : []);
-      if (list.length > 0) {
-        const filteredList = list.filter((s) => {
-          const isTex =
-            s.isTextile === true ||
-            s.category === "TEXTILE" ||
-            s.companyName?.toLowerCase().includes("cotton") ||
-            s.companyName?.toLowerCase().includes("dye") ||
-            s.companyName?.toLowerCase().includes("mill") ||
-            s.companyName?.toLowerCase().includes("fiber") ||
-            s.companyName?.toLowerCase().includes("yarn") ||
-            s.companyName?.toLowerCase().includes("textile") ||
-            s.companyName?.toLowerCase().includes("synthetics");
-          if (isTextile) return isTex;
-          if (isGym) return s.category === "GYM" || s.companyName?.toLowerCase().includes("fitness") || s.companyName?.toLowerCase().includes("nutrition");
-          return !isTex && s.category !== "GYM";
-        });
-        setSuppliers(filteredList);
-      } else {
-        if (isTextile) {
-          setSuppliers([
-            { id: "sup-tex-1", companyName: "Global Cotton Mills Ltd", contactPerson: "Vikram Rathore", email: "sales@globalcotton.com", phone: "+91 98765 88001", city: "Surat", country: "India", status: "ACTIVE", isTextile: true, category: "TEXTILE" },
-            { id: "sup-tex-2", companyName: "Apex Dyes & Chemicals", contactPerson: "Meera Nair", email: "orders@apexdyes.com", phone: "+91 98765 88002", city: "Ahmedabad", country: "India", status: "ACTIVE", isTextile: true, category: "TEXTILE" },
-            { id: "sup-tex-3", companyName: "Synthetics India Fiber", contactPerson: "Karan Johar", email: "info@syntheticsindia.com", phone: "+91 98765 88003", city: "Coimbatore", country: "India", status: "ACTIVE", isTextile: true, category: "TEXTILE" },
-          ]);
-        } else if (isGym) {
-          setSuppliers([
-            { id: "sup-gym-1", companyName: "Rogue Fitness Machinery", contactPerson: "Alex Mercer", email: "support@roguefitness.com", phone: "+1 800 555 0199", city: "Columbus", country: "USA", status: "ACTIVE", isTextile: false, category: "GYM" },
-            { id: "sup-gym-2", companyName: "Optimum Nutrition Supplies", contactPerson: "Sarah Jenkins", email: "b2b@optimumdist.com", phone: "+1 800 555 0244", city: "Chicago", country: "USA", status: "ACTIVE", isTextile: false, category: "GYM" },
-          ]);
-        } else {
-          setSuppliers([
-            { id: "sup-ret-1", companyName: "Unilever Consumer Goods Ltd", contactPerson: "Sanjay Singhania", email: "dist@unilever.com", phone: "+91 98765 99001", city: "Mumbai", country: "India", status: "ACTIVE", isTextile: false, category: "RETAIL" },
-            { id: "sup-ret-2", companyName: "Nestlé Wholesale Distributors", contactPerson: "Rohan Kapoor", email: "orders@nestletrade.com", phone: "+91 98765 99002", city: "Gurgaon", country: "India", status: "ACTIVE", isTextile: false, category: "RETAIL" },
-          ]);
-        }
-      }
+      const filteredList = list.filter((s) => {
+        const isTex =
+          s.isTextile === true ||
+          s.category === "TEXTILE" ||
+          s.companyName?.toLowerCase().includes("cotton") ||
+          s.companyName?.toLowerCase().includes("dye") ||
+          s.companyName?.toLowerCase().includes("mill") ||
+          s.companyName?.toLowerCase().includes("fiber") ||
+          s.companyName?.toLowerCase().includes("yarn") ||
+          s.companyName?.toLowerCase().includes("textile") ||
+          s.companyName?.toLowerCase().includes("synthetics");
+        if (isTextile) return isTex;
+        if (isGym) return s.category === "GYM" || s.companyName?.toLowerCase().includes("fitness") || s.companyName?.toLowerCase().includes("nutrition");
+        return !isTex && s.category !== "GYM";
+      });
+      setSuppliers(filteredList);
     } catch (err) {
       console.error("Failed to fetch suppliers:", err);
+      setSuppliers([]);
     } finally {
       setLoading(false);
     }
@@ -369,14 +353,16 @@ export default function SuppliersPage() {
             <FiChevronDown size={14} />
           </button>
 
-          <button
-            type="button"
-            className={styles.addButton}
-            onClick={handleAddNew}
-          >
-            <FiPlus size={17} />
-            Add New
-          </button>
+          {!isAccountant && (
+            <button
+              type="button"
+              className={styles.addButton}
+              onClick={handleAddNew}
+            >
+              <FiPlus size={17} />
+              Add New
+            </button>
+          )}
         </div>
       </div>
 
@@ -639,40 +625,46 @@ export default function SuppliersPage() {
                       </td>
 
                       <td>
-                        <div className={styles.actionWrapper}>
-                          <button
-                            type="button"
-                            className={styles.actionButton}
-                            onClick={() =>
-                              setOpenMenu(
-                                openMenu === supplier.id ? null : supplier.id
-                              )
-                            }
-                          >
-                            <FiMoreVertical size={17} />
-                          </button>
+                        {!isAccountant ? (
+                          <div className={styles.actionWrapper}>
+                            <button
+                              type="button"
+                              className={styles.actionButton}
+                              onClick={() =>
+                                setOpenMenu(
+                                  openMenu === supplier.id ? null : supplier.id
+                                )
+                              }
+                            >
+                              <FiMoreVertical size={17} />
+                            </button>
 
-                          {openMenu === supplier.id && (
-                            <div className={styles.actionMenu}>
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(supplier)}
-                              >
-                                <FiEdit2 size={14} />
-                                Edit
-                              </button>
+                            {openMenu === supplier.id && (
+                              <div className={styles.actionMenu}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEdit(supplier)}
+                                >
+                                  <FiEdit2 size={14} />
+                                  Edit
+                                </button>
 
-                              <button
-                                type="button"
-                                className={styles.deleteItem}
-                                onClick={() => handleDelete(supplier.id)}
-                              >
-                                <FiTrash2 size={14} />
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                                <button
+                                  type="button"
+                                  className={styles.deleteItem}
+                                  onClick={() => handleDelete(supplier.id)}
+                                >
+                                  <FiTrash2 size={14} />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
+                            View Only
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -680,7 +672,11 @@ export default function SuppliersPage() {
               ) : (
                 <tr>
                   <td colSpan="8" className={styles.empty}>
-                    No suppliers found
+                    <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b" }}>
+                      <p style={{ margin: 0, fontSize: "15px", fontWeight: "600" }}>
+                        No suppliers found. Add a supplier to get started.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}

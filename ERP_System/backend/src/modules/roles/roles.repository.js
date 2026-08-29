@@ -1,7 +1,10 @@
 import prisma from "../../config/prisma.js";
 
 const getAllRoles = async (companyId) => {
-  const where = companyId ? { companyId } : {};
+  const where = {};
+  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
+    where.OR = [{ companyId }, { companyId: null }];
+  }
   return await prisma.role.findMany({
     where,
     orderBy: { createdAt: "desc" },

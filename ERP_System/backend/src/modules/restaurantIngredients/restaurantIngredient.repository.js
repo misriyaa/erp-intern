@@ -207,15 +207,16 @@ export const createIngredient = async (payload) => {
       include: ingredientInclude,
     });
 
-    // 2. Initialize stock in inventory if openingStock > 0
-    if (finalOpeningStock > 0) {
-      const warehouseId = await getDefaultWarehouseId(companyId);
+    // 2. Initialize stock in inventory
+    const warehouseId = await getDefaultWarehouseId(companyId);
+    if (warehouseId) {
       await tx.inventory.create({
         data: {
           productId: ingredient.id,
           warehouseId,
           quantity: finalOpeningStock,
-          companyId: companyId || null,
+          minimumStock: finalMinStock,
+          reorderLevel: parseInt(finalReorderQty, 10) || 0,
         },
       });
     }
