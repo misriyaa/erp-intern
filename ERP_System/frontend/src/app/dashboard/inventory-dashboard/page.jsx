@@ -476,53 +476,125 @@ export default function InventoryDashboard() {
         </article>
       </section>
 
-      {/* BOTTOM SECTION */}
-      <section className={styles.bottomGrid}>
-        {/* SUPPLIERS */}
-        <article className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h3>Top Suppliers</h3>
-            <button className={styles.viewLink}>View All</button>
+      {/* SECTION: TOP SUPPLIERS & WAREHOUSE CAPACITIES (SIDE BY SIDE ON DESKTOP / RESPONSIVE GRID) */}
+      <section className={styles.middleGrid}>
+        {/* TOP SUPPLIERS CARD */}
+        <article className={styles.widgetCard}>
+          <div className={styles.widgetHeader}>
+            <div className={styles.headerTitleGroup}>
+              <h3 className={styles.widgetTitle}>Top Suppliers</h3>
+              <span className={styles.widgetSubtitle}>Suppliers ranked by fulfilled stock volume</span>
+            </div>
+            <a href="/admin/suppliers" className={styles.viewLink}>
+              View All →
+            </a>
           </div>
 
-          <div className={styles.list}>
-            {suppliersList.map((item, idx) => (
-              <div key={idx} className={styles.listItem}>
-                <div className={styles.itemMain}>
-                  <strong>{item.name}</strong>
-                  <span>{item.code} — {item.contact}</span>
+          <div className={styles.widgetList}>
+            {suppliersList.length > 0 ? (
+              suppliersList.map((item, idx) => (
+                <div key={item.id || idx} className={styles.supplierItem}>
+                  <div className={styles.supplierAvatar}>
+                    {(item.name || "S").charAt(0).toUpperCase()}
+                  </div>
+                  <div className={styles.supplierDetails}>
+                    <div className={styles.supplierNameRow}>
+                      <strong className={styles.supplierName}>{item.name}</strong>
+                      <span className={styles.supplierCode}>{item.code}</span>
+                    </div>
+                    <span className={styles.supplierContact}>{item.contact}</span>
+                  </div>
+                  <div className={styles.badgePill}>
+                    {item.items > 0 ? (
+                      <>
+                        <span className={styles.badgeNumber}>{item.items}</span>
+                        <span className={styles.badgeText}>Items</span>
+                      </>
+                    ) : (
+                      <span className={styles.badgeNeutral}>Active Vendor</span>
+                    )}
+                  </div>
                 </div>
-                <div className={styles.badge}>{item.items} Items</div>
+              ))
+            ) : (
+              <div className={styles.emptyState}>
+                <p>No supplier items available</p>
               </div>
-            ))}
+            )}
           </div>
         </article>
 
-        {/* WAREHOUSES */}
-        <article className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h3>Warehouse Capacities</h3>
-            <button className={styles.viewLink}>View All</button>
+        {/* WAREHOUSE CAPACITIES CARD */}
+        <article className={styles.widgetCard}>
+          <div className={styles.widgetHeader}>
+            <div className={styles.headerTitleGroup}>
+              <h3 className={styles.widgetTitle}>Warehouse Capacities</h3>
+              <span className={styles.widgetSubtitle}>Real-time storage space utilization</span>
+            </div>
+            <a href="/warehouse" className={styles.viewLink}>
+              View All →
+            </a>
           </div>
 
-          <div className={styles.list}>
-            {warehousesList.map((wh, idx) => (
-              <div key={idx} className={styles.listItem}>
-                <CapacityCircle percentage={wh.percentage} />
-                <div className={styles.itemMain}>
-                  <strong>{wh.name}</strong>
-                  <span>Cap: {wh.capacity} units</span>
-                </div>
+          <div className={styles.widgetList}>
+            {warehousesList.length > 0 ? (
+              warehousesList.map((wh, idx) => {
+                const p = Math.min(100, Math.max(0, wh.percentage || 0));
+                const progressColor =
+                  p >= 85 ? "#dc2626" : p >= 65 ? "#d97706" : p >= 40 ? "#0284c7" : "#059669";
+                return (
+                  <div key={wh.id || idx} className={styles.warehouseItem}>
+                    <div className={styles.warehouseDetails}>
+                      <div className={styles.warehouseNameRow}>
+                        <strong className={styles.warehouseName}>{wh.name}</strong>
+                        <span className={styles.warehouseCode}>{wh.code}</span>
+                      </div>
+                      <span className={styles.warehouseContact}>Manager / Location: {wh.contact}</span>
+
+                      {/* Clean progress indicator */}
+                      <div className={styles.progressContainer}>
+                        <div className={styles.progressBarTrack}>
+                          <div
+                            className={styles.progressBarFill}
+                            style={{
+                              width: `${p}%`,
+                              backgroundColor: progressColor,
+                            }}
+                          />
+                        </div>
+                        <span className={styles.progressPercent} style={{ color: progressColor }}>
+                          {p}% used
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.capacityMeta}>
+                      <strong className={styles.capacityAmount}>{wh.capacity}</strong>
+                      <span className={styles.capacityUnits}>units stored</span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className={styles.emptyState}>
+                <p>No warehouse capacities available</p>
               </div>
-            ))}
+            )}
           </div>
         </article>
+      </section>
 
-        {/* RECENT STOCKS TABLE */}
-        <article className={`${styles.card} ${styles.tableCard}`}>
-          <div className={styles.cardHeader}>
-            <h3>Recent Stock Items</h3>
-            <button className={styles.viewLink}>View All</button>
+      {/* SECTION: RECENT STOCK ITEMS TABLE (FULL WIDTH CARD) */}
+      <section className={styles.bottomSection}>
+        <article className={styles.tableCard}>
+          <div className={styles.tableCardHeader}>
+            <div className={styles.headerTitleGroup}>
+              <h3 className={styles.widgetTitle}>Recent Stock Items</h3>
+              <span className={styles.widgetSubtitle}>Latest SKU movements and inventory updates</span>
+            </div>
+            <a href="/admin/inventory" className={styles.viewLink}>
+              View All →
+            </a>
           </div>
 
           <div className={styles.tableWrapper}>
@@ -537,19 +609,31 @@ export default function InventoryDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {recentStocksList.map((stk, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <strong>{stk.product}</strong>
+                {recentStocksList.length > 0 ? (
+                  recentStocksList.map((stk, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <strong className={styles.productNameText}>{stk.product}</strong>
+                      </td>
+                      <td>
+                        <span className={styles.skuTag}>{stk.sku}</span>
+                      </td>
+                      <td>{stk.category}</td>
+                      <td>
+                        <span className={styles.qtyPill}>{stk.quantity}</span>
+                      </td>
+                      <td>
+                        <strong className={styles.priceTag}>{stk.sellingPrice}</strong>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>
+                      No recent stock items found
                     </td>
-                    <td>{stk.sku}</td>
-                    <td>{stk.category}</td>
-                    <td>
-                      <span className={styles.qtyPill}>{stk.quantity}</span>
-                    </td>
-                    <td>{stk.sellingPrice}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

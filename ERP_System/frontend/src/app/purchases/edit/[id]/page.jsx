@@ -1,10 +1,15 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { FiArrowLeft, FiEdit3 } from "react-icons/fi";
 import PurchaseForm from "../../components/PurchaseForm";
 
-export default function EditPurchasePage() {
+export default function EditPurchasePage({ params }) {
+  const routeParams = useParams();
+  const purchaseId = routeParams?.id || (params ? (typeof params.then === "function" ? use(params)?.id : params?.id) : undefined);
+
   return (
     <div className="min-h-screen bg-slate-50/50 p-6 md:p-8">
       {/* Header & Navigation */}
@@ -35,7 +40,8 @@ export default function EditPurchasePage() {
       </div>
 
       {/* Dynamic Form */}
-      <PurchaseForm />
+      <PurchaseForm purchaseId={purchaseId} isEdit={true} />
     </div>
   );
-}
+}
+

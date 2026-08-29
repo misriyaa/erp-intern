@@ -20,7 +20,10 @@ export default function CustomerForm({
     email: initialData.email || "",
     address: initialData.address || "",
     loyaltyId: initialData.loyaltyId || "",
-    creditLimit: initialData.creditLimit || 0,
+    creditLimit:
+      initialData.creditLimit !== undefined && initialData.creditLimit !== null
+        ? String(initialData.creditLimit)
+        : "",
     currentBalance: initialData.currentBalance || 0,
   });
 
@@ -39,7 +42,10 @@ export default function CustomerForm({
         email: initialData.email || "",
         address: initialData.address || "",
         loyaltyId: initialData.loyaltyId || `LOY-${Math.floor(100000 + Math.random() * 900000)}`,
-        creditLimit: initialData.creditLimit || 0,
+        creditLimit:
+          initialData.creditLimit !== undefined && initialData.creditLimit !== null
+            ? String(initialData.creditLimit)
+            : "",
         currentBalance: initialData.currentBalance || 0,
       });
     } else {
@@ -47,14 +53,24 @@ export default function CustomerForm({
     }
   }, [initialData]);
 
+  const [phoneError, setPhoneError] = useState("");
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "phone") {
+      const sanitized = value.replace(/\D/g, "").slice(0, 10);
+      setForm((prev) => ({ ...prev, phone: sanitized }));
+      if (sanitized && sanitized.length !== 10) {
+        setPhoneError(`Phone number must be exactly 10 digits (${sanitized.length}/10)`);
+      } else {
+        setPhoneError("");
+      }
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
-      [name]:
-        name === "creditLimit" || name === "currentBalance"
-          ? Number(value)
-          : value,
+      [name]: name === "currentBalance" ? Number(value) : value,
     }));
   };
 
@@ -66,15 +82,35 @@ export default function CustomerForm({
       return;
     }
 
-    if (!form.phone.trim()) {
+    const cleanPhone = form.phone.trim();
+    if (!cleanPhone) {
+      setPhoneError("Phone number is required.");
       showWarning("Invalid form data", "Phone number is required.");
+      return;
+    }
+
+    const digitsOnly = cleanPhone.replace(/\D/g, "");
+    if (digitsOnly.length !== 10) {
+      setPhoneError("Phone number must be exactly 10 digits.");
+      showWarning(
+        "Invalid Phone Number",
+        "Please enter a valid 10-digit phone number."
+      );
       return;
     }
 
     try {
       setSubmitting(true);
+      const parsedCreditLimit =
+        form.creditLimit === "" || form.creditLimit === null || isNaN(Number(form.creditLimit))
+          ? 0
+          : Number(form.creditLimit);
+
       const finalForm = {
         ...form,
+        phone: digitsOnly,
+        creditLimit: parsedCreditLimit,
+        currentBalance: Number(form.currentBalance) || 0,
         loyaltyId: form.loyaltyId || `LOY-${Math.floor(100000 + Math.random() * 900000)}`,
       };
       await onSubmit(finalForm);
@@ -110,13 +146,31 @@ export default function CustomerForm({
         <label htmlFor="phone">Phone *</label>
         <input
           id="phone"
-          type="text"
+          type="tel"
           name="phone"
           value={form.phone}
           onChange={handleChange}
-          placeholder="e.g. +1 (555) 019-2834"
+          placeholder="e.g. 9876543210"
+          maxLength={10}
+          pattern="[0-9]{10}"
           required
+          style={{
+            borderColor: phoneError ? "#ef4444" : undefined,
+          }}
         />
+        {phoneError && (
+          <span
+            style={{
+              fontSize: "12px",
+              color: "#ef4444",
+              marginTop: "4px",
+              display: "block",
+              fontWeight: 500,
+            }}
+          >
+            {phoneError}
+          </span>
+        )}
       </div>
 
       <div className={styles.formGroup}>
@@ -130,6 +184,7 @@ export default function CustomerForm({
           placeholder="customer@example.com"
         />
       </div>
+
 
       <div className={styles.formGroup}>
         <label htmlFor="loyaltyId">
@@ -175,9 +230,10 @@ export default function CustomerForm({
           name="creditLimit"
           value={form.creditLimit}
           onChange={handleChange}
-          placeholder="0.00"
+          placeholder="Enter credit limit"
         />
       </div>
+
 
       <div className={styles.formGroup}>
         <label htmlFor="currentBalance">Current Balance</label>

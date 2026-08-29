@@ -225,10 +225,8 @@ export default function WarehouseStockPage() {
         <Link href="/warehouse/transfer" className="nav-tab-item">
           Stock Transfer
         </Link>
-        <button className="nav-tab-item">
-          Reports & Analytics
-        </button>
       </nav>
+
 
       {/* Main Content Area */}
       <main className="warehouse-main-content">

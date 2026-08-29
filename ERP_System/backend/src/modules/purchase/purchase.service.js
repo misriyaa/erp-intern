@@ -3,6 +3,7 @@ import * as purchaseRepository from "./purchase.repository.js";
 import * as supplierRepository from "../suppliers/supplier.repository.js";
 import * as warehouseRepository from "../warehouse/warehouse.repository.js";
 import * as productRepository from "../products/product.repository.js";
+import { emitDashboardUpdate } from "../../config/socket.js";
 
 export const createPurchase = async (data) => {
   const supplier = await supplierRepository.getSupplierById(data.supplierId);
@@ -26,7 +27,7 @@ export const createPurchase = async (data) => {
     throw new Error("Purchase number already exists.");
   }
 
-  return await prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const purchase = await tx.purchase.create({
       data: {
         purchaseNo: data.purchaseNo,
@@ -101,7 +102,18 @@ export const createPurchase = async (data) => {
 
     return purchase;
   });
+
+  try {
+    emitDashboardUpdate(data.companyId, "purchase.created", { purchaseId: created.id });
+    emitDashboardUpdate(data.companyId, "reports.updated", { source: "purchase" });
+    emitDashboardUpdate(data.companyId, "stock.updated", { warehouseId: data.warehouseId });
+  } catch (err) {
+    // Socket emit fallback
+  }
+
+  return created;
 };
+
 
 export const getAllPurchases = async () => {
   return await purchaseRepository.getAllPurchases();
@@ -124,8 +136,64 @@ export const updatePurchase = async (id, data) => {
     throw new Error("Purchase not found.");
   }
 
-  return await purchaseRepository.updatePurchase(id, data);
+  const { items, ...updateFields } = data;
+
+  return await prisma.$transaction(async (tx) => {
+    if (items && Array.isArray(items)) {
+      await tx.purchaseItem.deleteMany({
+        where: { purchaseId: id },
+      });
+
+      for (const item of items) {
+        if (!item.productId) continue;
+        const itemQty = parseInt(item.quantity) || 1;
+        const itemUnitPrice = parseFloat(item.unitPrice) || 0;
+        const itemTotalPrice = parseFloat(item.totalPrice) || itemQty * itemUnitPrice;
+
+        await tx.purchaseItem.create({
+          data: {
+            purchaseId: id,
+            productId: item.productId,
+            quantity: itemQty,
+            unitPrice: itemUnitPrice,
+            totalPrice: itemTotalPrice,
+          },
+        });
+      }
+    }
+
+    const cleanData = { ...updateFields };
+    if (cleanData.totalAmount !== undefined) cleanData.totalAmount = parseFloat(cleanData.totalAmount);
+    if (cleanData.purchaseDate !== undefined) cleanData.purchaseDate = new Date(cleanData.purchaseDate);
+
+    const resPurchase = await tx.purchase.update({
+      where: { id },
+      data: cleanData,
+      include: {
+        supplier: true,
+        warehouse: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    return resPurchase;
+  });
+
+  try {
+    emitDashboardUpdate(purchase.companyId, "purchase.updated", { purchaseId: id });
+    emitDashboardUpdate(purchase.companyId, "reports.updated", { source: "purchase" });
+  } catch (err) {
+    // Socket emit fallback
+  }
+
+  return updated;
 };
+
+
 
 export const deletePurchase = async (id) => {
   const purchase = await purchaseRepository.getPurchaseById(id);

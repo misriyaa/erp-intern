@@ -258,7 +258,7 @@ export default function Sidebar({ isOpen, onClose }) {
             ? "LAUNDRY MODULES"
             : isMedical
             ? "MEDICAL SHOP MODULES"
-            : "SUPERMARKET & RESTAURANT ERP"}
+            : "RETAIL ERP"}
         </h4>
 
         {loading ? (
