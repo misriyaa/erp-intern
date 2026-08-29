@@ -253,16 +253,16 @@ export default function Header({ toggleSidebar }) {
         >
           <span>
             {isGym
-              ? "🏋️ GYM ERP MODE"
+              ? "GYM ERP MODE"
               : isTextile
-              ? "🧵 TEXTILE ERP MODE"
+              ? "TEXTILE ERP MODE"
               : isRestaurant
-              ? "🍽️ RESTAURANT ERP MODE"
+              ? "RESTAURANT ERP MODE"
               : isLaundry
-              ? "🧺 LAUNDRY ERP MODE"
+              ? "LAUNDRY ERP MODE"
               : isMedical
-              ? "💊 PHARMACY ERP MODE"
-              : "🛒 RETAIL ERP MODE"}
+              ? "PHARMACY ERP MODE"
+              : "RETAIL ERP MODE"}
           </span>
         </div>
       </div>
