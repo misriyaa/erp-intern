@@ -115,46 +115,39 @@ export default function AddEmployeePage() {
   }, [industryCode]);
 
   useEffect(() => {
-    if (formData.role === "Manager") {
-      const defaultManagerModules = [
-        "DASHBOARD",
-        "INVENTORY",
-        "WAREHOUSE",
-        "STOCK_TRANSFER",
-        "CUSTOMERS",
-        "SUPPLIERS",
-        "PURCHASES",
-        "SALES",
-        "REPORTS",
-        "INVOICES",
-        "EMPLOYEES",
-        "LAUNDRY",
-        "BRANCHES",
-        "SERVICES",
-      ];
-      const valid = availableModules
-        .map((m) => m.code)
-        .filter((c) => defaultManagerModules.includes(c));
-      setSelectedModules(valid.length > 0 ? valid : availableModules.map((m) => m.code));
+    if (formData.role === "Store Manager" || formData.role === "Manager") {
+      setSelectedModules(availableModules.map((m) => m.code));
     } else if (formData.role === "Admin") {
       setSelectedModules(availableModules.map((m) => m.code));
     } else if (formData.role === "Cashier") {
-      const defaultCashierModules = ["SALES", "POS", "DASHBOARD", "RESTAURANT", "LAUNDRY"];
+      const defaultCashierModules = ["SALES", "POS", "CUSTOMERS", "INVOICES", "DASHBOARD", "RESTAURANT", "LAUNDRY"];
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultCashierModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Inventory Manager") {
+      const defaultInvModules = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "DASHBOARD", "STOCK-TRANSFER"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultInvModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Purchase Manager") {
+      const defaultPurchModules = ["PURCHASES", "SUPPLIERS", "INVENTORY", "WAREHOUSE", "PRODUCTS", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultPurchModules.includes(c));
+      setSelectedModules(valid);
+    } else if (formData.role === "Accountant") {
+      const defaultAcctModules = ["SALES", "PURCHASES", "INVOICES", "REPORTS", "PAYMENTS", "DASHBOARD"];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultAcctModules.includes(c));
       setSelectedModules(valid);
     } else if (formData.role === "Processing Staff" || formData.role === "Delivery Driver") {
       const defaultProcModules = ["LAUNDRY", "DASHBOARD"];
       const valid = availableModules
         .map((m) => m.code)
         .filter((c) => defaultProcModules.includes(c));
-      setSelectedModules(valid);
-    } else if (formData.role === "Inventory Manager") {
-      const defaultInvModules = ["INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "DASHBOARD", "STOCK-TRANSFER"];
-      const valid = availableModules
-        .map((m) => m.code)
-        .filter((c) => defaultInvModules.includes(c));
       setSelectedModules(valid);
     } else if (formData.role === "Trainer") {
       const defaultTrainerModules = ["DASHBOARD", "ATTENDANCE", "TRAINERS"];
@@ -292,9 +285,12 @@ export default function AddEmployeePage() {
     } else {
       // Retail / default
       combined = [
-        { id: "Manager", name: "Manager" },
+        { id: "Store Manager", name: "Store Manager" },
         { id: "Cashier", name: "Cashier" },
         { id: "Inventory Manager", name: "Inventory Manager" },
+        { id: "Purchase Manager", name: "Purchase Manager" },
+        { id: "Accountant", name: "Accountant" },
+        { id: "Manager", name: "Manager" },
       ];
     }
 

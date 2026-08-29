@@ -49,15 +49,6 @@ const DEFAULT_UNITS = [
   { id: "unit", name: "Unit", code: "unit" },
 ];
 
-const DEFAULT_BRANDS = [
-  { id: "b-apple", name: "Apple" },
-  { id: "b-samsung", name: "Samsung" },
-  { id: "b-sony", name: "Sony" },
-  { id: "b-nike", name: "Nike" },
-  { id: "b-adidas", name: "Adidas" },
-  { id: "b-generic", name: "Generic / Standard Brand" },
-];
-
 const initialProduct = {
   name: "",
   sku: "",

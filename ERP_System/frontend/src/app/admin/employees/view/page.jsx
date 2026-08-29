@@ -639,8 +639,8 @@ export default function EmployeePage() {
     else {
       combined = [
         {
-          id: "Manager",
-          name: "Manager",
+          id: "Store Manager",
+          name: "Store Manager",
         },
         {
           id: "Cashier",
@@ -649,6 +649,18 @@ export default function EmployeePage() {
         {
           id: "Inventory Manager",
           name: "Inventory Manager",
+        },
+        {
+          id: "Purchase Manager",
+          name: "Purchase Manager",
+        },
+        {
+          id: "Accountant",
+          name: "Accountant",
+        },
+        {
+          id: "Manager",
+          name: "Manager",
         },
       ];
     }
@@ -1333,6 +1345,16 @@ export default function EmployeePage() {
       );
     }
 
+    if (
+      employee.roleRef &&
+      typeof employee.roleRef ===
+        "object"
+    ) {
+      return (
+        employee.roleRef?.name ||
+        "Employee"
+      );
+    }
 
     if (
       employee.role &&

@@ -70,40 +70,11 @@ export default function CategoriesPage() {
     setIsLoading(true);
     try {
       const response = await apiClient.get("/categories");
-      const list = response.data?.data || [];
-      if (list.length > 0) {
-        setCategories(list);
-      } else {
-        if (isTextile) {
-          setCategories([
-            { id: "cat-tex-1", name: "Cotton Yarns", slug: "cotton-yarns", status: "ACTIVE" },
-            { id: "cat-tex-2", name: "Woven Fabrics", slug: "woven-fabrics", status: "ACTIVE" },
-            { id: "cat-tex-3", name: "Knitted Textiles", slug: "knitted-textiles", status: "ACTIVE" },
-            { id: "cat-tex-4", name: "Chemical Dyes & Pigments", slug: "dyes-pigments", status: "ACTIVE" },
-          ]);
-        } else if (isGym) {
-          setCategories([
-            { id: "cat-gym-1", name: "Membership Subscriptions", slug: "gym-memberships", status: "ACTIVE" },
-            { id: "cat-gym-2", name: "Personal Training Packages", slug: "personal-training", status: "ACTIVE" },
-            { id: "cat-gym-3", name: "Whey & Nutrition Supplements", slug: "nutrition-supplements", status: "ACTIVE" },
-            { id: "cat-gym-4", name: "Gym Gear & Fitness Accessories", slug: "gym-gear", status: "ACTIVE" },
-          ]);
-        } else if (isMedical) {
-          setCategories([
-            { id: "cat-med-1", name: "Analgesics", slug: "analgesics", status: "ACTIVE" },
-            { id: "cat-med-2", name: "Antibiotics", slug: "antibiotics", status: "ACTIVE" },
-            { id: "cat-med-3", name: "Antihistamines", status: "ACTIVE", slug: "antihistamines" },
-          ]);
-        } else {
-          setCategories([
-            { id: "cat-ret-1", name: "Groceries & Staples", slug: "groceries-staples", status: "ACTIVE" },
-            { id: "cat-ret-2", name: "Beverages & Soft Drinks", slug: "beverages", status: "ACTIVE" },
-            { id: "cat-ret-3", name: "Personal Care & Hygiene", slug: "personal-care", status: "ACTIVE" },
-          ]);
-        }
-      }
+      const list = response.data?.data || (Array.isArray(response.data) ? response.data : []);
+      setCategories(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error("Error fetching categories:", error);
+      setCategories([]);
     } finally {
       setIsLoading(false);
     }
@@ -413,7 +384,7 @@ export default function CategoriesPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className={styles.empty}>No categories found.</td>
+                  <td colSpan="5" className={styles.empty}>No categories found. Add your first category.</td>
                 </tr>
               )}
             </tbody>

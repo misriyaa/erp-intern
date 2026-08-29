@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect } from "react";
 import "./pos.css";
 
 import PosToolbar from "./components/PosToolbar";
-import CategoryTabs from "./components/CategoryTabs";
 import ProductGrid from "./components/ProductGrid";
 import OrderPanel from "./components/OrderPanel";
 import API_URL from "@/config/api";
@@ -59,27 +58,49 @@ export default function POSPage() {
           apiClient.get("/discounts").then((r) => r.data).catch(() => ({ success: false, data: [] })),
         ]);
 
-        if (prodRes.success && prodRes.data) {
-          const retailOnly = prodRes.data.filter(
+        const rawProductList = Array.isArray(prodRes?.data) ? prodRes.data : Array.isArray(prodRes) ? prodRes : [];
+        const rawCategoryList = Array.isArray(catRes?.data) ? catRes.data : Array.isArray(catRes) ? catRes : [];
+        const rawBrandList = Array.isArray(brandRes?.data) ? brandRes.data : Array.isArray(brandRes) ? brandRes : (brandRes?.brands || []);
+        const rawCustList = Array.isArray(custRes?.data) ? custRes.data : Array.isArray(custRes) ? custRes : [];
+        const rawTaxList = Array.isArray(taxRes?.data) ? taxRes.data : Array.isArray(taxRes) ? taxRes : [];
+        const rawDiscList = Array.isArray(discRes?.data) ? discRes.data : Array.isArray(discRes) ? discRes : [];
+
+        setCategories(rawCategoryList);
+        setBrands(rawBrandList);
+        setCustomers(rawCustList);
+        setTaxes(rawTaxList);
+        setDiscounts(rawDiscList);
+
+        if (rawProductList.length > 0) {
+          const retailOnly = rawProductList.filter(
             (p) =>
               !p.sku?.startsWith("TEX-") &&
-              !p.description?.includes("[TEXTILE]")
+              !p.sku?.startsWith("FAB-") &&
+              !p.description?.includes("[TEXTILE]") &&
+              p.isTextile !== true
           );
 
           const mapped = retailOnly.map((p) => {
             const stockQty = (p.inventories && p.inventories.length > 0)
-              ? p.inventories.reduce((sum, inv) => sum + (inv.quantity || 0), 0)
-              : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : 100);
+              ? p.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0)
+              : (p.currentStock !== undefined && p.currentStock !== null
+                  ? Number(p.currentStock)
+                  : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : Number(p.initialStock || 0)));
+
+            const brandObj = p.brand || rawBrandList.find((b) => b.id === p.brandId);
+            const brandName = typeof brandObj === "object" ? (brandObj?.name || brandObj?.brandName) : (brandObj || "Generic");
 
             return {
               id: p.id,
               name: p.name,
-              sku: p.sku || p.id,
-              code: p.sku || p.id,
+              sku: p.sku || p.code || p.id,
+              code: p.sku || p.code || p.id,
+              barcode: p.barcode || p.sku || p.code || "",
               price: Number(p.sellingPrice) || 0,
               stock: stockQty,
-              category: p.category?.name || "Others",
-              brand: p.brand?.name || "Generic",
+              category: p.category?.name || p.categoryName || "Others",
+              brand: brandName || "Generic",
+              brandId: p.brandId || brandObj?.id || null,
               imageUrl: p.image
                 ? p.image.startsWith("http")
                   ? p.image
@@ -89,26 +110,6 @@ export default function POSPage() {
           });
           setProducts(mapped);
         }
-
-        if (catRes.success && catRes.data) {
-          setCategories(catRes.data);
-        }
-
-        if (brandRes.success && brandRes.data) {
-          setBrands(brandRes.data);
-        }
-
-        if (custRes.success && custRes.data) {
-          setCustomers(custRes.data);
-        }
-
-        if (taxRes.success && taxRes.data) {
-          setTaxes(taxRes.data);
-        }
-
-        if (discRes.success && discRes.data) {
-          setDiscounts(discRes.data);
-        }
       } catch (err) {
         console.error("Error loading POS dynamic data:", err);
       }
@@ -117,24 +118,33 @@ export default function POSPage() {
   }, []);
 
   const categoryNames = useMemo(() => {
-    return ["All", ...categories.map((c) => c.name)];
+    return ["All", ...categories.map((c) => (typeof c === "object" ? c.name : c)).filter(Boolean)];
   }, [categories]);
 
   const brandNames = useMemo(() => {
-    return ["All", ...brands.map((b) => b.name)];
+    const list = brands
+      .map((b) => (typeof b === "object" ? (b.name || b.brandName) : b))
+      .filter((name) => Boolean(name) && name !== "All");
+    return ["All", ...Array.from(new Set(list))];
   }, [brands]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesCategory =
-        activeCategory === "All" || p.category === activeCategory;
+        activeCategory === "All" ||
+        p.category === activeCategory ||
+        p.category?.toLowerCase() === activeCategory?.toLowerCase();
       const matchesBrand =
-        selectedBrand === "All" || p.brand === selectedBrand;
+        selectedBrand === "All" ||
+        p.brand === selectedBrand ||
+        p.brand?.toLowerCase() === selectedBrand?.toLowerCase();
       const q = query.toLowerCase().trim();
       const matchesQuery =
         !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q);
+        p.name?.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.code?.toLowerCase().includes(q) ||
+        p.barcode?.toLowerCase().includes(q);
       return matchesCategory && matchesBrand && matchesQuery;
     });
   }, [products, activeCategory, selectedBrand, query]);
@@ -561,9 +571,12 @@ export default function POSPage() {
         <PosToolbar
           query={query}
           onQueryChange={setQuery}
+          selectedCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          categories={categoryNames}
           selectedBrand={selectedBrand}
           onBrandChange={setSelectedBrand}
-          brandNames={brandNames}
+          brands={brandNames}
           onBarcodeScan={addScannedBarcode}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -575,19 +588,12 @@ export default function POSPage() {
         />
 
         {activeTab === "Products" && (
-          <>
-            <CategoryTabs
-              categories={categoryNames}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-            />
-
-            <ProductGrid
-              products={filteredProducts}
-              addToCart={addToCart}
-              onAddToCart={addToCart}
-            />
-          </>
+          <ProductGrid
+            products={filteredProducts}
+            totalProducts={products.length}
+            addToCart={addToCart}
+            onAddToCart={addToCart}
+          />
         )}
 
         {activeTab === "Recent" && (

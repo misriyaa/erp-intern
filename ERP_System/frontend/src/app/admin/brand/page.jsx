@@ -16,12 +16,10 @@ import {
 } from "react-icons/fi";
 import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import axios from "axios";
+import apiClient from "@/services/apiClient";
 
 import styles from "./viewBrand.module.css";
 import { useAlert } from "@/context/AlertContext";
-
-const API_URL = "http://localhost:5000/api/brands";
 
 const initialForm = {
   name: "",
@@ -61,12 +59,12 @@ export default function BrandsPage() {
     setIsLoading(true);
 
     try {
-      const response = await axios.get(API_URL);
-
-      setBrands(response.data?.data || []);
+      const response = await apiClient.get("/brands");
+      const list = response.data?.data || (Array.isArray(response.data) ? response.data : []);
+      setBrands(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error("Fetch brands error:", error);
-
+      setBrands([]);
       toast.error(
         error.response?.data?.message || "Failed to fetch brands"
       );
@@ -162,14 +160,14 @@ export default function BrandsPage() {
 
       // UPDATE
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, payload);
+        await apiClient.put(`/brands/${editingId}`, payload);
 
         toast.success("Brand updated successfully");
       }
 
       // CREATE
       else {
-        await axios.post(API_URL, payload);
+        await apiClient.post("/brands", payload);
 
         toast.success("Brand created successfully");
       }
@@ -219,7 +217,7 @@ export default function BrandsPage() {
       type: "danger",
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_URL}/${id}`);
+          await apiClient.delete(`/brands/${id}`);
           showSuccess("Product updated", "Brand deleted successfully");
           await fetchBrands();
         } catch (error) {
