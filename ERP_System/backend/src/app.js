@@ -64,6 +64,7 @@ import reservationRoutes from "./modules/reservations/reservation.routes.js";
 import wastageRoutes from "./modules/wastage/wastage.routes.js";
 import foodCostRoutes from "./modules/foodCost/foodCost.routes.js";
 import restaurantReportRoutes from "./modules/restaurantReports/restaurantReport.routes.js";
+import restaurantIngredientRoutes from "./modules/restaurantIngredients/restaurantIngredient.routes.js";
 
 import {
   attachUserIfAuthenticated,
@@ -315,6 +316,8 @@ app.use("/api/reservations", reservationRoutes);
 app.use("/api/wastage", wastageRoutes);
 app.use("/api/food-cost", foodCostRoutes);
 app.use("/api/restaurant-reports", restaurantReportRoutes);
+app.use("/api/restaurant/ingredients", restaurantIngredientRoutes);
+app.use("/api/restaurant-ingredients", restaurantIngredientRoutes);
 
 
 app.use((req, res) => {

@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   FiUpload,
   FiSave,
@@ -25,6 +26,7 @@ import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
 import { useCompany } from "@/context/CompanyContext";
 import { restaurantService } from "@/services/restaurantService";
+import { showSuccess, showError } from "@/utils/swal";
 
 const DEFAULT_UNITS = [
   { id: "pcs", name: "Piece / Pcs", code: "pcs" },
@@ -593,58 +595,55 @@ export default function AddRetailProductPage() {
       try {
         const formData = new FormData();
         formData.append("name", product.name.trim());
+        formData.append("ingredientName", product.name.trim());
         formData.append("sku", skuCode);
-        formData.append("barcode", skuCode);
+        formData.append("ingredientCode", skuCode);
         formData.append("description", product.description ? product.description.trim() : "");
-        formData.append("productType", "RAW_MATERIAL");
         formData.append("status", product.status || "ACTIVE");
-
-        if (product.categoryId) formData.append("categoryId", product.categoryId);
-        if (product.baseUnitId) formData.append("unitId", product.baseUnitId);
-
+        formData.append("baseUnitId", product.baseUnitId || "");
+        formData.append("openingStock", product.initialStock || "0");
         formData.append("initialStock", product.initialStock || "0");
+        formData.append("minimumStockLevel", product.minimumStock || "0");
         formData.append("minimumStock", product.minimumStock || "0");
         formData.append("reorderQuantity", product.reorderQuantity || "0");
-
+        formData.append("purchaseCost", product.costPrice || "0");
         formData.append("costPrice", product.costPrice || "0");
-        formData.append("sellingPrice", "0");
 
-        if (product.supplierId) formData.append("supplierId", product.supplierId);
+        if (product.supplierId) {
+          formData.append("preferredSupplierId", product.supplierId);
+          formData.append("supplierId", product.supplierId);
+        }
 
-        formData.append("averageCost", product.costPrice || "0");
-        formData.append("lastPurchaseCost", product.costPrice || "0");
+        if (product.restaurantOutletId) {
+          formData.append("restaurantOutletId", product.restaurantOutletId);
+        }
 
-        formData.append("restaurantOutletId", product.restaurantOutletId || "");
-        formData.append("defaultStorageLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "");
-        formData.append("warehouseLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "");
-        formData.append("storageType", product.storageType || "");
+        formData.append("defaultStorageLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "Main Store");
+        formData.append("warehouseLocation", product.defaultStorageLocation ? product.defaultStorageLocation.trim() : "Main Store");
+        formData.append("storageType", product.storageType || "Dry");
 
         formData.append("isPerishable", product.isPerishable ? "true" : "false");
+        formData.append("expiryTracking", product.isExpiryTracking ? "true" : "false");
         formData.append("isExpiryTracking", product.isExpiryTracking ? "true" : "false");
+        formData.append("batchTracking", product.isBatchTracking ? "true" : "false");
         formData.append("isBatchTracking", product.isBatchTracking ? "true" : "false");
 
         if (image) {
           formData.append("image", image);
         }
 
-        await apiClient.post("/products", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await restaurantService.createIngredient(formData);
 
-        toast.success(`Raw Material / Ingredient "${product.name}" added successfully!`);
+        showSuccess("Ingredient Added", `Raw Material / Ingredient "${product.name}" added successfully!`);
         setTimeout(() => {
           router.push("/admin/products/view");
-        }, 800);
+        }, 700);
       } catch (error) {
         console.error("Error creating ingredient:", error);
         const errData = error.response?.data;
-        let errMsg = errData?.message || "Failed to create raw material / ingredient.";
-        if (Array.isArray(errData?.errors) && errData.errors.length > 0) {
-          const detailMsgs = errData.errors.map((e) => e.msg || `${e.path} invalid`).join(", ");
-          errMsg = `${errMsg} (${detailMsgs})`;
-        }
+        const errMsg = errData?.message || "Unable to add ingredient. Please check the entered information.";
         toast.error(errMsg);
-        showWarning("Submission Error", errMsg);
+        showError("Unable to Add Ingredient", errMsg);
       } finally {
         setSubmitting(false);
       }

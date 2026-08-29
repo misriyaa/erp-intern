@@ -104,9 +104,10 @@ export default function KitchenDisplayPage() {
   };
 
   const fetchKOTs = async () => {
-    if (!selectedRestaurantId) return;
     try {
-      const res = await restaurantService.getKitchenOrders(selectedRestaurantId);
+      const res = await restaurantService.getKitchenOrders(
+        selectedRestaurantId && selectedRestaurantId !== "ALL" ? selectedRestaurantId : undefined
+      );
       setKotOrders(res.data || []);
     } catch (err) {
       console.warn("KOT fetch transient error (will retry):", err?.message || err);
@@ -134,7 +135,7 @@ export default function KitchenDisplayPage() {
     } catch (err) { showError("KDS Action Failed", err.message); }
   };
 
-  const newKOTs = kotOrders.filter((k) => k.status === "NEW");
+  const newKOTs = kotOrders.filter((k) => k.status === "NEW" || k.status === "CONFIRMED" || k.status === "PENDING");
   const preparingKOTs = kotOrders.filter((k) => k.status === "PREPARING");
   const readyKOTs = kotOrders.filter((k) => k.status === "READY");
 
@@ -178,6 +179,7 @@ export default function KitchenDisplayPage() {
                 fontSize: "13px",
               }}
             >
+              {restaurants.length > 1 && <option value="ALL">🏬 All Kitchen Outlets</option>}
               {restaurants.map((r) => (
                 <option key={r.id} value={r.id}>🏬 {r.name}</option>
               ))}

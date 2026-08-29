@@ -51,11 +51,11 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
           if (user.permissions) {
             try {
               const parsed = JSON.parse(user.permissions);
-              if (Array.isArray(parsed)) {
+              if (Array.isArray(parsed) && parsed.length > 0) {
                 userModules = parsed;
               }
             } catch (e) {
-              if (typeof user.permissions === "string") {
+              if (typeof user.permissions === "string" && user.permissions.trim().length > 0) {
                 userModules = user.permissions.split(",").map((s) => s.trim().toUpperCase());
               }
             }
@@ -64,11 +64,37 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
           let overriddenCompanyId = user.companyId || user.company?.id || null;
           let overriddenCompanyName = user.company?.name || "Default Company";
           let overriddenBranchId = user.branchId;
-          let industryCode = user.company?.industry?.code || user.type || "RETAIL";
+          let industryCode = (user.company?.industry?.code || user.type || "RETAIL").toUpperCase();
           let industryName = user.company?.industry?.name || "Retail";
 
-          const roleName = user.roleRef?.name || user.role || "ADMIN";
-          const isSuper = roleName.toUpperCase().includes("SUPER");
+          const roleName = (user.roleRef?.name || user.role || "ADMIN").trim();
+          const roleUpper = roleName.toUpperCase().replace(/\s+/g, "_");
+          const isSuper = roleUpper.includes("SUPER");
+
+          // Restaurant default role permissions fallback
+          if (industryCode.includes("RESTAURANT") && !isSuper && !roleUpper.includes("ADMIN")) {
+            if (roleUpper.includes("MANAGER")) {
+              userModules = [
+                "DASHBOARD",
+                "RESTAURANT",
+                "PRODUCTS",
+                "CATEGORIES",
+                "BRANDS",
+                "UNITS",
+                "INVENTORY",
+                "SUPPLIERS",
+                "EMPLOYEES",
+                "REPORTS",
+                "SETTINGS",
+              ];
+            } else if (roleUpper.includes("CASHIER")) {
+              userModules = ["DASHBOARD", "RESTAURANT", "POS", "SALES", "ORDERS", "CUSTOMERS", "INVOICES"];
+            } else if (roleUpper.includes("WAITER") || roleUpper.includes("STEWARD") || roleUpper.includes("SERVER")) {
+              userModules = ["RESTAURANT", "POS", "TABLES", "RESERVATIONS", "ORDERS"];
+            } else if (roleUpper.includes("KITCHEN") || roleUpper.includes("CHEF") || roleUpper.includes("COOK")) {
+              userModules = ["RESTAURANT", "KITCHEN", "KDS"];
+            }
+          }
 
           if (isSuper) {
             const clientCompanyHeader = req.headers["x-company-override"];

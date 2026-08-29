@@ -11,14 +11,14 @@ export const createMenuCategory = async (data) => {
 
 export const getMenuCategories = async (restaurantId) => {
   const where = {};
-  if (restaurantId) where.restaurantId = restaurantId;
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
 
   return await prisma.menuCategory.findMany({
     where,
     include: {
-      menuItems: {
-        where: { status: "ACTIVE" },
-      },
+      menuItems: true,
     },
     orderBy: { sortOrder: "asc" },
   });

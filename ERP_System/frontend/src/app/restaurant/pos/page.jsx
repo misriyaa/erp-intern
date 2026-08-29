@@ -824,21 +824,7 @@ function RestaurantPOSContent() {
             </select>
           )}
 
-          {/* Customer Picker (Only for Takeaway / Delivery) */}
-          {orderType !== "DINE_IN" && (
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              style={{ padding: "7px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: "600", fontSize: "13px" }}
-            >
-              <option value="">Select Customer (Optional)...</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ""}
-                </option>
-              ))}
-            </select>
-          )}
+
 
           {/* Search Box */}
           <input

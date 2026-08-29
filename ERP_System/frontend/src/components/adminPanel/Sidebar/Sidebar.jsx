@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings, logoUrl } = useSettings();
-  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, isLaundry, isMedical, isRetail, industryCode, clearSession } = useCompany();
+  const { user, company, isModuleEnabled, isGym, isTextile, isRestaurant, isLaundry, isMedical, isRetail, industryCode, clearSession, loading } = useCompany();
 
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
@@ -77,7 +77,7 @@ export default function Sidebar({ isOpen, onClose }) {
     }
   };
 
-  const roleUpper = (user?.role || user?.roleRef?.name || user?.type || "").toUpperCase();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase().replace(/\s+/g, "_");
   const isSuperAdmin = roleUpper.includes("SUPER");
   const isAdmin = isSuperAdmin || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
   const isManager = roleUpper.includes("MANAGER");
@@ -187,25 +187,31 @@ export default function Sidebar({ isOpen, onClose }) {
             : "SUPERMARKET & RESTAURANT ERP"}
         </h4>
 
-        {visibleNavItems.map((item) => {
-          const IconComp = item.icon;
-          const active = isActivePath(item.href);
-          const finalHref = selectedRestaurantId && item.href.startsWith("/restaurant/")
-            ? `${item.href}?restaurantId=${selectedRestaurantId}`
-            : item.href;
+        {loading ? (
+          <div style={{ padding: "16px 20px", color: "#94a3b8", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>Loading navigation...</span>
+          </div>
+        ) : (
+          visibleNavItems.map((item) => {
+            const IconComp = item.icon;
+            const active = isActivePath(item.href);
+            const finalHref = selectedRestaurantId && item.href.startsWith("/restaurant/")
+              ? `${item.href}?restaurantId=${selectedRestaurantId}`
+              : item.href;
 
-          return (
-            <Link
-              key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
-              href={finalHref}
-              className={active ? styles.active : ""}
-              onClick={handleLinkClick}
-            >
-              <IconComp />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
+                href={finalHref}
+                className={active ? styles.active : ""}
+                onClick={handleLinkClick}
+              >
+                <IconComp />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })
+        )}
 
         <div style={{ marginTop: "24px", paddingTop: "12px", borderTop: "1px solid #334155" }}>
           <button

@@ -31,8 +31,12 @@ export const createMenuItem = async (data) => {
 
 export const getMenuItems = async (restaurantId, categoryId) => {
   const where = {};
-  if (restaurantId) where.restaurantId = restaurantId;
-  if (categoryId) where.categoryId = categoryId;
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
+  if (categoryId && categoryId !== "ALL" && categoryId !== "undefined" && categoryId !== "null" && String(categoryId).trim() !== "") {
+    where.categoryId = categoryId;
+  }
 
   return await prisma.menuItem.findMany({
     where,

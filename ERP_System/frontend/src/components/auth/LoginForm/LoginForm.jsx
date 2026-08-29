@@ -74,8 +74,20 @@ export default function LoginForm() {
       showSuccess("Login Successful", "User logged in successfully! Redirecting...");
 
       const userRole = (data.user?.role || "").toUpperCase();
+      const userType = (data.user?.type || data.company?.industry?.code || "").toUpperCase();
+
       if (userRole.includes("SUPER")) {
         window.location.href = "/admin/superadmin-dashboard";
+      } else if (userType.includes("RESTAURANT")) {
+        if (userRole.includes("WAITER") || userRole.includes("STEWARD") || userRole.includes("SERVER")) {
+          window.location.href = "/restaurant/pos";
+        } else if (userRole.includes("KITCHEN") || userRole.includes("CHEF") || userRole.includes("COOK")) {
+          window.location.href = "/restaurant/kitchen";
+        } else if (userRole.includes("CASHIER")) {
+          window.location.href = "/restaurant/pos";
+        } else {
+          window.location.href = "/restaurant/dashboard";
+        }
       } else {
         window.location.href = "/dashboard";
       }

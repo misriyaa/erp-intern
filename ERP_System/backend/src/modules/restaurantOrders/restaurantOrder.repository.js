@@ -125,22 +125,32 @@ export const getOrders = async (params) => {
   const { restaurantId, branchId, companyId, tableId, status, orderType, search } = params;
   const where = {};
 
-  if (restaurantId) where.restaurantId = restaurantId;
-  if (branchId) where.branchId = branchId;
-  if (companyId) where.companyId = companyId;
-  if (tableId) where.tableId = tableId;
-  if (status) {
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
+  if (branchId && branchId !== "ALL" && branchId !== "undefined" && branchId !== "null" && String(branchId).trim() !== "") {
+    where.branchId = branchId;
+  }
+  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
+    where.companyId = companyId;
+  }
+  if (tableId && tableId !== "ALL" && tableId !== "undefined" && tableId !== "null" && String(tableId).trim() !== "") {
+    where.tableId = tableId;
+  }
+  if (status && status !== "ALL" && status !== "undefined" && status !== "null") {
     if (Array.isArray(status)) {
       where.status = { in: status };
     } else {
       where.status = status;
     }
   }
-  if (orderType) where.orderType = orderType;
-  if (search) {
+  if (orderType && orderType !== "ALL" && orderType !== "undefined" && orderType !== "null") {
+    where.orderType = orderType;
+  }
+  if (search && String(search).trim() !== "") {
     where.OR = [
-      { orderNumber: { contains: search, mode: "insensitive" } },
-      { notes: { contains: search, mode: "insensitive" } },
+      { orderNumber: { contains: String(search).trim(), mode: "insensitive" } },
+      { notes: { contains: String(search).trim(), mode: "insensitive" } },
     ];
   }
 

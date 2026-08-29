@@ -68,26 +68,24 @@ export default function RestaurantMenuPage() {
   };
 
   useEffect(() => {
-    if (selectedRestaurantId) {
-      loadTabData();
-    }
+    loadTabData();
   }, [selectedRestaurantId, activeTab]);
 
   const loadTabData = async () => {
-    if (!selectedRestaurantId) return;
+    const outletParam = selectedRestaurantId && selectedRestaurantId !== "ALL" ? selectedRestaurantId : undefined;
     try {
       if (activeTab === "categories") {
-        const res = await restaurantService.getMenuCategories(selectedRestaurantId);
+        const res = await restaurantService.getMenuCategories(outletParam);
         setCategories(res.data || []);
       } else if (activeTab === "items" || activeTab === "recipes") {
         const [itemRes, catRes] = await Promise.all([
-          restaurantService.getMenuItems(selectedRestaurantId),
-          restaurantService.getMenuCategories(selectedRestaurantId),
+          restaurantService.getMenuItems(outletParam),
+          restaurantService.getMenuCategories(outletParam),
         ]);
         setMenuItems(itemRes.data || []);
         setCategories(catRes.data || []);
       } else if (activeTab === "modifiers") {
-        const res = await restaurantService.getModifierGroups(selectedRestaurantId);
+        const res = await restaurantService.getModifierGroups(outletParam);
         setModifierGroups(res.data || []);
       }
     } catch (err) {
@@ -274,6 +272,7 @@ export default function RestaurantMenuPage() {
             onChange={(e) => setSelectedRestaurantId(e.target.value)}
             style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid #cbd5e1", fontWeight: "600" }}
           >
+            {restaurants.length > 1 && <option value="ALL">All Outlets</option>}
             {restaurants.map((r) => (
               <option key={r.id} value={r.id}>{r.name}</option>
             ))}

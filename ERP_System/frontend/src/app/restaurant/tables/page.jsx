@@ -39,12 +39,12 @@ function RestaurantTablesContent() {
       const res = await restaurantService.getRestaurants();
       const list = res.data || [];
       setRestaurants(list);
-      if (list.length > 0) {
-        const assigned = queryRestaurantId || list[0].id;
+      const assigned = queryRestaurantId || (list.length > 0 ? list[0].id : "");
+      if (assigned) {
         setSelectedRestaurantId(assigned);
         setModalRestaurantId(assigned);
-        fetchFloorPlan(assigned);
       }
+      fetchFloorPlan(assigned && assigned !== "ALL" ? assigned : undefined);
     } catch (err) {
       console.error("Error loading floor plan:", err);
     } finally {

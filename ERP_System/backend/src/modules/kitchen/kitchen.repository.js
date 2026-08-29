@@ -23,22 +23,22 @@ const kotInclude = {
 
 export const getKitchenOrders = async (restaurantId, status) => {
   const where = {};
-  if (restaurantId && restaurantId !== "ALL" && restaurantId.trim() !== "") {
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
     where.restaurantId = restaurantId;
   }
 
-  if (status) {
+  if (status && status !== "ALL" && status !== "undefined" && status !== "null") {
     where.status = status;
-  } else {
+  } else if (!status || status === "ACTIVE") {
     where.status = {
-      in: ["NEW", "PREPARING", "READY"],
+      in: ["NEW", "CONFIRMED", "PREPARING", "READY", "PENDING"],
     };
   }
 
   return await prisma.kitchenOrder.findMany({
     where,
     include: kotInclude,
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
   });
 };
 

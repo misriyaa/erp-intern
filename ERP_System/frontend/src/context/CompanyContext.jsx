@@ -139,13 +139,46 @@ export function CompanyProvider({ children }) {
   const isModuleEnabled = (moduleCode) => {
     if (!moduleCode) return true;
     const codeUpper = moduleCode.toUpperCase();
-    const roleUpper = (user?.role || "").toUpperCase().replace(/\s+/g, "_");
+    const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase().replace(/\s+/g, "_");
 
-    // Super Admin always gets full access
-    if (roleUpper.includes("SUPER")) return true;
+    // Super Admin & Admin always get full access
+    if (roleUpper.includes("SUPER") || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER")) {
+      return true;
+    }
 
-    // 1. If explicit module permissions are set for this employee/user
-    if (Array.isArray(modules) && modules.length > 0 && !roleUpper.includes("ADMIN")) {
+    // 1. RESTAURANT ERP - Priority Role Access Defaults (Never dependent on manual permissions)
+    if (isRestaurant) {
+      if (roleUpper.includes("MANAGER")) {
+        const managerModules = [
+          "DASHBOARD",
+          "RESTAURANT",
+          "PRODUCTS",
+          "CATEGORIES",
+          "BRANDS",
+          "UNITS",
+          "INVENTORY",
+          "SUPPLIERS",
+          "EMPLOYEES",
+          "REPORTS",
+          "SETTINGS",
+        ];
+        if (managerModules.includes(codeUpper)) {
+          return true;
+        }
+      } else if (roleUpper.includes("CASHIER") || roleUpper.includes("BILLING") || roleUpper.includes("COUNTER")) {
+        const cashierModules = ["DASHBOARD", "RESTAURANT", "POS", "SALES", "ORDERS", "CUSTOMERS", "INVOICES"];
+        return cashierModules.includes(codeUpper);
+      } else if (roleUpper.includes("WAITER") || roleUpper.includes("STEWARD") || roleUpper.includes("SERVER")) {
+        const waiterModules = ["RESTAURANT", "POS", "TABLES", "RESERVATIONS", "ORDERS"];
+        return waiterModules.includes(codeUpper);
+      } else if (roleUpper.includes("KITCHEN") || roleUpper.includes("CHEF") || roleUpper.includes("COOK")) {
+        const kitchenModules = ["RESTAURANT", "KITCHEN", "KDS"];
+        return kitchenModules.includes(codeUpper);
+      }
+    }
+
+    // 2. If explicit module permissions are set for this employee/user
+    if (Array.isArray(modules) && modules.length > 0) {
       const formattedModules = modules.map((m) => (m || "").toUpperCase());
       const hasDirectAccess = formattedModules.some((mUpper) => {
         if (mUpper === codeUpper) return true;
@@ -162,9 +195,7 @@ export function CompanyProvider({ children }) {
       return hasDirectAccess;
     }
 
-    if (roleUpper.includes("ADMIN")) return true;
-
-    // 2. Role-based overrides/filters
+    // 3. Other Industry Role-based overrides/filters
     if (roleUpper.includes("CASHIER")) {
       const allowed = ["SALES", "POS", "DASHBOARD", "RESTAURANT", "LAUNDRY", "MEDICAL_SHOP", "MEDICAL", "CUSTOMERS", "INVOICES"];
       if (!allowed.includes(codeUpper)) {
@@ -180,7 +211,7 @@ export function CompanyProvider({ children }) {
       if (!allowed.includes(codeUpper)) {
         return false;
       }
-    } else if (roleUpper === "MANAGER") {
+    } else if (roleUpper.includes("MANAGER")) {
       const allowed = [
         "DASHBOARD",
         "INVENTORY",
@@ -215,7 +246,7 @@ export function CompanyProvider({ children }) {
       }
     }
 
-    // 3. Industry checks
+    // 4. Industry checks
     if (isRetail && ["DASHBOARD", "PRODUCTS", "CATEGORIES", "BRANDS", "UNITS", "INVENTORY", "WAREHOUSE", "STOCK_TRANSFER", "CUSTOMERS", "SUPPLIERS", "PURCHASES", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS", "RESTAURANT"].includes(codeUpper)) {
       return true;
     }

@@ -239,4 +239,32 @@ export const restaurantService = {
     const res = await apiClient.get("/restaurant-reports/analytics", { params });
     return res.data;
   },
+
+  // Restaurant Raw Materials & Ingredients
+  createIngredient: async (data) => {
+    const isFormData = data instanceof FormData;
+    const res = await apiClient.post("/restaurant/ingredients", data, {
+      headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+    });
+    return res.data;
+  },
+  getIngredients: async (params) => {
+    const res = await apiClient.get("/restaurant/ingredients", { params });
+    return res.data;
+  },
+  getIngredientById: async (id) => {
+    const res = await apiClient.get(`/restaurant/ingredients/${id}`);
+    return res.data;
+  },
+  updateIngredient: async (id, data) => {
+    const isFormData = data instanceof FormData;
+    const res = await apiClient.put(`/restaurant/ingredients/${id}`, data, {
+      headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+    });
+    return res.data;
+  },
+  deleteIngredient: async (id) => {
+    const res = await apiClient.delete(`/restaurant/ingredients/${id}`);
+    return res.data;
+  },
 };
