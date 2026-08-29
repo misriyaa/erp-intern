@@ -78,9 +78,9 @@ export default function LaundryReadyOrders() {
                       <span style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "400" }}>{order.customer?.phone}</span>
                     </td>
                     <td style={{ padding: "12px" }}>{order.items?.reduce((sum, i) => sum + i.quantity, 0)} garments</td>
-                    <td style={{ padding: "12px", fontWeight: "700" }}>${order.totalAmount.toFixed(2)}</td>
-                    <td style={{ padding: "12px", fontWeight: "700", color: order.balanceAmount > 0 ? "#ef4444" : "#16a34a" }}>
-                      ${order.balanceAmount.toFixed(2)}
+                    <td style={{ padding: "12px", fontWeight: "700" }}>${parseFloat(order.totalAmount || 0).toFixed(2)}</td>
+                    <td style={{ padding: "12px", fontWeight: "700", color: parseFloat(order.balanceAmount || 0) > 0 ? "#ef4444" : "#16a34a" }}>
+                      ${parseFloat(order.balanceAmount || 0).toFixed(2)}
                     </td>
                     <td style={{ padding: "12px" }}>
                       <span style={{
