@@ -5,7 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { restaurantService } from "@/services/restaurantService";
 import { getCustomers } from "@/services/customerService";
 import { useCompany } from "@/context/CompanyContext";
-import { showSuccess, showError, showWarning, showConfirm } from "@/utils/swal";
+import Swal, { showSuccess, showError, showWarning, showConfirm, showToastNotification } from "@/utils/swal";
+import { joinOutletRoom, leaveOutletRoom, subscribeToOrderStatus, subscribeToReconnect } from "@/services/socketService";
 import {
   FiCoffee,
   FiShoppingBag,
@@ -24,6 +25,7 @@ import {
   FiPlay,
   FiX,
   FiCheck,
+  FiBell,
 } from "react-icons/fi";
 
 function RestaurantPOSContent() {
@@ -79,6 +81,7 @@ function RestaurantPOSContent() {
   const [historyStatusFilter, setHistoryStatusFilter] = useState("ALL");
   const [historyTableFilter, setHistoryTableFilter] = useState("ALL");
 
+  const [showReadyModal, setShowReadyModal] = useState(false);
   const [selectedPrintOrder, setSelectedPrintOrder] = useState(null);
 
   useEffect(() => {
@@ -91,35 +94,256 @@ function RestaurantPOSContent() {
     }
   }, [selectedRestaurantId]);
 
-  // Load Active Order when table is selected
+  // Real-Time Order Status Update Listener (Socket.IO)
   useEffect(() => {
-    if (selectedTableId && orderType === "DINE_IN") {
-      const tbl = tables.find((t) => t.id === selectedTableId);
-      if (tbl && tbl.orders && tbl.orders.length > 0) {
-        const order = tbl.orders.find((o) => o.status !== "COMPLETED" && o.status !== "CANCELLED");
-        if (order) {
-          setActiveOrder(order);
-          if (order.items) {
-            setCart(
-              order.items.map((i) => ({
-                menuItemId: i.menuItemId,
-                name: i.menuItem?.name || "Item",
-                unitPrice: parseFloat(i.unitPrice),
-                quantity: i.quantity,
-                notes: i.notes || "",
-              }))
-            );
+    if (!selectedRestaurantId) return;
+
+    // Join authorized outlet room
+    joinOutletRoom(selectedRestaurantId);
+
+    // Listen for real-time status changes emitted by Kitchen Staff or Backend
+    const unsubscribeStatus = subscribeToOrderStatus((data) => {
+      console.log("⚡ [Waiter POS] Real-time order update received:", data);
+
+      // Verify outlet matches assigned restaurant
+      if (data.restaurantId && data.restaurantId !== selectedRestaurantId) {
+        return;
+      }
+
+      // Automatically sync POS state (tables & active orders) without page refresh
+      loadMenuData(selectedRestaurantId);
+
+      // Update active order state dynamically if open
+      if (data.orderId) {
+        setActiveOrder((prev) => {
+          if (prev && (prev.id === data.orderId || prev.orderNumber === data.orderNumber)) {
+            return { ...prev, status: data.status };
           }
-        } else {
-          setActiveOrder(null);
-          setCart([]);
-        }
+          return prev;
+        });
+      }
+
+      // Trigger non-blocking SweetAlert2 toast notification when order becomes READY
+      if (data.status === "READY") {
+        const tblNum = data.tableNumber || (data.table ? data.table.tableNumber : "");
+        const tableText = tblNum ? `Table ${tblNum}` : "Takeaway Order";
+        showToastNotification(
+          "🔔 Order Ready to Serve!",
+          `${tableText} - Order #${data.orderNumber || ""} is ready to serve!`,
+          "success"
+        );
+      }
+    });
+
+    // Handle auto-reconnection synchronization
+    const unsubscribeReconnect = subscribeToReconnect(() => {
+      console.log("🔄 Socket reconnected - resynchronizing active orders...");
+      joinOutletRoom(selectedRestaurantId);
+      loadMenuData(selectedRestaurantId);
+    });
+
+    return () => {
+      unsubscribeStatus();
+      unsubscribeReconnect();
+      leaveOutletRoom(selectedRestaurantId);
+    };
+  }, [selectedRestaurantId]);
+
+  // Check whether current table order has unsaved changes
+  const isCartDirty = () => {
+    if (!selectedTableId || orderType !== "DINE_IN") return false;
+    if (!activeOrder) {
+      return cart.length > 0;
+    }
+    const origItems = (activeOrder.items || []).map((i) => ({
+      menuItemId: i.menuItemId,
+      quantity: Number(i.quantity),
+      notes: i.notes || "",
+    }));
+    const currentItems = cart.map((i) => ({
+      menuItemId: i.menuItemId,
+      quantity: Number(i.quantity),
+      notes: i.notes || "",
+    }));
+    if (origItems.length !== currentItems.length) return true;
+    return (
+      JSON.stringify(origItems.sort((a, b) => a.menuItemId.localeCompare(b.menuItemId))) !==
+      JSON.stringify(currentItems.sort((a, b) => a.menuItemId.localeCompare(b.menuItemId)))
+    );
+  };
+
+  // Save / Hold current table order before switching if requested
+  const saveCurrentTableOrderOnHold = async () => {
+    if (cart.length === 0) return true;
+    try {
+      const selectedRest = restaurants.find((r) => r.id === selectedRestaurantId);
+      const branchId = selectedRest?.branchId;
+      const holdNote = notes ? `${notes} | HELD` : "HELD";
+
+      if (activeOrder?.id) {
+        await restaurantService.updateOrder(activeOrder.id, {
+          items: cart,
+          subtotal,
+          discountAmount: parseFloat(discountAmount || 0),
+          taxAmount,
+          totalAmount,
+          notes: holdNote,
+          status: activeOrder.status === "DRAFT" ? "HELD" : activeOrder.status,
+        });
       } else {
-        setActiveOrder(null);
+        await restaurantService.createOrder({
+          restaurantId: selectedRestaurantId,
+          branchId,
+          tableId: orderType === "DINE_IN" ? selectedTableId : null,
+          customerId: selectedCustomerId || null,
+          orderType,
+          items: cart,
+          subtotal,
+          discountAmount: parseFloat(discountAmount || 0),
+          taxAmount,
+          totalAmount,
+          notes: holdNote,
+          status: "HELD",
+        });
+      }
+      showSuccess("Order Saved", "Current table order saved/held successfully.");
+      await loadMenuData(selectedRestaurantId);
+      return true;
+    } catch (err) {
+      showError("Failed to Save Order", err.response?.data?.message || err.message || "Failed to save order");
+      return false;
+    }
+  };
+
+  // Load Table Order: Clears previous table state and loads only the target table's active order or empty cart
+  const loadTableOrder = (targetTableId, tableList = tables) => {
+    // 1. Immediately reset current order state safely so no old cart items linger
+    setSelectedTableId(targetTableId);
+    setActiveOrder(null);
+    setCart([]);
+    setDiscountAmount(0);
+    setNotes("");
+
+    if (!targetTableId || orderType !== "DINE_IN") {
+      return;
+    }
+
+    // 2. Look for existing active order for target table
+    const tbl = (tableList || []).find((t) => t.id === targetTableId);
+    const activeTableOrder = tbl?.orders?.find(
+      (o) =>
+        (!o.restaurantId || o.restaurantId === selectedRestaurantId) &&
+        ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"].includes(o.status)
+    );
+
+    if (activeTableOrder) {
+      // YES -> Load ONLY that table's existing active order/cart
+      setActiveOrder(activeTableOrder);
+      if (activeTableOrder.items && activeTableOrder.items.length > 0) {
+        setCart(
+          activeTableOrder.items.map((i) => ({
+            menuItemId: i.menuItemId,
+            name: i.menuItem?.name || "Item",
+            unitPrice: parseFloat(i.unitPrice),
+            quantity: i.quantity,
+            notes: i.notes || "",
+          }))
+        );
+      } else {
         setCart([]);
       }
+      setDiscountAmount(parseFloat(activeTableOrder.discountAmount || 0));
+      setNotes(activeTableOrder.notes || "");
+    } else {
+      // NO -> Show empty cart
+      setActiveOrder(null);
+      setCart([]);
+      setDiscountAmount(0);
+      setNotes("");
     }
-  }, [selectedTableId, tables, orderType]);
+  };
+
+  // Table Switching with Unsaved Cart Protection
+  const handleTableChange = async (newTableId) => {
+    if (newTableId === selectedTableId) return;
+
+    // Check for unsaved changes on current table
+    if (orderType === "DINE_IN" && selectedTableId && isCartDirty()) {
+      const result = await Swal.fire({
+        title: "Unsaved Order Changes",
+        text: "You have unsaved items in the current table order. What would you like to do?",
+        icon: "warning",
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: "Save / Hold Order",
+        denyButtonText: "Discard Changes",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#2563eb",
+        denyButtonColor: "#ef4444",
+        cancelButtonColor: "#64748b",
+        allowOutsideClick: false,
+      });
+
+      if (result.isConfirmed) {
+        const saved = await saveCurrentTableOrderOnHold();
+        if (!saved) return;
+      } else if (result.isDenied) {
+        // Discard unsaved changes and proceed
+      } else {
+        // Cancel -> stay on current table
+        return;
+      }
+    }
+
+    loadTableOrder(newTableId);
+  };
+
+  // Order Type Switching with Unsaved Cart Protection
+  const handleOrderTypeChange = async (newType) => {
+    if (newType === orderType) return;
+
+    if (orderType === "DINE_IN" && selectedTableId && isCartDirty()) {
+      const result = await Swal.fire({
+        title: "Unsaved Order Changes",
+        text: "You have unsaved items in the current table order. What would you like to do?",
+        icon: "warning",
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: "Save / Hold Order",
+        denyButtonText: "Discard Changes",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#2563eb",
+        denyButtonColor: "#ef4444",
+        cancelButtonColor: "#64748b",
+        allowOutsideClick: false,
+      });
+
+      if (result.isConfirmed) {
+        const saved = await saveCurrentTableOrderOnHold();
+        if (!saved) return;
+      } else if (result.isDenied) {
+        // Discard
+      } else {
+        return;
+      }
+    }
+
+    setOrderType(newType);
+    if (newType !== "DINE_IN") {
+      setSelectedTableId("");
+      setActiveOrder(null);
+      setCart([]);
+      setDiscountAmount(0);
+      setNotes("");
+    }
+  };
+
+  // Load initial table order if tableId was provided via query param on mount
+  useEffect(() => {
+    if (initialTableId && tables.length > 0 && selectedTableId === initialTableId && !activeOrder && cart.length === 0) {
+      loadTableOrder(initialTableId, tables);
+    }
+  }, [tables, initialTableId]);
 
   const fetchPOSData = async () => {
     try {
@@ -368,6 +592,20 @@ function RestaurantPOSContent() {
     setShowHeldBillsModal(false);
   };
 
+  // Mark Order as Served
+  const handleMarkServed = async (orderId) => {
+    try {
+      await restaurantService.updateOrder(orderId, { status: "SERVED" });
+      showSuccess("Order Marked as Served", "Order status updated to SERVED. Stock deducted successfully.");
+      loadMenuData(selectedRestaurantId);
+      if (activeOrder && activeOrder.id === orderId) {
+        setActiveOrder((prev) => (prev ? { ...prev, status: "SERVED" } : null));
+      }
+    } catch (err) {
+      showError("Failed to Mark Served", err.response?.data?.message || err.message || "Failed to mark order as served");
+    }
+  };
+
   // Cancel Held Order
   const handleCancelHeldOrder = async (orderId) => {
     const isConfirmed = await showConfirm({
@@ -503,6 +741,22 @@ function RestaurantPOSContent() {
     }
   };
 
+  // Extract all READY TO SERVE orders for current outlet
+  const readyOrders = [];
+  tables.forEach((t) => {
+    if (t.orders && t.orders.length > 0) {
+      t.orders.forEach((o) => {
+        if (o.status === "READY") {
+          readyOrders.push({
+            ...o,
+            tableNumber: t.tableNumber,
+            areaName: t.area?.name,
+          });
+        }
+      });
+    }
+  });
+
   const filteredMenuItems = menuItems.filter((i) => {
     const matchesCat = activeCategoryId === "ALL" || i.categoryId === activeCategoryId;
     const matchesSearch = !searchQuery || i.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -531,7 +785,7 @@ function RestaurantPOSContent() {
             {["DINE_IN", "TAKEAWAY", "DELIVERY"].map((type) => (
               <button
                 key={type}
-                onClick={() => setOrderType(type)}
+                onClick={() => handleOrderTypeChange(type)}
                 style={{
                   padding: "6px 14px",
                   borderRadius: "6px",
@@ -552,15 +806,21 @@ function RestaurantPOSContent() {
           {orderType === "DINE_IN" && (
             <select
               value={selectedTableId}
-              onChange={(e) => setSelectedTableId(e.target.value)}
+              onChange={(e) => handleTableChange(e.target.value)}
               style={{ padding: "7px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: "600", fontSize: "13px" }}
             >
               <option value="">Select Table...</option>
-              {tables.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.tableNumber} {t.area?.name ? `(${t.area.name})` : ""} - {t.status}
-                </option>
-              ))}
+              {tables.map((t) => {
+                const activeTblOrder = t.orders?.find(
+                  (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED"
+                );
+                const statusBadge = activeTblOrder ? `Active Order (${activeTblOrder.status})` : t.status;
+                return (
+                  <option key={t.id} value={t.id}>
+                    {t.tableNumber} {t.area?.name ? `(${t.area.name})` : ""} — {statusBadge}
+                  </option>
+                );
+              })}
             </select>
           )}
 
@@ -591,6 +851,26 @@ function RestaurantPOSContent() {
 
           {/* TOP RIGHT TOOLBAR BUTTONS */}
           <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={() => setShowReadyModal(true)}
+              style={{
+                padding: "7px 12px",
+                backgroundColor: readyOrders.length > 0 ? "#10b981" : "#059669",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                fontWeight: "700",
+                fontSize: "12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                boxShadow: readyOrders.length > 0 ? "0 0 10px rgba(16, 185, 129, 0.4)" : "none",
+              }}
+            >
+              <FiBell size={14} /> Ready ({readyOrders.length})
+            </button>
+
             <button
               onClick={() => {
                 loadHeldOrders();
@@ -626,6 +906,60 @@ function RestaurantPOSContent() {
             )}
           </div>
         </div>
+
+        {/* INLINE READY TO SERVE SECTION */}
+        {readyOrders.length > 0 && (
+          <div style={{ padding: "14px 20px", backgroundColor: "#ecfdf5", borderBottom: "2px solid #10b981", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontWeight: "800", color: "#065f46", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <FiBell size={16} color="#059669" /> READY TO SERVE ORDERS ({readyOrders.length})
+              </span>
+              <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: "#a7f3d0", color: "#065f46", padding: "2px 8px", borderRadius: "10px" }}>
+                Kitchen Completed
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "10px" }}>
+              {readyOrders.map((ro) => (
+                <div key={ro.id} style={{ backgroundColor: "#ffffff", border: "1px solid #a7f3d0", borderRadius: "8px", padding: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span style={{ fontWeight: "800", fontSize: "14px", color: "#0f172a" }}>Table {ro.tableNumber}</span>
+                    <span style={{ fontSize: "12px", fontWeight: "700", color: "#059669" }}>#{ro.orderNumber}</span>
+                  </div>
+
+                  <div style={{ fontSize: "12px", color: "#475569", marginBottom: "10px" }}>
+                    {ro.items?.map((item, idx) => (
+                      <div key={idx} style={{ fontWeight: "600" }}>
+                        {item.quantity} × {item.menuItem?.name || "Item"}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => handleMarkServed(ro.id)}
+                    style={{
+                      width: "100%",
+                      padding: "7px",
+                      backgroundColor: "#10b981",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontWeight: "700",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <FiCheckCircle size={14} /> Mark as Served
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Categories Pills */}
         <div style={{ padding: "10px 20px", backgroundColor: "#fff", borderBottom: "1px solid #e2e8f0", display: "flex", gap: "8px", overflowX: "auto" }}>
@@ -721,9 +1055,41 @@ function RestaurantPOSContent() {
             <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>
               {activeOrder ? `Order #${activeOrder.orderNumber}` : "Current Order"}
             </h3>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>
-              {orderType} {selectedTableId ? `(Table ${tables.find((t) => t.id === selectedTableId)?.tableNumber})` : ""}
-            </span>
+            <div style={{ fontSize: "12px", color: "#64748b", display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
+              <span>{orderType} {selectedTableId ? `(Table ${tables.find((t) => t.id === selectedTableId)?.tableNumber})` : ""}</span>
+              {activeOrder && (
+                <span
+                  style={{
+                    fontWeight: "800",
+                    fontSize: "11px",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    backgroundColor:
+                      activeOrder.status === "READY"
+                        ? "#d1fae5"
+                        : activeOrder.status === "PREPARING"
+                        ? "#fef3c7"
+                        : activeOrder.status === "CONFIRMED"
+                        ? "#dbeafe"
+                        : activeOrder.status === "SERVED"
+                        ? "#e2e8f0"
+                        : "#f1f5f9",
+                    color:
+                      activeOrder.status === "READY"
+                        ? "#065f46"
+                        : activeOrder.status === "PREPARING"
+                        ? "#92400e"
+                        : activeOrder.status === "CONFIRMED"
+                        ? "#1e40af"
+                        : activeOrder.status === "SERVED"
+                        ? "#334155"
+                        : "#475569",
+                  }}
+                >
+                  {activeOrder.status === "READY" ? "🟢 READY TO SERVE" : activeOrder.status === "PREPARING" ? "🔵 PREPARING" : activeOrder.status === "CONFIRMED" ? "🟡 CONFIRMED" : activeOrder.status}
+                </span>
+              )}
+            </div>
           </div>
           <button onClick={() => { setCart([]); setActiveOrder(null); }} style={{ color: "#ef4444", border: "none", background: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
             Clear Cart
@@ -1145,6 +1511,50 @@ function RestaurantPOSContent() {
               >
                 {processingPayment ? "Processing..." : "Confirm Payment"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* READY TO SERVE MODAL */}
+      {showReadyModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "650px", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#065f46", display: "flex", alignItems: "center", gap: "8px" }}>
+                🔔 READY TO SERVE ORDERS ({readyOrders.length})
+              </h3>
+              <button onClick={() => setShowReadyModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}>
+                <FiX size={20} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {readyOrders.length === 0 ? (
+                <p style={{ color: "#64748b", textAlign: "center", padding: "32px" }}>No orders currently ready to serve.</p>
+              ) : (
+                readyOrders.map((o) => (
+                  <div key={o.id} style={{ padding: "14px", border: "1px solid #a7f3d0", borderRadius: "8px", backgroundColor: "#ecfdf5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: "800", color: "#0f172a", fontSize: "15px" }}>Table {o.tableNumber} • Order #{o.orderNumber}</div>
+                      <div style={{ fontSize: "13px", color: "#065f46", marginTop: "4px" }}>
+                        {o.items?.map((i) => `${i.quantity} × ${i.menuItem?.name || "Item"}`).join(", ")}
+                      </div>
+                      <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: "#10b981", color: "#fff", padding: "2px 8px", borderRadius: "10px", marginTop: "6px", display: "inline-block" }}>
+                        READY TO SERVE
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleMarkServed(o.id);
+                        if (readyOrders.length <= 1) setShowReadyModal(false);
+                      }}
+                      style={{ padding: "9px 14px", backgroundColor: "#10b981", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}
+                    >
+                      <FiCheckCircle size={14} /> Mark as Served
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

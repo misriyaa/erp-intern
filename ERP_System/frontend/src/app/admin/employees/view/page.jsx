@@ -251,96 +251,17 @@ export default function EmployeePage() {
 
     else if (isTex) {
       return [
-        {
-          code: "DASHBOARD",
-          name: "Dashboard",
-          description:
-            "Industrial performance summary",
-        },
-        {
-          code: "PRODUCTS",
-          name: "Products Setup",
-          description:
-            "Manage product listings",
-        },
-        {
-          code: "CATEGORIES",
-          name: "Product Categories",
-          description:
-            "Configure category filters",
-        },
-        {
-          code: "BRANDS",
-          name: "Product Brands",
-          description:
-            "Configure product brand tags",
-        },
-        {
-          code: "UNITS",
-          name: "Units of Measure",
-          description:
-            "Configure units of measure (UoM)",
-        },
-        {
-          code: "RAW_MATERIALS",
-          name: "Raw Materials",
-          description:
-            "Weaving yarn & mill supplies",
-        },
-        {
-          code: "PRODUCTION",
-          name: "Production Run",
-          description:
-            "Textile manufacturing tracking",
-        },
-        {
-          code: "INVENTORY",
-          name: "Inventory",
-          description:
-            "Raw & finished product stocks",
-        },
-        {
-          code: "WAREHOUSE",
-          name: "Warehouse",
-          description:
-            "Storage mills & stock depots",
-        },
-        {
-          code: "QUALITY_CONTROL",
-          name: "Quality Control",
-          description:
-            "Fabric inspection sheets",
-        },
-        {
-          code: "SUPPLIERS",
-          name: "Suppliers",
-          description:
-            "Supplier records & bulk orders",
-        },
-        {
-          code: "SALES",
-          name: "Sales Orders",
-          description:
-            "Client sales & invoices",
-        },
-        {
-          code: "PAYMENTS",
-          name: "Payments",
-          description:
-            "Transactional records ledger",
-        },
-        {
-          code: "EMPLOYEES",
-          name: "Employees",
-          description:
-            "Manage workers & mill supervisors",
-        },
-        {
-          code: "REPORTS",
-          name: "Industrial Reports",
-          description:
-            "Factory output summaries",
-        },
+        { code: "DASHBOARD", name: "Restaurant Dashboard", description: "Food sales charts & analytics" },
+        { code: "RESTAURANT", name: "Restaurant POS & Floor", description: "POS terminal, KOT, tables & costing" },
+        { code: "PRODUCTS", name: "Menu & Ingredients", description: "Manage raw ingredients & recipes" },
+        { code: "CATEGORIES", name: "Menu Categories", description: "Configure menu categories" },
+        { code: "BRANDS", name: "Ingredient Brands", description: "Configure ingredient brands" },
+        { code: "UNITS", name: "Units of Measure", description: "Configure recipe units of measure" },
+        { code: "INVENTORY", name: "Kitchen Inventory", description: "Stock control of kitchen supplies" },
+        { code: "WAREHOUSE", name: "Outlets / Storage", description: "Store storage rooms & pantries" },
+        { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details for food orders" },
+        { code: "EMPLOYEES", name: "Staff Management", description: "Waiters, kitchen & cashier accounts" },
+        { code: "REPORTS", name: "Reports & Analytics", description: "Restaurant operations overview" },
       ];
     }
 

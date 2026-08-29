@@ -108,11 +108,17 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
-    if (item.href === "/dashboard" && ["RESTAURANT", "LAUNDRY"].includes((industryCode || "").toUpperCase())) {
+    const codeUpper = (industryCode || "").toUpperCase();
+    if (item.href === "/dashboard" && ["RESTAURANT", "LAUNDRY"].includes(codeUpper)) {
       return false;
     }
+    // For Restaurant ERP: exclude duplicate shared items ("Employees / Staff" and generic "Reports & Analytics")
+    if (codeUpper === "RESTAURANT") {
+      if (!item.industry && (item.moduleCode === "EMPLOYEES" || item.moduleCode === "REPORTS" || item.moduleCode === "PURCHASES" || item.moduleCode === "WASTAGE")) {
+        return false;
+      }
+    }
     if (item.industry) {
-      const codeUpper = (industryCode || "").toUpperCase();
       const itemInd = (item.industry || "").toUpperCase();
       if (codeUpper !== itemInd && !codeUpper.includes(itemInd) && !itemInd.includes(codeUpper)) {
         return false;

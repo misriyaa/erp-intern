@@ -55,7 +55,12 @@ function RestaurantTablesContent() {
   const fetchFloorPlan = async (restaurantId) => {
     try {
       const res = await restaurantService.getFloorPlan(restaurantId);
-      setAreas(res.data?.areas || []);
+      const areasList = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res)
+        ? res
+        : res?.data?.areas || [];
+      setAreas(areasList);
     } catch (err) {
       console.error("Error loading floor plan:", err);
     }
@@ -298,8 +303,8 @@ function RestaurantTablesContent() {
           </button>
         </div>
       ) : (
-        areas.map((area) => {
-          const areaTables = tables.filter((t) => t.areaId === area.id);
+        (selectedAreaId === "ALL" ? areas : areas.filter((a) => a.id === selectedAreaId)).map((area) => {
+          const areaTables = Array.isArray(area.tables) ? area.tables : [];
 
           return (
             <div key={area.id} style={{ marginBottom: "32px" }}>

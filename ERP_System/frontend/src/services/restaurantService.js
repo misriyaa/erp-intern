@@ -19,8 +19,12 @@ export const restaurantService = {
     return res.data;
   },
 
-  // Areas
+  // Areas & Floor Plan
   getAreas: async (restaurantId) => {
+    const res = await apiClient.get("/restaurant-areas", { params: { restaurantId } });
+    return res.data;
+  },
+  getFloorPlan: async (restaurantId) => {
     const res = await apiClient.get("/restaurant-areas", { params: { restaurantId } });
     return res.data;
   },
@@ -227,6 +231,12 @@ export const restaurantService = {
   // Food Costing
   getFoodCostReport: async (restaurantId) => {
     const res = await apiClient.get("/food-cost", { params: { restaurantId } });
+    return res.data;
+  },
+
+  // Restaurant Reports & Analytics
+  getRestaurantAnalytics: async (params) => {
+    const res = await apiClient.get("/restaurant-reports/analytics", { params });
     return res.data;
   },
 };
