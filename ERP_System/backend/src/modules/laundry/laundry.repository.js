@@ -224,8 +224,8 @@ export const createOrderRepo = async (companyId, orderData, itemsData, paymentDa
       await tx.payment.create({
         data: {
           companyId,
-          branchId: orderData.branchId,
-          customerId: orderData.customerId,
+          branchId: cleanBranchId,
+          customerId: cleanCustomerId,
           laundryOrderId: order.id,
           paymentNumber: payNumber,
           paymentDate: new Date(),
