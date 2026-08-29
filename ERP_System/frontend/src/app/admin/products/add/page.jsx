@@ -97,7 +97,18 @@ const initialProduct = {
 export default function AddRetailProductPage() {
   const router = useRouter();
   const { showWarning } = useAlert();
-  const { isRestaurant, industryCode } = useCompany();
+  const { isRestaurant, isTextile, industryCode } = useCompany();
+
+  useEffect(() => {
+    console.log("CURRENT ERP MODE:", isRestaurant ? "RESTAURANT" : isTextile ? "TEXTILE" : "RETAIL");
+    console.log("CURRENT PRODUCT TYPE: RETAIL");
+    console.log("COMPONENT BEING RENDERED: AddRetailProductPage");
+    console.log("CURRENT PATH:", typeof window !== "undefined" ? window.location.pathname : "");
+
+    if (isTextile) {
+      router.replace("/textile/products/add");
+    }
+  }, [isTextile, isRestaurant, router]);
 
   const [product, setProduct] = useState(initialProduct);
   const [categories, setCategories] = useState([]);

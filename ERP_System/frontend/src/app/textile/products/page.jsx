@@ -316,7 +316,7 @@ export default function TextileProductsPage() {
                       View
                     </button>
                     <button
-                      onClick={() => window.location.href = `/admin/products/edit/${p.id}`}
+                      onClick={() => window.location.href = `/textile/products/edit/${p.id}`}
                       style={{
                         padding: "6px 10px",
                         background: "#f1f5f9",
