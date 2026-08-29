@@ -47,6 +47,7 @@ export const createGymMemberController = async (req, res) => {
     const member = await createGymMemberService(companyId, req.body);
     return res.status(201).json({ success: true, message: "Member created successfully", data: member });
   } catch (err) {
+    console.error("Error in createGymMemberController:", err);
     return res.status(400).json({ success: false, message: err.message });
   }
 };
@@ -57,6 +58,7 @@ export const updateGymMemberController = async (req, res) => {
     const member = await updateGymMemberService(companyId, req.params.id, req.body);
     return res.status(200).json({ success: true, message: "Member updated successfully", data: member });
   } catch (err) {
+    console.error("Error in updateGymMemberController:", err);
     return res.status(400).json({ success: false, message: err.message });
   }
 };
