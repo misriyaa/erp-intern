@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
+import { joinOutletRoom, leaveOutletRoom, subscribeToOrderStatus, subscribeToReconnect } from "@/services/socketService";
 import { FiTv, FiClock, FiCheck, FiPlay, FiRefreshCw, FiCheckCircle, FiAlertCircle } from "react-icons/fi";
 import { showError } from "@/utils/swal";
 
@@ -22,9 +23,60 @@ export default function KitchenDisplayPage() {
   }, []);
 
   useEffect(() => {
+    if (!selectedRestaurantId) return;
+
     fetchKOTs();
-    const interval = setInterval(fetchKOTs, 3000); // Poll live KOTs every 3s
-    return () => clearInterval(interval);
+    joinOutletRoom(selectedRestaurantId);
+
+    const unsubscribeStatus = subscribeToOrderStatus((data) => {
+      if (data.restaurantId && data.restaurantId !== selectedRestaurantId) return;
+
+      // Real-time instant in-memory update for zero latency
+      if (
+        data.status === "SERVED" ||
+        data.status === "COMPLETED" ||
+        data.status === "CANCELLED"
+      ) {
+        setKotOrders((prev) =>
+          prev.filter(
+            (kot) =>
+              kot.orderId !== data.orderId &&
+              kot.id !== data.kot?.id &&
+              kot.order?.id !== data.orderId
+          )
+        );
+      } else if (data.status === "PREPARING" || data.status === "READY") {
+        setKotOrders((prev) =>
+          prev.map((kot) => {
+            if (
+              kot.orderId === data.orderId ||
+              kot.id === data.kot?.id ||
+              kot.order?.id === data.orderId
+            ) {
+              return { ...kot, status: data.status };
+            }
+            return kot;
+          })
+        );
+      }
+
+      // Sync latest queue from database
+      fetchKOTs();
+    });
+
+    const unsubscribeReconnect = subscribeToReconnect(() => {
+      joinOutletRoom(selectedRestaurantId);
+      fetchKOTs();
+    });
+
+    const interval = setInterval(fetchKOTs, 5000);
+
+    return () => {
+      clearInterval(interval);
+      unsubscribeStatus();
+      unsubscribeReconnect();
+      leaveOutletRoom(selectedRestaurantId);
+    };
   }, [selectedRestaurantId]);
 
   const fetchInitialData = async () => {
@@ -52,11 +104,12 @@ export default function KitchenDisplayPage() {
   };
 
   const fetchKOTs = async () => {
+    if (!selectedRestaurantId) return;
     try {
       const res = await restaurantService.getKitchenOrders(selectedRestaurantId);
       setKotOrders(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.warn("KOT fetch transient error (will retry):", err?.message || err);
     }
   };
 

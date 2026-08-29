@@ -89,9 +89,8 @@ export default function AddEmployeePage() {
         { code: "INVENTORY", name: "Kitchen Inventory", description: "Stock control of kitchen supplies" },
         { code: "WAREHOUSE", name: "Outlets / Storage", description: "Store storage rooms & pantries" },
         { code: "SUPPLIERS", name: "Suppliers", description: "Vendor details for food orders" },
-        { code: "PURCHASES", name: "Food Purchases", description: "Supplier ingredients procurement" },
         { code: "EMPLOYEES", name: "Staff Management", description: "Waiters, kitchen & cashier accounts" },
-        { code: "REPORTS", name: "Analytics & Reports", description: "Restaurant operations overview" },
+        { code: "REPORTS", name: "Reports & Analytics", description: "Restaurant operations overview" },
       ];
     } else {
       const list = [

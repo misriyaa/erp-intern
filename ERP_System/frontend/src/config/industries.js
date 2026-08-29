@@ -117,6 +117,7 @@ export const ROUTE_MODULE_MAP = {
   "/restaurant/orders": "RESTAURANT",
   "/restaurant/wastage": "RESTAURANT",
   "/restaurant/food-cost": "RESTAURANT",
+  "/restaurant/reports": "RESTAURANT",
 
   // Laundry Modules
   "/laundry/dashboard": "LAUNDRY",
@@ -196,8 +197,8 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "PURCHASES", label: "Purchases", href: "/purchases", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "SALES", label: "Sales Orders", href: "/sales", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "SALES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
-  { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL, MEDICAL_SHOP" },,
-
+  { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL, MEDICAL_SHOP" },
+ 
   // Restaurant Industry Modules
   { moduleCode: "RESTAURANT", label: "Dashboard", href: "/restaurant/dashboard", icon: FiGrid, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Restaurant Outlets Setup", href: "/restaurant/manage", icon: FiMapPin, industry: "RESTAURANT", adminOnly: true },
@@ -206,13 +207,11 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "RESTAURANT", label: "Reservations", href: "/restaurant/reservations", icon: FiCalendar, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Menu & Recipes", href: "/restaurant/menu", icon: FiBox, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Raw Materials / Ingredients", href: "/admin/products/view", icon: FiPackage, industry: "RESTAURANT" },
-  { moduleCode: "RESTAURANT", label: "Food Purchases", href: "/purchases", icon: FiShoppingCart, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Staff Management", href: "/admin/employees/view", icon: FiUserCheck, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Kitchen Display (KDS)", href: "/restaurant/kitchen", icon: FiMonitor, industry: "RESTAURANT" },
   { moduleCode: "RESTAURANT", label: "Restaurant Orders", href: "/restaurant/orders", icon: FiShoppingCart, industry: "RESTAURANT" },
-  { moduleCode: "RESTAURANT", label: "Wastage Management", href: "/restaurant/wastage", icon: FiTrash2, industry: "RESTAURANT" },
-  { moduleCode: "RESTAURANT", label: "Analytics & Reports", href: "/reports", icon: FiBarChart2, industry: "RESTAURANT" },
+  { moduleCode: "RESTAURANT", label: "Reports & Analytics", href: "/restaurant/reports", icon: FiBarChart2, industry: "RESTAURANT" },
 
   // Laundry Industry Modules
   { moduleCode: "LAUNDRY", label: "Laundry Dashboard", href: "/laundry/dashboard", icon: FiGrid, industry: "LAUNDRY" },

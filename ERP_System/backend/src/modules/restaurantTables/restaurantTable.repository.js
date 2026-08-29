@@ -22,7 +22,7 @@ export const getTables = async (restaurantId, areaId) => {
       orders: {
         where: {
           status: {
-            in: ["CONFIRMED", "PREPARING", "READY", "SERVED"],
+            in: ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"],
           },
         },
         include: {
@@ -32,6 +32,7 @@ export const getTables = async (restaurantId, areaId) => {
             },
           },
         },
+        orderBy: { createdAt: "desc" },
       },
     },
     orderBy: { tableNumber: "asc" },
@@ -46,7 +47,7 @@ export const getTableById = async (id) => {
       orders: {
         where: {
           status: {
-            in: ["CONFIRMED", "PREPARING", "READY", "SERVED"],
+            in: ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"],
           },
         },
         include: {
@@ -56,6 +57,7 @@ export const getTableById = async (id) => {
             },
           },
         },
+        orderBy: { createdAt: "desc" },
       },
     },
   });

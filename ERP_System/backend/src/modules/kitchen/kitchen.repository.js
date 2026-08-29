@@ -1,5 +1,6 @@
 import prisma from "../../config/prisma.js";
 import { processStockDeductionOnServed } from "../restaurantOrders/restaurantOrder.repository.js";
+import { emitOrderStatusUpdate } from "../../config/socket.js";
 
 const kotInclude = {
   restaurant: true,
@@ -49,8 +50,8 @@ export const getKitchenOrderById = async (id) => {
 };
 
 export const updateKOTStatus = async (id, status) => {
-  return await prisma.$transaction(async (tx) => {
-    const kot = await tx.kitchenOrder.update({
+  const kot = await prisma.$transaction(async (tx) => {
+    const updatedKot = await tx.kitchenOrder.update({
       where: { id },
       data: { status },
       include: kotInclude,
@@ -72,20 +73,41 @@ export const updateKOTStatus = async (id, status) => {
 
     if (targetOrderStatus) {
       await tx.restaurantOrder.update({
-        where: { id: kot.orderId },
+        where: { id: updatedKot.orderId },
         data: { status: targetOrderStatus },
       });
 
       await tx.restaurantOrderItem.updateMany({
-        where: { orderId: kot.orderId },
+        where: { orderId: updatedKot.orderId },
         data: { status: targetOrderItemsStatus },
       });
 
       if (targetOrderStatus === "SERVED") {
-        await processStockDeductionOnServed(kot.orderId, tx);
+        await processStockDeductionOnServed(updatedKot.orderId, tx);
       }
     }
 
-    return kot;
+    return updatedKot;
   });
+
+  if (kot?.orderId) {
+    try {
+      const fullOrder = await prisma.restaurantOrder.findUnique({
+        where: { id: kot.orderId },
+        include: {
+          restaurant: true,
+          table: { include: { area: true } },
+          customer: true,
+          items: { include: { menuItem: true } },
+        },
+      });
+      if (fullOrder) {
+        emitOrderStatusUpdate({ ...fullOrder, kot });
+      }
+    } catch (emitErr) {
+      console.error("Failed to emit socket event after KOT update:", emitErr);
+    }
+  }
+
+  return kot;
 };

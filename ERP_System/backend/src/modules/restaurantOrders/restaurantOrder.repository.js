@@ -1,5 +1,6 @@
 import prisma from "../../config/prisma.js";
 import { convertUnit } from "../../utils/unitConverter.js";
+import { emitOrderStatusUpdate } from "../../config/socket.js";
 
 const orderInclude = {
   restaurant: true,
@@ -160,7 +161,7 @@ export const getOrderById = async (id) => {
 export const updateOrder = async (id, data) => {
   const { items, ...orderData } = data;
 
-  return await prisma.$transaction(async (tx) => {
+  const resOrder = await prisma.$transaction(async (tx) => {
     if (items) {
       await tx.restaurantOrderItem.deleteMany({
         where: { orderId: id },
@@ -219,14 +220,43 @@ export const updateOrder = async (id, data) => {
     });
 
     if (updated.status === "SERVED") {
+      await tx.kitchenOrder.updateMany({
+        where: { orderId: id },
+        data: { status: "SERVED" },
+      });
+      await tx.restaurantOrderItem.updateMany({
+        where: { orderId: id },
+        data: { status: "SERVED" },
+      });
       await processStockDeductionOnServed(id, tx);
+    } else if (updated.status === "CANCELLED") {
+      await tx.kitchenOrder.updateMany({
+        where: { orderId: id },
+        data: { status: "CANCELLED" },
+      });
+    } else if (updated.status === "COMPLETED") {
+      await tx.kitchenOrder.updateMany({
+        where: { orderId: id },
+        data: { status: "COMPLETED" },
+      });
     }
 
-    return await tx.restaurantOrder.findUnique({
+    const finalOrder = await tx.restaurantOrder.findUnique({
       where: { id },
       include: orderInclude,
     });
+    return finalOrder;
   });
+
+  if (resOrder) {
+    try {
+      emitOrderStatusUpdate(resOrder);
+    } catch (err) {
+      console.error("Socket emit error:", err);
+    }
+  }
+
+  return resOrder;
 };
 
 export const processStockDeductionOnServed = async (orderId, tx) => {
@@ -470,7 +500,7 @@ export const checkStockAvailability = async (orderId, warehouseId) => {
 };
 
 export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOverride = false) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const order = await tx.restaurantOrder.findUnique({
       where: { id: orderId },
       include: {
@@ -606,10 +636,24 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
 
     return { order: updatedOrder, kot };
   });
+
+  try {
+    const fullOrder = await prisma.restaurantOrder.findUnique({
+      where: { id: orderId },
+      include: orderInclude,
+    });
+    if (fullOrder) {
+      emitOrderStatusUpdate({ ...fullOrder, kot: result.kot });
+    }
+  } catch (err) {
+    console.error("Socket emit error on confirmOrder:", err);
+  }
+
+  return result;
 };
 
 export const completeOrderAndPay = async (orderId, paymentData) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const order = await tx.restaurantOrder.findUnique({
       where: { id: orderId },
       include: {
@@ -662,10 +706,24 @@ export const completeOrderAndPay = async (orderId, paymentData) => {
 
     return { order: updatedOrder, payment };
   });
+
+  try {
+    const fullOrder = await prisma.restaurantOrder.findUnique({
+      where: { id: orderId },
+      include: orderInclude,
+    });
+    if (fullOrder) {
+      emitOrderStatusUpdate(fullOrder);
+    }
+  } catch (err) {
+    console.error("Socket emit error on completeOrder:", err);
+  }
+
+  return result;
 };
 
 export const cancelOrder = async (orderId, reason) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const order = await tx.restaurantOrder.findUnique({
       where: { id: orderId },
     });
@@ -694,4 +752,18 @@ export const cancelOrder = async (orderId, reason) => {
 
     return updatedOrder;
   });
+
+  try {
+    const fullOrder = await prisma.restaurantOrder.findUnique({
+      where: { id: orderId },
+      include: orderInclude,
+    });
+    if (fullOrder) {
+      emitOrderStatusUpdate(fullOrder);
+    }
+  } catch (err) {
+    console.error("Socket emit error on cancelOrder:", err);
+  }
+
+  return result;
 };

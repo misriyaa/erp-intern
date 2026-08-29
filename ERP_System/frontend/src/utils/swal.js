@@ -92,4 +92,17 @@ export const closeLoading = () => {
   Swal.close();
 };
 
+export const showToastNotification = (title, text = "", icon = "info") => {
+  return Swal.fire({
+    toast: true,
+    position: "top-end",
+    icon,
+    title,
+    text,
+    showConfirmButton: false,
+    timer: 4000,
+    timerProgressBar: true,
+  });
+};
+
 export default Swal;

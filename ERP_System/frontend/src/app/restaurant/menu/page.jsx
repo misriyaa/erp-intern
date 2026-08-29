@@ -96,7 +96,7 @@ export default function RestaurantMenuPage() {
   };
 
   // Category Handlers
-  const handleCreateCategory = async (e) => {
+  const handleSaveCategory = async (e) => {
     e.preventDefault();
     if (!categoryName.trim()) {
       showWarning("Name Required", "Please enter a category name.");
@@ -111,8 +111,11 @@ export default function RestaurantMenuPage() {
       setShowCategoryModal(false);
       loadTabData();
       showSuccess("Category Created", "Menu category created successfully!");
-    } catch (err) { showError("Failed", err.message); }
+    } catch (err) {
+      showError("Failed", err.message);
+    }
   };
+  const handleCreateCategory = handleSaveCategory;
 
   const handleDeleteCategory = async (id) => {
     const isConfirmed = await showConfirm({
