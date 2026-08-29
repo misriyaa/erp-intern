@@ -3,6 +3,7 @@ import * as categoryRepository from "../categories/category.repository.js";
 import * as brandRepository from "../brands/brand.repository.js";
 import * as unitRepository from "../units/unit.repository.js";
 import * as barcodeService from "../barcode/barcode.service.js";
+import prisma from "../../config/prisma.js";
 
 export const createProduct = async (data) => {
   let categoryId = data.categoryId;
@@ -116,6 +117,37 @@ export const createProduct = async (data) => {
   };
 
   const product = await productRepository.createProduct(cleanData);
+
+  // Initialize Inventory record in default Warehouse
+  try {
+    let warehouse = await prisma.warehouse.findFirst({
+      where: { companyId: cleanData.companyId || undefined },
+    });
+    if (!warehouse) {
+      warehouse = await prisma.warehouse.create({
+        data: {
+          name: "Main Warehouse",
+          code: "WH-MAIN",
+          location: "Main Store",
+          companyId: cleanData.companyId || null,
+          status: "ACTIVE",
+        },
+      });
+    }
+    const initialQty = cleanData.initialStock ? parseFloat(cleanData.initialStock) : 0;
+    await prisma.inventory.create({
+      data: {
+        productId: product.id,
+        warehouseId: warehouse.id,
+        quantity: initialQty,
+        reorderLevel: cleanData.reorderLevel ? parseInt(cleanData.reorderLevel) : 10,
+        minimumStock: cleanData.minimumStock ? parseInt(cleanData.minimumStock) : 0,
+        maximumStock: cleanData.maximumStock ? parseInt(cleanData.maximumStock) : 1000,
+      },
+    });
+  } catch (invErr) {
+    // Inventory initialization soft notice
+  }
 
   if (data.barcode || !product.barcodes || product.barcodes.length === 0) {
     try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import "./pos.css";
 
 import PosToolbar from "./components/PosToolbar";
@@ -46,79 +46,80 @@ export default function POSPage() {
   }, [activeTab]);
 
   // Fetch all POS dependencies from the database using authenticated apiClient
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [prodRes, catRes, brandRes, custRes, taxRes, discRes] = await Promise.all([
-          apiClient.get("/products").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/categories").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/brands").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/customers").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/taxes").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-          apiClient.get("/discounts").then((r) => r.data).catch(() => ({ success: false, data: [] })),
-        ]);
+  const loadData = useCallback(async () => {
+    try {
+      const [prodRes, catRes, brandRes, custRes, taxRes, discRes] = await Promise.all([
+        apiClient.get("/products").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/categories").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/brands").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/customers").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/taxes").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+        apiClient.get("/discounts").then((r) => r.data).catch(() => ({ success: false, data: [] })),
+      ]);
 
-        const rawProductList = Array.isArray(prodRes?.data) ? prodRes.data : Array.isArray(prodRes) ? prodRes : [];
-        const rawCategoryList = Array.isArray(catRes?.data) ? catRes.data : Array.isArray(catRes) ? catRes : [];
-        const rawBrandList = Array.isArray(brandRes?.data) ? brandRes.data : Array.isArray(brandRes) ? brandRes : (brandRes?.brands || []);
-        const rawCustList = Array.isArray(custRes?.data) ? custRes.data : Array.isArray(custRes) ? custRes : [];
-        const rawTaxList = Array.isArray(taxRes?.data) ? taxRes.data : Array.isArray(taxRes) ? taxRes : [];
-        const rawDiscList = Array.isArray(discRes?.data) ? discRes.data : Array.isArray(discRes) ? discRes : [];
+      const rawProductList = Array.isArray(prodRes?.data) ? prodRes.data : Array.isArray(prodRes) ? prodRes : [];
+      const rawCategoryList = Array.isArray(catRes?.data) ? catRes.data : Array.isArray(catRes) ? catRes : [];
+      const rawBrandList = Array.isArray(brandRes?.data) ? brandRes.data : Array.isArray(brandRes) ? brandRes : (brandRes?.brands || []);
+      const rawCustList = Array.isArray(custRes?.data) ? custRes.data : Array.isArray(custRes) ? custRes : [];
+      const rawTaxList = Array.isArray(taxRes?.data) ? taxRes.data : Array.isArray(taxRes) ? taxRes : [];
+      const rawDiscList = Array.isArray(discRes?.data) ? discRes.data : Array.isArray(discRes) ? discRes : [];
 
-        setCategories(rawCategoryList);
-        setBrands(rawBrandList);
-        setCustomers(rawCustList);
-        setTaxes(rawTaxList);
-        setDiscounts(rawDiscList);
+      setCategories(rawCategoryList);
+      setBrands(rawBrandList);
+      setCustomers(rawCustList);
+      setTaxes(rawTaxList);
+      setDiscounts(rawDiscList);
 
-        if (rawProductList.length > 0) {
-          const retailOnly = rawProductList.filter(
-            (p) => p.productType !== "RAW_MATERIAL" && p.status !== "INACTIVE"
-          );
+      if (rawProductList.length > 0) {
+        const retailOnly = rawProductList.filter(
+          (p) => p.productType !== "RAW_MATERIAL" && p.status !== "INACTIVE"
+        );
 
-          const mapped = retailOnly.map((p) => {
-            const stockQty = (p.inventories && p.inventories.length > 0)
-              ? p.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0)
-              : (p.currentStock !== undefined && p.currentStock !== null
-                  ? Number(p.currentStock)
-                  : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : Number(p.initialStock || 0)));
+        const mapped = retailOnly.map((p) => {
+          const stockQty = (p.inventories && p.inventories.length > 0)
+            ? p.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0)
+            : (p.currentStock !== undefined && p.currentStock !== null
+                ? Number(p.currentStock)
+                : (p.stock !== undefined && p.stock !== null ? Number(p.stock) : Number(p.initialStock || 0)));
 
-            const brandObj = p.brand || rawBrandList.find((b) => b.id === p.brandId);
-            const brandName = typeof brandObj === "object" ? (brandObj?.name || brandObj?.brandName) : (brandObj || "");
+          const brandObj = p.brand || rawBrandList.find((b) => b.id === p.brandId);
+          const brandName = typeof brandObj === "object" ? (brandObj?.name || brandObj?.brandName) : (brandObj || "");
 
-            const categoryObj = p.category || rawCategoryList.find((c) => c.id === p.categoryId);
-            const categoryName = typeof categoryObj === "object" ? (categoryObj?.name || categoryObj?.categoryName) : (categoryObj || "");
+          const categoryObj = p.category || rawCategoryList.find((c) => c.id === p.categoryId);
+          const categoryName = typeof categoryObj === "object" ? (categoryObj?.name || categoryObj?.categoryName) : (categoryObj || "");
 
-            return {
-              id: p.id || p._id,
-              _id: p.id || p._id,
-              name: p.name,
-              sku: p.sku || p.code || p.id,
-              code: p.sku || p.code || p.id,
-              barcode: p.barcode || p.sku || p.code || "",
-              price: Number(p.sellingPrice) || 0,
-              sellingPrice: Number(p.sellingPrice) || 0,
-              costPrice: Number(p.costPrice) || 0,
-              stock: stockQty,
-              category: categoryName || "General",
-              categoryId: p.categoryId || categoryObj?.id || null,
-              brand: brandName || "Generic",
-              brandId: p.brandId || brandObj?.id || null,
-              imageUrl: p.image
-                ? p.image.startsWith("http")
-                  ? p.image
-                  : `http://localhost:5000${p.image.startsWith("/") ? "" : "/"}${p.image}`
-                : "",
-            };
-          });
-          setProducts(mapped);
-        }
-      } catch (err) {
-        console.error("Error loading POS dynamic data:", err);
+          return {
+            id: p.id || p._id,
+            _id: p.id || p._id,
+            name: p.name,
+            sku: p.sku || p.code || p.id,
+            code: p.sku || p.code || p.id,
+            barcode: p.barcode || p.sku || p.code || "",
+            price: Number(p.sellingPrice) || 0,
+            sellingPrice: Number(p.sellingPrice) || 0,
+            costPrice: Number(p.costPrice) || 0,
+            stock: stockQty,
+            category: categoryName || "General",
+            categoryId: p.categoryId || categoryObj?.id || null,
+            brand: brandName || "Generic",
+            brandId: p.brandId || brandObj?.id || null,
+            imageUrl: p.image
+              ? p.image.startsWith("http")
+                ? p.image
+                : `http://localhost:5000${p.image.startsWith("/") ? "" : "/"}${p.image}`
+              : "",
+          };
+        });
+        setProducts(mapped);
       }
+    } catch (err) {
+      console.error("Error loading POS dynamic data:", err);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const categoryNames = useMemo(() => {
     const fromApi = categories.map((c) => (typeof c === "object" ? c.name : c)).filter(Boolean);
@@ -156,9 +157,30 @@ export default function POSPage() {
   }, [products, activeCategory, selectedBrand, query]);
 
   const addToCart = (product) => {
+    const available = Number(product.stock ?? 0);
+    if (available <= 0) {
+      Swal.fire({
+        title: "Out of Stock",
+        text: `"${product.name}" is currently out of stock (0 available).`,
+        icon: "warning",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
     setCart((prev) => {
       const existingIndex = prev.findIndex((item) => item.id === product.id);
       if (existingIndex > -1) {
+        const currentQty = prev[existingIndex].qty;
+        if (currentQty + 1 > available) {
+          Swal.fire({
+            title: "Stock Limit Reached",
+            text: `Cannot add more than ${available} unit(s) of "${product.name}".`,
+            icon: "warning",
+            confirmButtonColor: "#f59e0b",
+          });
+          return prev;
+        }
         return prev.map((item, idx) =>
           idx === existingIndex ? { ...item, qty: item.qty + 1 } : item
         );
@@ -172,6 +194,7 @@ export default function POSPage() {
           sku: product.sku,
           price: product.price,
           qty: 1,
+          stock: available,
           imageUrl: product.imageUrl,
         },
       ];
@@ -279,6 +302,16 @@ export default function POSPage() {
       removeItem(cartId);
       return;
     }
+    const item = cart.find((i) => i.cartId === cartId);
+    if (item && item.stock !== undefined && nextQty > item.stock) {
+      Swal.fire({
+        title: "Stock Limit Exceeded",
+        text: `Cannot exceed available stock of ${item.stock} unit(s) for "${item.name}".`,
+        icon: "warning",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
     setCart((prev) =>
       prev.map((item) => (item.cartId === cartId ? { ...item, qty: nextQty } : item))
     );
@@ -352,6 +385,20 @@ export default function POSPage() {
       return;
     }
 
+    // Pre-validate that all cart items have enough stock
+    for (const item of cart) {
+      const prod = products.find((p) => p.id === item.id);
+      if (prod && item.qty > (prod.stock ?? 0)) {
+        Swal.fire({
+          title: "Insufficient Stock",
+          text: `Cannot sell ${item.qty} unit(s) of "${item.name}". Only ${prod.stock ?? 0} available in stock.`,
+          icon: "error",
+          confirmButtonColor: "#ef4444",
+        });
+        return;
+      }
+    }
+
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
     const taxAmount = (subtotal - Number(discountValue)) * (activeTaxRate / 100);
     const totalAmount = subtotal;
@@ -369,6 +416,7 @@ export default function POSPage() {
       taxAmount,
       discountAmount: Number(discountValue),
       netAmount,
+      paymentMethod: selectedPayment,
       items: cart.map((item) => ({
         productId: item.id,
         quantity: item.qty,
@@ -380,8 +428,24 @@ export default function POSPage() {
     try {
       const res = await apiClient.post("/sales", salePayload).then((r) => r.data);
       if (res.success || res.id || res.data) {
+        const orderData = res.data || res;
+        const inventoryUpdates = orderData.inventoryUpdates || [];
+
+        // 1. Immediately update products stock in local state
+        if (inventoryUpdates.length > 0) {
+          setProducts((prev) =>
+            prev.map((p) => {
+              const upd = inventoryUpdates.find((u) => u.productId === p.id);
+              return upd ? { ...p, stock: upd.newQuantity } : p;
+            })
+          );
+        }
+
+        // 2. Re-fetch all dynamic product & inventory data from database
+        loadData();
+
         const completedRecord = {
-          id: res.data?.id || `sale-${Date.now()}`,
+          id: orderData.id || `sale-${Date.now()}`,
           orderNumber: salePayload.orderNumber,
           customerName,
           totalAmount,
@@ -393,47 +457,45 @@ export default function POSPage() {
         };
         saveRecentSaleLocally(completedRecord);
 
+        // Build stock summary string for alert
+        const stockSummary = inventoryUpdates
+          .map((u) => `• ${u.productName}: ${u.previousQuantity} → ${u.newQuantity} in stock`)
+          .join("<br/>");
+
         Swal.fire({
           title: "Sale Completed!",
-          text: `Invoice #${salePayload.orderNumber} created successfully! Total: ₹${netAmount.toFixed(2)}`,
+          html: `<div>
+            <p>Invoice <strong>#${salePayload.orderNumber}</strong> created successfully! Total: <strong>₹${netAmount.toFixed(2)}</strong></p>
+            ${stockSummary ? `<div style="margin-top:10px; font-size:13px; color:#059669; text-align:left; background:#ecfdf5; padding:10px; border-radius:8px;"><strong>Inventory Updated:</strong><br/>${stockSummary}</div>` : ""}
+          </div>`,
           icon: "success",
           confirmButtonColor: "#2563eb",
         });
+
         clearCart();
         setDiscountValue(0);
         setAmountReceived(0);
         setCustomer("");
       } else {
         Swal.fire({
-          title: "Sale Saved!",
-          text: `Invoice #${salePayload.orderNumber} processed successfully.`,
-          icon: "success",
+          title: "Notice",
+          text: res.message || "Sale could not be verified.",
+          icon: "warning",
           confirmButtonColor: "#2563eb",
         });
-        clearCart();
       }
     } catch (err) {
       console.error("Error completing sale:", err);
-      const fallbackRecord = {
-        id: `sale-${Date.now()}`,
-        orderNumber: salePayload.orderNumber,
-        customerName,
-        totalAmount,
-        taxAmount,
-        netAmount,
-        paymentMethod: selectedPayment,
-        date: new Date().toLocaleString(),
-        cart: [...cart],
-      };
-      saveRecentSaleLocally(fallbackRecord);
+      const errorMsg =
+        err.response?.data?.message || err.message || "Failed to process sale in database.";
 
       Swal.fire({
-        title: "Sale Completed!",
-        text: `Invoice #${salePayload.orderNumber} saved cleanly!`,
-        icon: "success",
-        confirmButtonColor: "#2563eb",
+        title: "Sale Failed",
+        text: errorMsg,
+        icon: "error",
+        confirmButtonColor: "#ef4444",
       });
-      clearCart();
+      // Do NOT clear cart so cashier can fix quantity or remove unavailable item
     }
   };
 

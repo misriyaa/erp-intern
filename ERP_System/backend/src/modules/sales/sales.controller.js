@@ -5,7 +5,7 @@ import salesService from "./sales.service.js";
 // ======================================
 export const createSalesOrder = async (req, res) => {
   try {
-    const salesOrder = await salesService.createSalesOrder(req.body);
+    const salesOrder = await salesService.createSalesOrder(req.body, req);
 
     return res.status(201).json({
       success: true,
