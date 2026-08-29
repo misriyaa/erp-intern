@@ -53,6 +53,7 @@ export default function LaundryPOS() {
   const [selServiceId, setSelServiceId] = useState("");
   const [selQty, setSelQty] = useState(1);
   const [selNotes, setSelNotes] = useState("");
+  const [customGarment, setCustomGarment] = useState("");
 
   useEffect(() => {
     fetchInitData();
@@ -143,8 +144,10 @@ export default function LaundryPOS() {
     const service = services.find(s => s.id === selServiceId);
     if (!service) return;
 
+    const garmentName = selGarment === "Other" ? (customGarment.trim() || "Other") : selGarment;
+
     const existingIndex = cart.findIndex(
-      item => item.serviceId === selServiceId && item.garmentType === selGarment
+      item => item.serviceId === selServiceId && item.garmentType === garmentName
     );
 
     if (existingIndex > -1) {
@@ -158,7 +161,7 @@ export default function LaundryPOS() {
         {
           serviceId: selServiceId,
           serviceName: service.name,
-          garmentType: selGarment,
+          garmentType: garmentName,
           quantity: selQty,
           unitPrice: parseFloat(service.price),
           totalAmount: selQty * parseFloat(service.price),
@@ -169,6 +172,7 @@ export default function LaundryPOS() {
     // reset selection
     setSelQty(1);
     setSelNotes("");
+    setCustomGarment("");
   };
 
   const removeFromCart = (index) => {
@@ -205,8 +209,8 @@ export default function LaundryPOS() {
       const currentLaundry = laundries.find(l => l.id === selectedLaundryId);
       const payload = {
         laundryId: selectedLaundryId,
-        branchId: currentLaundry?.branchId || "default-branch-id", // mock default if null
-        customerId: selectedCustomerId,
+        branchId: currentLaundry?.branchId || null,
+        customerId: selectedCustomerId === "WALK_IN" ? null : selectedCustomerId,
         subtotal,
         discountAmount,
         taxAmount,
@@ -254,10 +258,10 @@ export default function LaundryPOS() {
         {/* LAUNDRY & CUSTOMER SELECTOR */}
         <div style={{ background: "#ffffff", borderRadius: "16px", padding: "24px", border: "1px solid #e2e8f0" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: "0 0 16px 0" }}>1. Setup Laundry Outlet & Customer</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
             
-            {/* Laundry Profile */}
-            <div>
+            {/* Laundry Profile (Auto Selected & Hidden) */}
+            <div style={{ display: "none" }}>
               <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "6px" }}>LAUNDRY PROFILE</label>
               <select 
                 value={selectedLaundryId}
@@ -313,6 +317,15 @@ export default function LaundryPOS() {
                   <option key={g} value={g}>{g}</option>
                 ))}
               </select>
+              {selGarment === "Other" && (
+                <input
+                  type="text"
+                  placeholder="Enter garment type..."
+                  value={customGarment}
+                  onChange={(e) => setCustomGarment(e.target.value)}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", marginTop: "8px" }}
+                />
+              )}
             </div>
 
             {/* Service selector */}

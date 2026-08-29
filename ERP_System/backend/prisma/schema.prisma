@@ -1196,7 +1196,7 @@ model Payment {
   companyId String?  @map("company_id")
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  branchId        String  @map("branch_id") @db.Uuid
+  branchId        String? @map("branch_id") @db.Uuid
   customerId      String? @map("customer_id") @db.Uuid
   supplierId      String? @map("supplier_id") @db.Uuid
   invoiceId       String? @map("invoice_id") @db.Uuid
@@ -2094,10 +2094,10 @@ model LaundryOrder {
   laundry             Laundry            @relation(fields: [laundryId], references: [id], onDelete: Cascade)
   companyId           String?            @map("company_id")
   company             Company?           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  branchId            String
-  branch              Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  customerId          String             @map("customer_id") @db.Uuid
-  customer            Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  branchId            String?
+  branch              Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customerId          String?            @map("customer_id") @db.Uuid
+  customer            Customer?          @relation(fields: [customerId], references: [id], onDelete: Restrict)
   orderNumber         String
   status              LaundryOrderStatus @default(RECEIVED)
   subtotal            Decimal            @db.Decimal(18, 2)
