@@ -729,6 +729,129 @@ export default function LaundryPOS() {
         </div>
       )}
 
+      {/* PRINT SECTION (only visible during print via media query) */}
+      {createdOrder && (
+        <div id="print-section">
+          <div style={{ textAlign: "center", marginBottom: "15px", borderBottom: "1px dashed #000", paddingBottom: "10px" }}>
+            <h2 style={{ margin: "0 0 5px 0", fontSize: "18px", fontWeight: "bold", textTransform: "uppercase" }}>
+              {laundries.find(l => l.id === selectedLaundryId)?.name || "HABEEB LAUNDRY"}
+            </h2>
+            <p style={{ margin: "2px 0", fontSize: "12px" }}>Phone: {laundries.find(l => l.id === selectedLaundryId)?.phone || "N/A"}</p>
+            <p style={{ margin: "2px 0", fontSize: "12px" }}>Address: {laundries.find(l => l.id === selectedLaundryId)?.address || "N/A"}</p>
+          </div>
+          
+          <div style={{ borderBottom: "1px dashed #000", paddingBottom: "10px", marginBottom: "10px", fontSize: "12px", display: "flex", flexDirection: "column", gap: "3px" }}>
+            <div><strong>Order Number:</strong> {createdOrder.orderNumber}</div>
+            <div><strong>Date:</strong> {new Date(createdOrder.createdAt || createdOrder.receivedAt || Date.now()).toLocaleString()}</div>
+            <div><strong>Customer:</strong> {customers.find(c => c.id === selectedCustomerId)?.name || "Walk-in Customer"}</div>
+            {customers.find(c => c.id === selectedCustomerId)?.phone && (
+              <div><strong>Phone:</strong> {customers.find(c => c.id === selectedCustomerId)?.phone}</div>
+            )}
+          </div>
+
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginBottom: "10px" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px dashed #000" }}>
+                <th style={{ textAlign: "left", paddingBottom: "5px" }}>Item/Service</th>
+                <th style={{ textAlign: "center", paddingBottom: "5px" }}>Qty</th>
+                <th style={{ textAlign: "right", paddingBottom: "5px" }}>Price</th>
+                <th style={{ textAlign: "right", paddingBottom: "5px" }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {createdOrder.items?.map((item, index) => (
+                <tr key={index} style={{ borderBottom: "1px dotted #eee" }}>
+                  <td style={{ paddingTop: "5px", paddingBottom: "5px" }}>
+                    <div style={{ fontWeight: "bold" }}>{item.garmentType}</div>
+                    <div style={{ fontSize: "10px", color: "#666" }}>{item.service?.name}</div>
+                    {item.notes && <div style={{ fontSize: "10px", fontStyle: "italic", color: "#e11d48" }}>* {item.notes}</div>}
+                  </td>
+                  <td style={{ textAlign: "center" }}>{item.quantity}</td>
+                  <td style={{ textAlign: "right" }}>${parseFloat(item.unitPrice || 0).toFixed(2)}</td>
+                  <td style={{ textAlign: "right" }}>${parseFloat(item.totalAmount || 0).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ borderTop: "1px dashed #000", paddingTop: "10px", fontSize: "12px", display: "flex", flexDirection: "column", gap: "4px", marginBottom: "15px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Subtotal:</span>
+              <span>${parseFloat(createdOrder.subtotal || 0).toFixed(2)}</span>
+            </div>
+            {parseFloat(createdOrder.discountAmount || 0) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Discount:</span>
+                <span>-${parseFloat(createdOrder.discountAmount || 0).toFixed(2)}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Tax:</span>
+              <span>${parseFloat(createdOrder.taxAmount || 0).toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "13px", borderTop: "1px dotted #000", paddingTop: "4px", marginTop: "4px" }}>
+              <span>Total Amount:</span>
+              <span>${parseFloat(createdOrder.totalAmount || 0).toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Paid Amount:</span>
+              <span>${parseFloat(createdOrder.paidAmount || 0).toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "13px", color: parseFloat(createdOrder.balanceAmount || 0) > 0 ? "#ef4444" : "#16a34a" }}>
+              <span>Balance Due:</span>
+              <span>${parseFloat(createdOrder.balanceAmount || 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div style={{ borderTop: "1px dashed #000", paddingTop: "15px", textAlign: "center", fontSize: "12px" }}>
+            <p style={{ margin: "0 0 15px 0", fontWeight: "bold" }}>Thank you for visiting us!</p>
+            
+            {/* Garment Tag slips for processing tracking */}
+            <div style={{ border: "1px solid #000", padding: "10px", marginTop: "10px", borderRadius: "8px", textAlign: "left" }}>
+              <div style={{ fontSize: "11px", fontWeight: "bold", borderBottom: "1px solid #000", paddingBottom: "4px", marginBottom: "8px", textAlign: "center" }}>GARMENT ATTACHMENT TAGS</div>
+              {createdOrder.items?.map((item, idx) => (
+                <div key={idx} style={{ borderBottom: idx < createdOrder.items.length - 1 ? "1px dashed #ccc" : "none", paddingBottom: "6px", marginBottom: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+                    <span>{item.garmentType}</span>
+                    <span>Qty: {item.quantity}</span>
+                  </div>
+                  <div style={{ fontSize: "10px", color: "#555" }}>Service: {item.service?.name}</div>
+                  <div style={{ fontFamily: "monospace", fontSize: "14px", fontWeight: "bold", letterSpacing: "1px", marginTop: "4px", color: "#2563eb" }}>
+                    {createdOrder.orderNumber} - [001...{item.quantity}]
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRINT STYLES */}
+      <style>{`
+        #print-section {
+          display: none;
+        }
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-section, #print-section * {
+            visibility: visible;
+          }
+          #print-section {
+            display: block !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80mm; /* standard POS thermal paper size */
+            padding: 10px;
+            background: #ffffff;
+            color: #000000;
+            font-family: 'Courier New', Courier, monospace;
+          }
+        }
+      `}</style>
+
     </div>
   );
 }
