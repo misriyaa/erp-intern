@@ -80,6 +80,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const roleUpper = (user?.role || "").toUpperCase();
   const isSuperAdmin = roleUpper.includes("SUPER");
   const isAdmin = isSuperAdmin || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
+  const isManager = roleUpper === "MANAGER";
 
   // Filter master catalog based on enabled modules and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
@@ -93,6 +94,25 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
+
+    // Custom filtering for Manager in Gym industry
+    if (isGym && isManager) {
+      const allowedGymManagerItems = [
+        "DASHBOARD",
+        "MEMBERS",
+        "MEMBERSHIP_PLANS",
+        "TRAINERS",
+        "ATTENDANCE",
+        "PAYMENTS",
+        "INVENTORY",
+        "EMPLOYEES",
+        "REPORTS",
+      ];
+      if (!allowedGymManagerItems.includes(item.moduleCode)) {
+        return false;
+      }
+    }
+
     return isModuleEnabled(item.moduleCode);
   });
 

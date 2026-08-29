@@ -185,7 +185,7 @@ export default function GymMembers() {
         toast.success("Member updated successfully");
       } else {
         await axios.post("http://localhost:5000/api/gym/members", formData, { headers });
-        toast.success("Member created successfully");
+        toast.success("Member created successfully! Login password is their phone number.");
       }
 
       setShowModal(false);

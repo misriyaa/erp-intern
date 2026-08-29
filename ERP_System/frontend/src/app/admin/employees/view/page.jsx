@@ -584,8 +584,14 @@ export default function EmployeePage() {
 
   const displayedEmployees = employees.filter((emp) => {
     const callerRole = (user?.role || "").toUpperCase();
+    const empRole = (typeof emp.role === "string" ? emp.role : (emp.role?.name || "")).toUpperCase();
+
+    // Hide managers from the employee/staff list
+    // if (empRole === "MANAGER") {
+    //   return false;
+    // }
+
     if (callerRole !== "SUPER_ADMIN" && callerRole !== "SUPERADMIN") {
-      const empRole = (typeof emp.role === "string" ? emp.role : (emp.role?.name || "")).toUpperCase();
       if (empRole === "ADMIN" || empRole === "SUPER_ADMIN" || empRole === "SUPERADMIN") {
         return false;
       }

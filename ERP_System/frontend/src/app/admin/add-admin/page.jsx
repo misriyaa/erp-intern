@@ -226,7 +226,8 @@ export default function AddAdminPage() {
       handleCancel();
     } catch (err) {
       console.error(err);
-      const serverMessage = err.response?.data?.message || err.message || "";
+      const errors = err.response?.data?.errors;
+      const serverMessage = Array.isArray(errors) ? errors.join(", ") : (err.response?.data?.message || err.message || "");
       toast.error(serverMessage || "Failed to create client");
     }
   };

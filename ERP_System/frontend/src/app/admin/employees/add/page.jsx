@@ -132,6 +132,11 @@ export default function AddEmployeePage() {
         "LAUNDRY",
         "BRANCHES",
         "SERVICES",
+        "MEMBERS",
+        "MEMBERSHIP_PLANS",
+        "TRAINERS",
+        "ATTENDANCE",
+        "PAYMENTS",
       ];
       const valid = availableModules
         .map((m) => m.code)
