@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import apiClient from "@/services/apiClient";
 import { restaurantService } from "@/services/restaurantService";
+import styles from "./SingleRestaurantDashboard.module.css";
 import {
   AreaChart,
   Area,
@@ -483,9 +484,9 @@ export default function SingleRestaurantDashboard() {
   const orderTypeSummary = useMemo(() => {
     const map = {
       DINE_IN: { name: "Dine In", count: 0, sales: 0, color: "#2563eb" },
-      TAKEAWAY: { name: "Takeaway", count: 0, sales: 0, color: "#10b981" },
-      DELIVERY: { name: "Delivery", count: 0, sales: 0, color: "#f59e0b" },
-      ONLINE: { name: "Online Orders", count: 0, sales: 0, color: "#8b5cf6" },
+      TAKEAWAY: { name: "Takeaway", count: 0, sales: 0, color: "#1d4ed8" },
+      DELIVERY: { name: "Delivery", count: 0, sales: 0, color: "#1e40af" },
+      ONLINE: { name: "Online Orders", count: 0, sales: 0, color: "#3b82f6" },
     };
 
     filteredOrders.forEach((o) => {
@@ -638,85 +639,50 @@ export default function SingleRestaurantDashboard() {
 
   if (loading) {
     return (
-      <div style={{ padding: "60px", textAlign: "center", color: "#64748b", fontFamily: "Inter, sans-serif" }}>
-        <FiRefreshCw className="animate-spin" size={32} style={{ marginBottom: "16px", color: "#2563eb" }} />
-        <h2 style={{ fontSize: "20px", color: "#0f172a", margin: "0 0 8px 0" }}>Loading Restaurant Main Operations Dashboard...</h2>
-        <p style={{ margin: 0 }}>Aggregating Outlet Data, Live Table Status, KDS Queue, and Financial Summaries...</p>
+      <div className={styles.dashboardWrapper} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh" }}>
+        <FiRefreshCw className="animate-spin" size={36} style={{ color: "#d4af37", marginBottom: "18px" }} />
+        <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "22px", color: "#1c120c", margin: "0 0 8px 0" }}>Loading Restaurant Operations & Intelligence...</h2>
+        <p style={{ color: "#786b5d", fontSize: "14px", margin: 0 }}>Aggregating Outlet Data, Live Table Status, KDS Queue & Financial Analytics...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: "1550px", margin: "0 auto", fontFamily: "Inter, sans-serif", backgroundColor: "#f8fafc", minHeight: "100vh" }}>
+    <div className={styles.dashboardWrapper}>
       
       {/* ==========================================
-          SECTION 17: DASHBOARD HEADER & FILTERS
+          SECTION 1: DASHBOARD HEADER & FILTERS
       ========================================== */}
-      <div style={{ background: "#ffffff", borderRadius: "16px", padding: "20px 24px", border: "1px solid #e2e8f0", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+      <div className={styles.headerCard}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <h1 style={{ fontSize: "26px", fontWeight: "800", color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
-              <FiCoffee style={{ color: "#d97706" }} /> Restaurant ERP Operations & Intelligence Dashboard
+            <h1 className={styles.headerTitle}>
+              <FiCoffee className={styles.headerIcon} /> Restaurant ERP Operations & Intelligence
             </h1>
-            <p style={{ color: "#64748b", margin: "4px 0 0 0", fontSize: "14px" }}>
-              Unified Real-Time Overview of Sales, Orders, Tables, KDS Kitchen, Stock Alerts & Financial Performance.
+            <p className={styles.headerSubtext}>
+              Unified Real-Time Overview of Sales, Live Orders, Dining Tables, KDS Kitchen, Stock Alerts & Financial Performance
             </p>
           </div>
 
-          <button
-            onClick={fetchDashboardMetrics}
-            style={{
-              padding: "9px 14px",
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: "8px",
-              color: "#475569",
-              fontWeight: "600",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
+          <button onClick={fetchDashboardMetrics} className={styles.refreshBtn}>
             <FiRefreshCw size={15} /> Refresh Operations
           </button>
         </div>
 
         {/* FILTERS BAR: Outlet Filter | Date Range Filter */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #f1f5f9", flexWrap: "wrap" }}>
-          
+        <div className={styles.filterBar}>
           {/* Outlet Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#334155" }}>Outlet:</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span className={styles.filterLabel}>Outlet:</span>
             {restaurants.length === 0 ? (
-              <button
-                onClick={() => router.push("/restaurant/manage")}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: "8px",
-                  backgroundColor: "#fee2e2",
-                  border: "1px solid #fca5a5",
-                  color: "#991b1b",
-                  fontWeight: "700",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={() => router.push("/restaurant/manage")} className={styles.noOutletBtn}>
                 ⚠️ No restaurant outlet found (+ Create Outlet)
               </button>
             ) : (
               <select
                 value={selectedOutletId}
                 onChange={(e) => setSelectedOutletId(e.target.value)}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  backgroundColor: "#ffffff",
-                  fontWeight: "700",
-                  color: "#1e293b",
-                  fontSize: "13px",
-                }}
+                className={styles.selectControl}
               >
                 <option value="ALL">🏢 All Outlets ({restaurants.length})</option>
                 {restaurants.map((r) => (
@@ -729,23 +695,14 @@ export default function SingleRestaurantDashboard() {
           </div>
 
           {/* Date Range Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#334155" }}>Date Range:</span>
-            <div style={{ display: "inline-flex", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "2px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span className={styles.filterLabel}>Period:</span>
+            <div className={styles.dateGroup}>
               {["TODAY", "YESTERDAY", "WEEK", "MONTH", "CUSTOM"].map((df) => (
                 <button
                   key={df}
                   onClick={() => setDateFilter(df)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "6px",
-                    border: "none",
-                    background: dateFilter === df ? "#2563eb" : "transparent",
-                    color: dateFilter === df ? "#ffffff" : "#64748b",
-                    fontWeight: "700",
-                    fontSize: "12px",
-                    cursor: "pointer",
-                  }}
+                  className={`${styles.dateBtn} ${dateFilter === df ? styles.dateBtnActive : styles.dateBtnInactive}`}
                 >
                   {df}
                 </button>
@@ -760,134 +717,149 @@ export default function SingleRestaurantDashboard() {
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+                className={styles.customDateInput}
               />
-              <span style={{ fontSize: "12px", color: "#64748b" }}>to</span>
+              <span style={{ fontSize: "12px", color: "#b8a898" }}>to</span>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+                className={styles.customDateInput}
               />
             </div>
           )}
-
         </div>
       </div>
 
       {/* ==========================================
-          SECTION 3: TOP SUMMARY CARDS (8 CARDS)
+          SECTION 2: TOP SUMMARY METRIC CARDS (8 CARDS - UNIFIED MONOCHROME)
       ========================================== */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "16px", marginBottom: "28px" }}>
+      <div className={styles.summaryGrid}>
         
         {/* Card 1: Total Sales */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #10b981", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Total Sales</span>
-            <div style={{ background: "#d1fae5", color: "#059669", padding: "6px", borderRadius: "8px" }}><FiDollarSign size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Total Sales</span>
+            <div className={styles.cardIconBox}>
+              <FiDollarSign size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginTop: "8px" }}>
+          <div className={styles.metricValue}>
             ₹{totalSales.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: "11px", color: parseFloat(salesGrowthPct) >= 0 ? "#16a34a" : "#dc2626", fontWeight: "700", marginTop: "4px" }}>
+          <div className={styles.metricSubtext} style={{ color: "#2563eb" }}>
             {parseFloat(salesGrowthPct) >= 0 ? `↑ ${salesGrowthPct}% vs prev period` : `↓ ${salesGrowthPct}% vs prev period`}
           </div>
         </div>
 
         {/* Card 2: Total Orders */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #2563eb", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Total Orders</span>
-            <div style={{ background: "#dbeafe", color: "#2563eb", padding: "6px", borderRadius: "8px" }}><FiShoppingCart size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Total Orders</span>
+            <div className={styles.cardIconBox}>
+              <FiShoppingCart size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginTop: "8px" }}>
-            {totalOrdersCount} Orders
+          <div className={styles.metricValue}>
+            {totalOrdersCount} <span style={{ fontSize: "16px", fontWeight: "600", color: "#64748b" }}>Orders</span>
           </div>
-          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+          <div className={styles.metricSubtext} style={{ color: "#64748b" }}>
             {completedOrdersCount} Completed | {pendingOrdersCount} Pending
           </div>
         </div>
 
         {/* Card 3: Net Sales */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #06b6d4", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Net Sales</span>
-            <div style={{ background: "#cffaff", color: "#0891b2", padding: "6px", borderRadius: "8px" }}><FiTrendingUp size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Net Sales</span>
+            <div className={styles.cardIconBox}>
+              <FiTrendingUp size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginTop: "8px" }}>
+          <div className={styles.metricValue}>
             ₹{netSales.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+          <div className={styles.metricSubtext} style={{ color: "#64748b" }}>
             Gross ₹{grossSales.toFixed(0)} - Disc ₹{totalDiscounts.toFixed(0)}
           </div>
         </div>
 
         {/* Card 4: Net Profit */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #8b5cf6", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Net Profit</span>
-            <div style={{ background: "#f3e8ff", color: "#7e22ce", padding: "6px", borderRadius: "8px" }}><FiActivity size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Net Profit</span>
+            <div className={styles.cardIconBox}>
+              <FiActivity size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: netProfit >= 0 ? "#15803d" : "#dc2626", marginTop: "8px" }}>
+          <div className={styles.metricValue}>
             ₹{netProfit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: "11px", color: "#7e22ce", fontWeight: "700", marginTop: "4px" }}>
+          <div className={styles.metricSubtext} style={{ color: "#2563eb" }}>
             Food Cost ₹{totalFoodCost.toFixed(0)} | Exp ₹{totalExpensesPeriod.toFixed(0)}
           </div>
         </div>
 
         {/* Card 5: Customers */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #f59e0b", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Customers</span>
-            <div style={{ background: "#fef3c7", color: "#d97706", padding: "6px", borderRadius: "8px" }}><FiUsers size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Customers</span>
+            <div className={styles.cardIconBox}>
+              <FiUsers size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginTop: "8px" }}>
-            {customerStats.total} Profiles
+          <div className={styles.metricValue}>
+            {customerStats.total} <span style={{ fontSize: "16px", fontWeight: "600", color: "#64748b" }}>Profiles</span>
           </div>
-          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+          <div className={styles.metricSubtext} style={{ color: "#64748b" }}>
             {customerStats.newCust} New | {customerStats.retCust} Returning
           </div>
         </div>
 
         {/* Card 6: Average Order Value */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #ec4899", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Avg Order Value (AOV)</span>
-            <div style={{ background: "#fce7f3", color: "#db2777", padding: "6px", borderRadius: "8px" }}><FiPercent size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Avg Order Value</span>
+            <div className={styles.cardIconBox}>
+              <FiPercent size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginTop: "8px" }}>
+          <div className={styles.metricValue}>
             ₹{averageOrderValue}
           </div>
-          <div style={{ fontSize: "11px", color: "#db2777", fontWeight: "700", marginTop: "4px" }}>
-            Average spend per order
+          <div className={styles.metricSubtext} style={{ color: "#64748b" }}>
+            Average spend per dining order
           </div>
         </div>
 
         {/* Card 7: Table Status */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #3b82f6", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Table Status</span>
-            <div style={{ background: "#dbeafe", color: "#2563eb", padding: "6px", borderRadius: "8px" }}><FiCoffee size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Table Status</span>
+            <div className={styles.cardIconBox}>
+              <FiCoffee size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginTop: "8px" }}>
-            {tableStats.occupied} / {tableStats.total} Occupied
+          <div className={styles.metricValue}>
+            {tableStats.occupied} / {tableStats.total} <span style={{ fontSize: "15px", fontWeight: "600", color: "#64748b" }}>Occupied</span>
           </div>
-          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+          <div className={styles.metricSubtext} style={{ color: "#64748b" }}>
             {tableStats.available} Available | {tableStats.reserved} Reserved
           </div>
         </div>
 
         {/* Card 8: Low Stock */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "14px", padding: "18px", border: "1px solid #e2e8f0", borderLeft: "4px solid #ef4444", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#64748b" }}>Low Stock Ingredients</span>
-            <div style={{ background: "#fee2e2", color: "#dc2626", padding: "6px", borderRadius: "8px" }}><FiAlertCircle size={18} /></div>
+        <div className={styles.summaryCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardHeaderTitle}>Low Stock Items</span>
+            <div className={styles.cardIconBox}>
+              <FiAlertCircle size={19} />
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#dc2626", marginTop: "8px" }}>
-            {lowStockIngredientsCount} Ingredients
+          <div className={styles.metricValue}>
+            {lowStockIngredientsCount} <span style={{ fontSize: "15px", fontWeight: "600", color: "#64748b" }}>Items</span>
           </div>
-          <div style={{ fontSize: "11px", color: "#dc2626", fontWeight: "700", marginTop: "4px" }}>
+          <div className={styles.metricSubtext} style={{ color: "#64748b" }}>
             Below min reorder threshold
           </div>
         </div>
@@ -895,55 +867,55 @@ export default function SingleRestaurantDashboard() {
       </div>
 
       {/* ==========================================
-          SECTION 4: LIVE ORDER STATUS (7 CLICKABLE CARDS)
+          SECTION 3: LIVE ORDER STATUS (7 CLICKABLE CARDS - UNIFIED SINGLE COLOR)
       ========================================== */}
-      <div style={{ marginBottom: "28px" }}>
-        <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-          <FiShoppingCart style={{ color: "#2563eb" }} /> Live Order Status (7 Clickable Status Cards)
+      <div className={styles.liveStatusSection}>
+        <h3 className={styles.sectionHeaderTitle}>
+          <FiShoppingCart style={{ color: "#2563eb" }} /> Live Order Status (Clickable Quick Views)
         </h3>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
+        <div className={styles.liveStatusGrid}>
           
-          <div onClick={() => router.push("/restaurant/orders?status=NEW")} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", borderLeft: "4px solid #3b82f6", cursor: "pointer" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>New Orders</span>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#2563eb", marginTop: "4px" }}>{liveOrderCounts.newOrders}</div>
-            <span style={{ fontSize: "11px", color: "#3b82f6" }}>View New Orders →</span>
+          <div onClick={() => router.push("/restaurant/orders?status=NEW")} className={styles.statusCard}>
+            <span className={styles.statusCardTitle}>New Orders</span>
+            <div className={styles.statusCardValue}>{liveOrderCounts.newOrders}</div>
+            <span className={styles.statusCardLink}>View New Orders →</span>
           </div>
 
-          <div onClick={() => router.push("/restaurant/orders?status=CONFIRMED")} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", borderLeft: "4px solid #06b6d4", cursor: "pointer" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>Confirmed Orders</span>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#0891b2", marginTop: "4px" }}>{liveOrderCounts.confirmedOrders}</div>
-            <span style={{ fontSize: "11px", color: "#0891b2" }}>View Confirmed →</span>
+          <div onClick={() => router.push("/restaurant/orders?status=CONFIRMED")} className={styles.statusCard}>
+            <span className={styles.statusCardTitle}>Confirmed Orders</span>
+            <div className={styles.statusCardValue}>{liveOrderCounts.confirmedOrders}</div>
+            <span className={styles.statusCardLink}>View Confirmed →</span>
           </div>
 
-          <div onClick={() => router.push("/restaurant/orders?status=PREPARING")} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", borderLeft: "4px solid #f59e0b", cursor: "pointer" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>Preparing</span>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#d97706", marginTop: "4px" }}>{liveOrderCounts.preparing}</div>
-            <span style={{ fontSize: "11px", color: "#d97706" }}>View KDS Cooking →</span>
+          <div onClick={() => router.push("/restaurant/orders?status=PREPARING")} className={styles.statusCard}>
+            <span className={styles.statusCardTitle}>Preparing (KDS)</span>
+            <div className={styles.statusCardValue}>{liveOrderCounts.preparing}</div>
+            <span className={styles.statusCardLink}>View KDS Cooking →</span>
           </div>
 
-          <div onClick={() => router.push("/restaurant/orders?status=READY")} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", borderLeft: "4px solid #10b981", cursor: "pointer" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>Ready</span>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#059669", marginTop: "4px" }}>{liveOrderCounts.ready}</div>
-            <span style={{ fontSize: "11px", color: "#059669" }}>View Plated Ready →</span>
+          <div onClick={() => router.push("/restaurant/orders?status=READY")} className={styles.statusCard}>
+            <span className={styles.statusCardTitle}>Plated & Ready</span>
+            <div className={styles.statusCardValue}>{liveOrderCounts.ready}</div>
+            <span className={styles.statusCardLink}>View Ready →</span>
           </div>
 
-          <div onClick={() => router.push("/restaurant/orders?status=SERVED")} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", borderLeft: "4px solid #8b5cf6", cursor: "pointer" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>Served</span>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#7e22ce", marginTop: "4px" }}>{liveOrderCounts.served}</div>
-            <span style={{ fontSize: "11px", color: "#7e22ce" }}>View Served →</span>
+          <div onClick={() => router.push("/restaurant/orders?status=SERVED")} className={styles.statusCard}>
+            <span className={styles.statusCardTitle}>Served</span>
+            <div className={styles.statusCardValue}>{liveOrderCounts.served}</div>
+            <span className={styles.statusCardLink}>View Served →</span>
           </div>
 
-          <div onClick={() => router.push("/restaurant/orders?status=COMPLETED")} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", borderLeft: "4px solid #16a34a", cursor: "pointer" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>Completed</span>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#16a34a", marginTop: "4px" }}>{liveOrderCounts.completed}</div>
-            <span style={{ fontSize: "11px", color: "#16a34a" }}>View History →</span>
+          <div onClick={() => router.push("/restaurant/orders?status=COMPLETED")} className={styles.statusCard}>
+            <span className={styles.statusCardTitle}>Completed</span>
+            <div className={styles.statusCardValue}>{liveOrderCounts.completed}</div>
+            <span className={styles.statusCardLink}>View History →</span>
           </div>
 
-          <div onClick={() => router.push("/restaurant/orders?status=CANCELLED")} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", borderLeft: "4px solid #ef4444", cursor: "pointer" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>Cancelled</span>
-            <div style={{ fontSize: "22px", fontWeight: "800", color: "#dc2626", marginTop: "4px" }}>{liveOrderCounts.cancelled}</div>
-            <span style={{ fontSize: "11px", color: "#dc2626" }}>View Voided →</span>
+          <div onClick={() => router.push("/restaurant/orders?status=CANCELLED")} className={styles.statusCard}>
+            <span className={styles.statusCardTitle}>Cancelled</span>
+            <div className={styles.statusCardValue}>{liveOrderCounts.cancelled}</div>
+            <span className={styles.statusCardLink}>View Voided →</span>
           </div>
 
         </div>
@@ -952,32 +924,23 @@ export default function SingleRestaurantDashboard() {
       {/* ==========================================
           ANALYTICS SECTION: SALES OVERVIEW & ORDER TYPE
       ========================================== */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: "20px", marginBottom: "28px" }}>
+      <div className={styles.analyticsGrid}>
         
-        {/* SECTION 5: SALES OVERVIEW CHART */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+        {/* SECTION 4: SALES OVERVIEW CHART */}
+        <div className={styles.sectionCard}>
+          <div className={styles.cardTitleRow}>
             <div>
-              <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>Sales Overview Chart</h4>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>Gross Sales, Discounts, Tax & Net Sales Comparison</span>
+              <h4 className={styles.cardMainHeading}>Sales Overview Performance</h4>
+              <span className={styles.cardSubHeading}>Gross Sales, Net Revenue, Discounts & Tax Breakdown</span>
             </div>
 
             {/* Daily, Weekly, Monthly Toggle */}
-            <div style={{ display: "inline-flex", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "2px" }}>
+            <div className={styles.dateGroup}>
               {["DAILY", "WEEKLY", "MONTHLY"].map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setSalesChartView(mode)}
-                  style={{
-                    padding: "5px 10px",
-                    borderRadius: "4px",
-                    border: "none",
-                    background: salesChartView === mode ? "#2563eb" : "transparent",
-                    color: salesChartView === mode ? "#ffffff" : "#64748b",
-                    fontWeight: "700",
-                    fontSize: "11px",
-                    cursor: "pointer",
-                  }}
+                  className={`${styles.chartModeBtn} ${salesChartView === mode ? styles.chartModeBtnActive : ""}`}
                 >
                   {mode}
                 </button>
@@ -985,35 +948,38 @@ export default function SingleRestaurantDashboard() {
             </div>
           </div>
 
-          <div style={{ width: "100%", height: 270 }}>
+          <div style={{ width: "100%", height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={salesOverviewChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <XAxis dataKey="label" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} />
-                <Tooltip formatter={(val) => [`₹${Number(val).toFixed(2)}`]} />
-                <Legend verticalAlign="top" height={30} />
-                <Bar dataKey="GrossSales" name="Gross Sales" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="NetSales" name="Net Sales" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Discounts" name="Discounts" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Tax" name="Tax" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <XAxis dataKey="label" stroke="#64748b" fontSize={11} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", color: "#0f172a", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                  formatter={(val) => [`₹${Number(val).toFixed(2)}`]} 
+                />
+                <Legend verticalAlign="top" height={34} iconType="circle" />
+                <Bar dataKey="GrossSales" name="Gross Sales" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="NetSales" name="Net Sales" fill="#059669" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Discounts" name="Discounts" fill="#d97706" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Tax" name="Tax" fill="#7e22ce" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* SECTION 6: ORDER TYPE SUMMARY */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ marginBottom: "16px" }}>
-            <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>Order Type Summary</h4>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>Dine In vs Takeaway vs Delivery vs Online Orders</span>
+        {/* SECTION 5: ORDER TYPE SUMMARY */}
+        <div className={styles.sectionCard}>
+          <div style={{ marginBottom: "18px" }}>
+            <h4 className={styles.cardMainHeading}>Order Type Distribution</h4>
+            <span className={styles.cardSubHeading}>Dine In vs Takeaway vs Delivery vs Online Channel</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+          <div className={styles.orderTypeGrid}>
             {orderTypeSummary.map((item) => (
-              <div key={item.name} style={{ background: "#f8fafc", padding: "10px 12px", borderRadius: "8px", borderLeft: `3px solid ${item.color}` }}>
-                <div style={{ fontSize: "12px", fontWeight: "700", color: "#475569" }}>{item.name}</div>
-                <div style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", marginTop: "2px" }}>₹{item.sales.toFixed(2)}</div>
-                <div style={{ fontSize: "11px", color: "#64748b" }}>{item.count} orders ({item.pct}%)</div>
+              <div key={item.name} className={styles.orderTypeItem} style={{ borderLeft: `4px solid ${item.color}` }}>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: "#786b5d", textTransform: "uppercase" }}>{item.name}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "18px", fontWeight: "800", color: "#1c120c", marginTop: "2px" }}>₹{item.sales.toFixed(2)}</div>
+                <div style={{ fontSize: "11px", color: "#8c7d6e", fontWeight: "600" }}>{item.count} orders ({item.pct}%)</div>
               </div>
             ))}
           </div>
@@ -1021,12 +987,15 @@ export default function SingleRestaurantDashboard() {
           <div style={{ width: "100%", height: 140 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={orderTypeSummary} dataKey="sales" nameKey="name" cx="50%" cy="50%" innerRadius={35} outerRadius={60}>
+                <Pie data={orderTypeSummary} dataKey="sales" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={62}>
                   {orderTypeSummary.map((entry, idx) => (
                     <Cell key={`cell-ot-${idx}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(val) => [`₹${Number(val).toFixed(2)}`, "Sales"]} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "#1c120c", border: "1px solid #d4af37", borderRadius: "10px", color: "#fff" }}
+                  formatter={(val) => [`₹${Number(val).toFixed(2)}`, "Sales"]} 
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -1035,55 +1004,59 @@ export default function SingleRestaurantDashboard() {
       </div>
 
       {/* ==========================================
-          LIVE OPERATIONS: KITCHEN KDS & TABLE STATUS & RESERVATIONS
+          LIVE OPERATIONS: KITCHEN KDS & TABLE STATUS
       ========================================== */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "28px" }}>
+      <div className={styles.operationsGrid}>
         
-        {/* SECTION 8: KITCHEN STATUS & DELAYED ORDERS */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        {/* KITCHEN STATUS (KDS) */}
+        <div className={styles.sectionCard}>
+          <div className={styles.cardTitleRow}>
             <div>
-              <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>Kitchen Status (KDS)</h4>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>Active Kitchen Preparation Queue</span>
+              <h4 className={styles.cardMainHeading}>Kitchen Queue (KDS Display)</h4>
+              <span className={styles.cardSubHeading}>Active Cooking & Preparation Status</span>
             </div>
-            <Link href="/restaurant/kitchen" style={{ color: "#059669", fontWeight: "700", fontSize: "12px", textDecoration: "none" }}>
+            <Link href="/restaurant/kitchen" style={{ color: "#2563eb", fontWeight: "700", fontSize: "12px", textDecoration: "none" }}>
               Open KDS Display →
             </Link>
           </div>
 
           {/* KDS Status Counters */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "16px" }}>
-            <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", textAlign: "center" }}>
+          <div className={styles.kdsCounters}>
+            <div className={styles.kdsBox} style={{ background: "#eff6ff", borderColor: "#dbeafe" }}>
               <div style={{ fontSize: "11px", color: "#1e40af", fontWeight: "700" }}>New</div>
-              <div style={{ fontSize: "16px", fontWeight: "800", color: "#1e40af" }}>{liveOrderCounts.newOrders}</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "18px", fontWeight: "800", color: "#1e40af" }}>{liveOrderCounts.newOrders}</div>
             </div>
-            <div style={{ background: "#fef3c7", padding: "8px", borderRadius: "8px", textAlign: "center" }}>
-              <div style={{ fontSize: "11px", color: "#92400e", fontWeight: "700" }}>Preparing</div>
-              <div style={{ fontSize: "16px", fontWeight: "800", color: "#92400e" }}>{liveOrderCounts.preparing}</div>
+            <div className={styles.kdsBox} style={{ background: "#eff6ff", borderColor: "#dbeafe" }}>
+              <div style={{ fontSize: "11px", color: "#1e40af", fontWeight: "700" }}>Preparing</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "18px", fontWeight: "800", color: "#1e40af" }}>{liveOrderCounts.preparing}</div>
             </div>
-            <div style={{ background: "#d1fae5", padding: "8px", borderRadius: "8px", textAlign: "center" }}>
-              <div style={{ fontSize: "11px", color: "#065f46", fontWeight: "700" }}>Ready</div>
-              <div style={{ fontSize: "16px", fontWeight: "800", color: "#065f46" }}>{liveOrderCounts.ready}</div>
+            <div className={styles.kdsBox} style={{ background: "#eff6ff", borderColor: "#dbeafe" }}>
+              <div style={{ fontSize: "11px", color: "#1e40af", fontWeight: "700" }}>Ready</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "18px", fontWeight: "800", color: "#1e40af" }}>{liveOrderCounts.ready}</div>
             </div>
-            <div style={{ background: "#fee2e2", padding: "8px", borderRadius: "8px", textAlign: "center" }}>
-              <div style={{ fontSize: "11px", color: "#991b1b", fontWeight: "700" }}>Delayed</div>
-              <div style={{ fontSize: "16px", fontWeight: "800", color: "#991b1b" }}>{delayedOrdersList.length}</div>
+            <div className={styles.kdsBox} style={{ background: "#eff6ff", borderColor: "#dbeafe" }}>
+              <div style={{ fontSize: "11px", color: "#1e40af", fontWeight: "700" }}>Delayed</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "18px", fontWeight: "800", color: "#1e40af" }}>{delayedOrdersList.length}</div>
             </div>
           </div>
 
           {/* Delayed Orders List */}
-          <h5 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "700", color: "#dc2626" }}>Delayed KOT Preparation Alerts</h5>
+          <h5 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "700", color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+            Delayed KOT Preparation Alerts
+          </h5>
           {delayedOrdersList.length === 0 ? (
-            <p style={{ color: "#94a3b8", fontSize: "13px", margin: 0, textAlign: "center", padding: "16px" }}>No delayed kitchen preparation orders right now. All KOTs are on time.</p>
+            <p style={{ color: "#8c7d6e", fontSize: "13px", margin: 0, textAlign: "center", padding: "18px", background: "#fbf9f5", borderRadius: "8px", border: "1px dashed #e8e2d8" }}>
+              ✨ All Kitchen Preparation KOTs are running on time.
+            </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto" }}>
               {delayedOrdersList.map((d) => (
-                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fef2f2", border: "1px solid #fca5a5", padding: "8px 12px", borderRadius: "8px", fontSize: "12px" }}>
+                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fef2f2", border: "1px solid #fca5a5", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
                   <div>
                     <strong style={{ color: "#991b1b" }}>{d.kotNumber}</strong> (Table {d.tableNumber}) - {d.orderType}
                     <div style={{ fontSize: "11px", color: "#7f1d1d" }}>Time: {d.orderTime}</div>
                   </div>
-                  <span style={{ fontWeight: "800", color: "#dc2626", background: "#fee2e2", padding: "2px 8px", borderRadius: "4px" }}>
+                  <span style={{ fontWeight: "800", color: "#dc2626", background: "#fee2e2", padding: "3px 10px", borderRadius: "6px" }}>
                     ⚠️ {d.waitingTime}
                   </span>
                 </div>
@@ -1092,22 +1065,24 @@ export default function SingleRestaurantDashboard() {
           )}
         </div>
 
-        {/* SECTION 7: LIVE TABLE STATUS */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        {/* LIVE TABLE STATUS */}
+        <div className={styles.sectionCard}>
+          <div className={styles.cardTitleRow}>
             <div>
-              <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>Live Table Floor Plan ({tables.length} Tables)</h4>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>Available, Occupied, Reserved, Cleaning & Maintenance</span>
+              <h4 className={styles.cardMainHeading}>Dining Floor Plan ({tables.length} Tables)</h4>
+              <span className={styles.cardSubHeading}>Live Occupancy & Status Indicator</span>
             </div>
-            <Link href="/restaurant/tables" style={{ color: "#2563eb", fontWeight: "700", fontSize: "12px", textDecoration: "none" }}>
+            <Link href="/restaurant/tables" style={{ color: "#d97706", fontWeight: "700", fontSize: "12px", textDecoration: "none" }}>
               View All Tables →
             </Link>
           </div>
 
           {tables.length === 0 ? (
-            <p style={{ color: "#94a3b8", textAlign: "center", padding: "24px" }}>No dining tables configured yet.</p>
+            <p style={{ color: "#8c7d6e", textAlign: "center", padding: "28px", background: "#fbf9f5", borderRadius: "8px", border: "1px dashed #e8e2d8" }}>
+              No dining floor tables configured yet.
+            </p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: "10px", maxHeight: "240px", overflowY: "auto" }}>
+            <div className={styles.tableGrid}>
               {tables.map((tbl) => {
                 const isOccupied = tbl.status === "OCCUPIED";
                 const isReserved = tbl.status === "RESERVED";
@@ -1115,24 +1090,21 @@ export default function SingleRestaurantDashboard() {
                 const isCleaning = tbl.status === "CLEANING" || tbl.status === "DIRTY";
 
                 const bg = isOccupied ? "#fef2f2" : isReserved ? "#eff6ff" : isAvailable ? "#f0fdf4" : isCleaning ? "#fffbeb" : "#f8fafc";
-                const border = isOccupied ? "#ef4444" : isReserved ? "#3b82f6" : isAvailable ? "#22c55e" : isCleaning ? "#f59e0b" : "#cbd5e1";
-                const text = isOccupied ? "#991b1b" : isReserved ? "#1e40af" : isAvailable ? "#166534" : isCleaning ? "#92400e" : "#475569";
+                const border = isOccupied ? "#ef4444" : isReserved ? "#3b82f6" : isAvailable ? "#10b981" : isCleaning ? "#f59e0b" : "#cbd5e1";
+                const text = isOccupied ? "#991b1b" : isReserved ? "#1e40af" : isAvailable ? "#065f46" : isCleaning ? "#92400e" : "#475569";
 
                 return (
                   <div
                     key={tbl.id}
                     onClick={() => router.push(`/restaurant/tables`)}
+                    className={styles.tableBox}
                     style={{
                       backgroundColor: bg,
                       border: `2px solid ${border}`,
-                      borderRadius: "8px",
-                      padding: "8px",
-                      textAlign: "center",
-                      cursor: "pointer",
                     }}
                   >
                     <div style={{ fontSize: "13px", fontWeight: "800", color: text }}>{tbl.tableNumber}</div>
-                    <div style={{ fontSize: "10px", color: text, opacity: 0.8 }}>{tbl.capacity} Seats</div>
+                    <div style={{ fontSize: "10px", color: text, opacity: 0.85 }}>{tbl.capacity} Seats</div>
                     <div style={{ fontSize: "9px", fontWeight: "800", color: text, marginTop: "4px", textTransform: "uppercase" }}>
                       {tbl.status}
                     </div>
@@ -1146,74 +1118,77 @@ export default function SingleRestaurantDashboard() {
       </div>
 
       {/* ==========================================
-          SECTION 12 & 9 & 10: RESERVATIONS & TOP SELLING & LOW STOCK
+          SECTION 6: 3-COLUMN FEATURE CARDS
       ========================================== */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", marginBottom: "28px" }}>
+      <div className={styles.threeColGrid}>
         
-        {/* SECTION 12: TODAY'S RESERVATIONS */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-            <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>Today's Reservations</h4>
-            <Link href="/restaurant/reservations" style={{ color: "#8b5cf6", fontWeight: "700", fontSize: "11px", textDecoration: "none" }}>
+        {/* TODAY'S RESERVATIONS */}
+        <div className={styles.sectionCard}>
+          <div className={styles.cardTitleRow}>
+            <h4 className={styles.cardMainHeading} style={{ fontSize: "16px" }}>Today's Reservations</h4>
+            <Link href="/restaurant/reservations" style={{ color: "#7e22ce", fontWeight: "700", fontSize: "11px", textDecoration: "none" }}>
               View All →
             </Link>
           </div>
 
           {reservations.length === 0 ? (
-            <p style={{ color: "#94a3b8", fontSize: "12px", textAlign: "center", padding: "30px 0" }}>No table reservations for this date.</p>
+            <p style={{ color: "#8c7d6e", fontSize: "12px", textAlign: "center", padding: "30px 0" }}>No table reservations for this date.</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "220px", overflowY: "auto" }}>
               {reservations.slice(0, 5).map((r) => (
-                <div key={r.id} style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", borderLeft: "3px solid #8b5cf6" }}>
-                  <div style={{ fontWeight: "700", color: "#0f172a" }}>{r.customerName || "Guest"} ({r.guestCount || 2} Guests)</div>
-                  <div style={{ fontSize: "11px", color: "#64748b" }}>Time: {r.reservationTime || "07:30 PM"} | Phone: {r.phone || "N/A"}</div>
+                <div key={r.id} className={styles.listItemRow} style={{ borderLeft: "3px solid #7e22ce" }}>
+                  <div style={{ fontWeight: "700", color: "#1c120c" }}>{r.customerName || "Guest"} ({r.guestCount || 2} Guests)</div>
+                  <div style={{ fontSize: "11px", color: "#786b5d" }}>Time: {r.reservationTime || "07:30 PM"} | Phone: {r.phone || "N/A"}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* SECTION 9: TOP SELLING MENU ITEMS */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+        {/* TOP SELLING MENU ITEMS */}
+        <div className={styles.sectionCard}>
           <div style={{ marginBottom: "14px" }}>
-            <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>Top Selling Menu Items</h4>
-            <span style={{ fontSize: "11px", color: "#64748b" }}>Highest grossing dish menu items</span>
+            <h4 className={styles.cardMainHeading} style={{ fontSize: "16px" }}>Top Selling Dishes</h4>
+            <span className={styles.cardSubHeading}>Highest grossing menu items</span>
           </div>
 
           {topSellingItemsList.length === 0 ? (
-            <p style={{ color: "#94a3b8", fontSize: "12px", textAlign: "center", padding: "30px 0" }}>No order sales recorded yet.</p>
+            <p style={{ color: "#8c7d6e", fontSize: "12px", textAlign: "center", padding: "30px 0" }}>No dish sales recorded yet.</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {topSellingItemsList.map((item) => (
-                <div key={item.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "8px 10px", borderRadius: "6px", fontSize: "12px" }}>
-                  <div>
-                    <span style={{ fontWeight: "800", color: "#2563eb", marginRight: "6px" }}>#{item.rank}</span>
-                    <span style={{ fontWeight: "700", color: "#0f172a" }}>{item.name}</span>
+              {topSellingItemsList.map((item) => {
+                const rankColor = item.rank === 1 ? "#d4af37" : item.rank === 2 ? "#94a3b8" : item.rank === 3 ? "#b45309" : "#64748b";
+                return (
+                  <div key={item.name} className={styles.listItemRow} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <span className={styles.rankBadge} style={{ color: rankColor }}>#{item.rank}</span>
+                      <span style={{ fontWeight: "700", color: "#1c120c" }}>{item.name}</span>
+                    </div>
+                    <div style={{ textAlign: "right", fontWeight: "700", color: "#059669" }}>
+                      ₹{item.sales.toFixed(2)} <span style={{ fontSize: "10px", color: "#786b5d" }}>({item.qty} sold)</span>
+                    </div>
                   </div>
-                  <div style={{ textAlign: "right", fontWeight: "700", color: "#059669" }}>
-                    ₹{item.sales.toFixed(2)} ({item.qty} sold)
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* SECTION 10: LOW STOCK ALERTS */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-            <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>Low Stock Ingredient Alerts</h4>
+        {/* LOW STOCK ALERTS */}
+        <div className={styles.sectionCard}>
+          <div className={styles.cardTitleRow}>
+            <h4 className={styles.cardMainHeading} style={{ fontSize: "16px" }}>Low Stock Ingredients</h4>
             <Link href="/purchases/add" style={{ color: "#dc2626", fontWeight: "700", fontSize: "11px", textDecoration: "none" }}>
-              + PO →
+              + Create PO →
             </Link>
           </div>
 
           {lowStockAlertsList.length === 0 ? (
-            <p style={{ color: "#94a3b8", fontSize: "12px", textAlign: "center", padding: "30px 0" }}>All ingredient stock levels normal.</p>
+            <p style={{ color: "#8c7d6e", fontSize: "12px", textAlign: "center", padding: "30px 0" }}>✨ All ingredient stock levels normal.</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "220px", overflowY: "auto" }}>
               {lowStockAlertsList.map((ing) => (
-                <div key={ing.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fef2f2", border: "1px solid #fee2e2", padding: "8px 10px", borderRadius: "6px", fontSize: "12px" }}>
+                <div key={ing.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fef2f2", border: "1px solid #fee2e2", padding: "8px 10px", borderRadius: "8px", fontSize: "12px" }}>
                   <div>
                     <div style={{ fontWeight: "700", color: "#991b1b" }}>{ing.name} ({ing.code})</div>
                     <div style={{ fontSize: "10px", color: "#7f1d1d" }}>Stock: {ing.stock} {ing.unit} (Min: {ing.minStock})</div>
@@ -1230,53 +1205,53 @@ export default function SingleRestaurantDashboard() {
       </div>
 
       {/* ==========================================
-          SECTION 13 & 14 & 15: FINANCIAL & WASTAGE SUMMARIES
+          FINANCIAL & WASTAGE SUMMARIES
       ========================================== */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", marginBottom: "28px" }}>
+      <div className={styles.threeColGrid} style={{ gridTemplateColumns: "1fr 1fr" }}>
         
-        {/* SECTION 13: PAYMENT SUMMARY */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <h4 style={{ margin: "0 0 12px 0", fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>Payment Summary</h4>
+        {/* PAYMENT SUMMARY */}
+        <div className={styles.sectionCard}>
+          <h4 className={styles.cardMainHeading} style={{ fontSize: "16px", marginBottom: "14px" }}>Payment Summary</h4>
           
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", marginBottom: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", marginBottom: "16px" }}>
             {Object.entries(paymentSummaryData.methods).map(([mName, data]) => (
-              <div key={mName} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}>
-                <span style={{ color: "#475569" }}>{mName}</span>
-                <span style={{ fontWeight: "700", color: "#0f172a" }}>₹{data.amount.toFixed(2)} ({data.count} txns)</span>
+              <div key={mName} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #eee8df" }}>
+                <span style={{ color: "#64748b" }}>{mName}</span>
+                <span style={{ fontWeight: "700", color: "#1c120c" }}>₹{data.amount.toFixed(2)} ({data.count} txns)</span>
               </div>
             ))}
           </div>
 
-          <div style={{ background: "#f8fafc", padding: "10px", borderRadius: "8px", fontSize: "11px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-            <div>Total Paid: <strong style={{ color: "#16a34a" }}>₹{paymentSummaryData.totalPaid.toFixed(2)}</strong></div>
+          <div style={{ background: "#fbf9f5", padding: "12px", borderRadius: "10px", border: "1px solid #eee8df", fontSize: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div>Total Paid: <strong style={{ color: "#059669" }}>₹{paymentSummaryData.totalPaid.toFixed(2)}</strong></div>
             <div>Pending: <strong style={{ color: "#d97706" }}>₹{paymentSummaryData.pendingPayments.toFixed(2)}</strong></div>
           </div>
         </div>
 
-        {/* SECTION 14: FOOD COST & PROFIT SUMMARY */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <h4 style={{ margin: "0 0 12px 0", fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>Food Cost & Profit Summary</h4>
+        {/* FOOD COST & PROFIT SUMMARY */}
+        <div className={styles.sectionCard}>
+          <h4 className={styles.cardMainHeading} style={{ fontSize: "16px", marginBottom: "14px" }}>Food Cost & Profit Summary</h4>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Total Sales:</span>
-              <strong style={{ color: "#0f172a" }}>₹{totalSales.toFixed(2)}</strong>
+              <span style={{ color: "#786b5d" }}>Total Sales Revenue:</span>
+              <strong style={{ color: "#1c120c" }}>₹{totalSales.toFixed(2)}</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Food Cost (COGS):</span>
+              <span style={{ color: "#786b5d" }}>Food Cost (COGS):</span>
               <strong style={{ color: "#d97706" }}>₹{totalFoodCost.toFixed(2)} ({totalSales > 0 ? ((totalFoodCost / totalSales) * 100).toFixed(1) : 0}%)</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Gross Profit:</span>
+              <span style={{ color: "#786b5d" }}>Gross Profit:</span>
               <strong style={{ color: "#2563eb" }}>₹{grossProfit.toFixed(2)}</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Total Expenses:</span>
+              <span style={{ color: "#786b5d" }}>Operating Expenses:</span>
               <strong style={{ color: "#dc2626" }}>₹{totalExpensesPeriod.toFixed(2)}</strong>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "8px", borderTop: "1px solid #e2e8f0", fontWeight: "800" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "10px", borderTop: "2px solid #e8e2d8", fontWeight: "800", fontFamily: "'Playfair Display', serif", fontSize: "16px" }}>
               <span>Net Profit:</span>
-              <span style={{ color: netProfit >= 0 ? "#16a34a" : "#dc2626" }}>₹{netProfit.toFixed(2)}</span>
+              <span style={{ color: netProfit >= 0 ? "#059669" : "#dc2626" }}>₹{netProfit.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -1284,54 +1259,54 @@ export default function SingleRestaurantDashboard() {
       </div>
 
       {/* ==========================================
-          SECTION 11: RECENT ORDERS TABLE
+          SECTION 7: RECENT ORDERS TABLE
       ========================================== */}
-      <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", marginBottom: "28px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+      <div className={styles.sectionCard} style={{ marginBottom: "30px" }}>
+        <div className={styles.cardTitleRow}>
           <div>
-            <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>Recent Orders</h4>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>Latest 5 to 10 live restaurant transactions</span>
+            <h4 className={styles.cardMainHeading}>Recent Restaurant Orders</h4>
+            <span className={styles.cardSubHeading}>Latest live restaurant transactions</span>
           </div>
-          <Link href="/restaurant/orders" style={{ color: "#2563eb", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
+          <Link href="/restaurant/orders" style={{ color: "#d4af37", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
             View All Orders →
           </Link>
         </div>
 
         {filteredOrders.length === 0 ? (
-          <p style={{ color: "#94a3b8", textAlign: "center", padding: "24px" }}>No orders found for the selected filter.</p>
+          <p style={{ color: "#8c7d6e", textAlign: "center", padding: "28px" }}>No orders found for the selected filter.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+          <div className={styles.tableContainer}>
+            <table className={styles.customTable}>
               <thead>
-                <tr style={{ backgroundColor: "#f8fafc", borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Order #</th>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Time</th>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Customer</th>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Table</th>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Type</th>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Amount</th>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Payment</th>
-                  <th style={{ padding: "10px 12px", color: "#475569", fontWeight: "700" }}>Status</th>
+                <tr>
+                  <th>Order #</th>
+                  <th>Time</th>
+                  <th>Customer</th>
+                  <th>Table</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Payment</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.slice(0, 8).map((o) => (
-                  <tr key={o.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "10px 12px", fontWeight: "700", color: "#2563eb" }}>{o.orderNumber}</td>
-                    <td style={{ padding: "10px 12px", color: "#64748b" }}>
+                  <tr key={o.id}>
+                    <td style={{ fontWeight: "800", color: "#2563eb" }}>{o.orderNumber}</td>
+                    <td style={{ color: "#786b5d" }}>
                       {o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A"}
                     </td>
-                    <td style={{ padding: "10px 12px", color: "#0f172a" }}>{o.customerName || o.customer?.name || "Guest Customer"}</td>
-                    <td style={{ padding: "10px 12px", color: "#64748b" }}>{o.table?.tableNumber || o.tableNumber || "N/A"}</td>
-                    <td style={{ padding: "10px 12px", fontWeight: "600", color: "#334155" }}>{o.orderType}</td>
-                    <td style={{ padding: "10px 12px", fontWeight: "700", color: "#0f172a" }}>₹{parseFloat(o.totalAmount || 0).toFixed(2)}</td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <span style={{ fontSize: "11px", fontWeight: "700", padding: "2px 8px", borderRadius: "12px", backgroundColor: o.paymentStatus === "PAID" ? "#d1fae5" : "#fef3c7", color: o.paymentStatus === "PAID" ? "#065f46" : "#92400e" }}>
+                    <td style={{ fontWeight: "600", color: "#1c120c" }}>{o.customerName || o.customer?.name || "Guest Customer"}</td>
+                    <td style={{ color: "#786b5d" }}>{o.table?.tableNumber || o.tableNumber || "N/A"}</td>
+                    <td style={{ fontWeight: "600", color: "#4a3c31" }}>{o.orderType}</td>
+                    <td style={{ fontWeight: "800", color: "#1c120c" }}>₹{parseFloat(o.totalAmount || 0).toFixed(2)}</td>
+                    <td>
+                      <span style={{ fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "12px", backgroundColor: o.paymentStatus === "PAID" ? "#d1fae5" : "#fef3c7", color: o.paymentStatus === "PAID" ? "#065f46" : "#92400e" }}>
                         {o.paymentStatus || "PENDING"}
                       </span>
                     </td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <span style={{ fontSize: "11px", fontWeight: "700", padding: "2px 8px", borderRadius: "12px", backgroundColor: o.status === "COMPLETED" ? "#d1fae5" : o.status === "CANCELLED" ? "#fee2e2" : "#dbeafe", color: o.status === "COMPLETED" ? "#065f46" : o.status === "CANCELLED" ? "#991b1b" : "#1e40af" }}>
+                    <td>
+                      <span style={{ fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "12px", backgroundColor: o.status === "COMPLETED" ? "#d1fae5" : o.status === "CANCELLED" ? "#fee2e2" : "#dbeafe", color: o.status === "COMPLETED" ? "#065f46" : o.status === "CANCELLED" ? "#991b1b" : "#1e40af" }}>
                         {o.status}
                       </span>
                     </td>
@@ -1344,35 +1319,35 @@ export default function SingleRestaurantDashboard() {
       </div>
 
       {/* ==========================================
-          SECTION 16: QUICK ACTIONS
+          SECTION 8: OPERATIONAL QUICK ACTIONS
       ========================================== */}
-      <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-        <h4 style={{ margin: "0 0 14px 0", fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>Operational Quick Actions</h4>
+      <div className={styles.sectionCard}>
+        <h4 className={styles.cardMainHeading} style={{ marginBottom: "16px" }}>Operational Quick Actions</h4>
         
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px" }}>
-          <Link href="/restaurant/pos" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "10px", color: "#1d4ed8", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiMonitor size={16} /> New Order (POS)
+        <div className={styles.quickActionsGrid}>
+          <Link href="/restaurant/pos" className={styles.quickActionLink} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8" }}>
+            <FiMonitor size={17} /> New Order (POS)
           </Link>
-          <Link href="/restaurant/tables" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "10px", color: "#15803d", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiGrid size={16} /> Manage Tables
+          <Link href="/restaurant/tables" className={styles.quickActionLink} style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d" }}>
+            <FiGrid size={17} /> Manage Tables
           </Link>
-          <Link href="/restaurant/reservations" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#f3e8ff", border: "1px solid #e9d5ff", borderRadius: "10px", color: "#7e22ce", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiCalendar size={16} /> New Reservation
+          <Link href="/restaurant/reservations" className={styles.quickActionLink} style={{ background: "#faf5ff", border: "1px solid #e9d5ff", color: "#7e22ce" }}>
+            <FiCalendar size={17} /> New Reservation
           </Link>
-          <Link href="/restaurant/menu" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", color: "#b45309", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiBox size={16} /> Manage Menu
+          <Link href="/restaurant/menu" className={styles.quickActionLink} style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#b45309" }}>
+            <FiBox size={17} /> Manage Menu
           </Link>
-          <Link href="/admin/products/view" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: "10px", color: "#0f766e", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiPackage size={16} /> Ingredients Inventory
+          <Link href="/admin/products/view" className={styles.quickActionLink} style={{ background: "#f0fdfa", border: "1px solid #99f6e4", color: "#0f766e" }}>
+            <FiPackage size={17} /> Ingredients Stock
           </Link>
-          <Link href="/restaurant/kitchen" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "10px", color: "#047857", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiTv size={16} /> Open KDS Display
+          <Link href="/restaurant/kitchen" className={styles.quickActionLink} style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#047857" }}>
+            <FiTv size={17} /> Open KDS Display
           </Link>
-          <Link href="/admin/employees/view" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "10px", color: "#6b21a8", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiUsers size={16} /> Staff Management
+          <Link href="/admin/employees/view" className={styles.quickActionLink} style={{ background: "#fdf4ff", border: "1px solid #f5d0fe", color: "#86198f" }}>
+            <FiUsers size={17} /> Staff Management
           </Link>
-          <Link href="/restaurant/reports" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 14px", background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: "10px", color: "#1e40af", fontWeight: "700", fontSize: "13px", textDecoration: "none" }}>
-            <FiBarChart2 size={16} /> Reports & Analytics
+          <Link href="/restaurant/reports" className={styles.quickActionLink} style={{ background: "#f0f9ff", border: "1px solid #bae6fd", color: "#0369a1" }}>
+            <FiBarChart2 size={17} /> Reports & Analytics
           </Link>
         </div>
       </div>
