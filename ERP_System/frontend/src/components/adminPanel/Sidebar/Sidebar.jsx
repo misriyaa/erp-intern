@@ -124,6 +124,25 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
+
+    // Custom filtering for Manager in Gym industry
+    if (isGym && isManager) {
+      const allowedGymManagerItems = [
+        "DASHBOARD",
+        "MEMBERS",
+        "MEMBERSHIP_PLANS",
+        "TRAINERS",
+        "ATTENDANCE",
+        "PAYMENTS",
+        "INVENTORY",
+        "EMPLOYEES",
+        "REPORTS",
+      ];
+      if (!allowedGymManagerItems.includes(item.moduleCode)) {
+        return false;
+      }
+    }
+
     return isModuleEnabled(item.moduleCode);
   });
 

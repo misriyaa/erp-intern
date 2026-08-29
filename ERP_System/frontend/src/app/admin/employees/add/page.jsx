@@ -115,8 +115,32 @@ export default function AddEmployeePage() {
   }, [industryCode]);
 
   useEffect(() => {
-    if (formData.role === "Store Manager" || formData.role === "Manager") {
-      setSelectedModules(availableModules.map((m) => m.code));
+    if (formData.role === "Manager") {
+      const defaultManagerModules = [
+        "DASHBOARD",
+        "INVENTORY",
+        "WAREHOUSE",
+        "STOCK_TRANSFER",
+        "CUSTOMERS",
+        "SUPPLIERS",
+        "PURCHASES",
+        "SALES",
+        "REPORTS",
+        "INVOICES",
+        "EMPLOYEES",
+        "LAUNDRY",
+        "BRANCHES",
+        "SERVICES",
+        "MEMBERS",
+        "MEMBERSHIP_PLANS",
+        "TRAINERS",
+        "ATTENDANCE",
+        "PAYMENTS",
+      ];
+      const valid = availableModules
+        .map((m) => m.code)
+        .filter((c) => defaultManagerModules.includes(c));
+      setSelectedModules(valid.length > 0 ? valid : availableModules.map((m) => m.code));
     } else if (formData.role === "Admin") {
       setSelectedModules(availableModules.map((m) => m.code));
     } else if (formData.role === "Cashier") {
