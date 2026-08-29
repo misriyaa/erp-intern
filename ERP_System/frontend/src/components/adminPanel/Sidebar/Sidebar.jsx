@@ -17,6 +17,15 @@ import {
   FiShield,
   FiCoffee,
   FiFilter,
+  FiUsers,
+  FiCalendar,
+  FiCheckSquare,
+  FiActivity,
+  FiClock,
+  FiTrendingUp,
+  FiMail,
+  FiBarChart2,
+  FiUser,
 } from "react-icons/fi";
 
 import styles from "./Sidebar.module.css";
@@ -84,6 +93,17 @@ export default function Sidebar({ isOpen, onClose }) {
   const isCashier = roleUpper.includes("CASHIER") || roleUpper.includes("BILLING") || roleUpper.includes("COUNTER");
   const isWaiter = roleUpper.includes("WAITER") || roleUpper.includes("STEWARD") || roleUpper.includes("SERVER");
   const isKitchenStaff = roleUpper.includes("KITCHEN") || roleUpper.includes("CHEF") || roleUpper.includes("COOK");
+  const isTrainer = roleUpper.includes("TRAINER");
+
+  const trainerNavItems = [
+    { label: "Dashboard", href: "/dashboard", icon: FiGrid },
+    
+    { label: "Attendance", href: "/gym/attendance", icon: FiCheckSquare },
+
+    
+    { label: "Reports & Analytics ", href: "/reports", icon: FiBarChart2 },
+    
+  ];
 
   // Filter master catalog based on enabled modules, role and industry context
   const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
@@ -210,6 +230,23 @@ export default function Sidebar({ isOpen, onClose }) {
           <div style={{ padding: "16px 20px", color: "#94a3b8", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
             <span>Loading navigation...</span>
           </div>
+        ) : isGym && isTrainer ? (
+          trainerNavItems.map((item) => {
+            const IconComp = item.icon;
+            const active = isActivePath(item.href);
+
+            return (
+              <Link
+                key={`TRAINER-${item.label}-${item.href}`}
+                href={item.href}
+                className={active ? styles.active : ""}
+                onClick={handleLinkClick}
+              >
+                <IconComp />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })
         ) : (
           visibleNavItems.map((item) => {
             const IconComp = item.icon;
