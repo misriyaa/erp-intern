@@ -14,11 +14,16 @@ import {
 import PurchaseTable from "./components/PurchaseTable";
 import { getPurchases, deletePurchase } from "@/services/purchaseService";
 import { showSuccess, showError, showConfirm } from "@/utils/swal";
+import { useCompany } from "@/context/CompanyContext";
 import "./purchases.css";
 
 const PAGE_SIZE = 10;
 
 export default function PurchasesPage() {
+  const { user } = useCompany();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase();
+  const isAccountant = roleUpper.includes("ACCOUNTANT");
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("default");
@@ -179,10 +184,12 @@ export default function PurchasesPage() {
             <FiChevronDown size={14} />
           </button>
 
-          <Link href="/purchases/add" className="addButton">
-            <FiPlus size={17} />
-            Add New
-          </Link>
+          {!isAccountant && (
+            <Link href="/purchases/add" className="addButton">
+              <FiPlus size={17} />
+              Add New
+            </Link>
+          )}
         </div>
       </header>
 
@@ -245,7 +252,8 @@ export default function PurchasesPage() {
           <>
             <PurchaseTable
               purchases={paginatedPurchases}
-              onDelete={handleDeletePurchase}
+              onDelete={isAccountant ? undefined : handleDeletePurchase}
+              readOnly={isAccountant}
             />
 
             {/* Pagination Controls */}

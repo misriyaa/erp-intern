@@ -53,7 +53,9 @@ export const ROUTE_MODULE_MAP = {
   "/dashboard/pos-dashboard": "DASHBOARD",
   "/dashboard/hrm-dashboard": "DASHBOARD",
 
-  // POS Terminal & Barcode
+  // POS Terminal & Barcode & POS Sales History
+  "/pos/history": "POS_HISTORY",
+  "/admin/pos/history": "POS_HISTORY",
   "/pos": "POS",
   "/pos/cart": "POS",
   "/pos/checkout": "POS",
@@ -188,6 +190,7 @@ export const MASTER_NAVIGATION_CATALOG = [
 
   // Retail Industry Modules
   { moduleCode: "POS", label: "POS Terminal", href: "/pos", icon: FiMonitor, industry: "RETAIL" },
+  { moduleCode: "POS_HISTORY", label: "POS Sales History", href: "/pos/history", icon: FiClock, industry: "RETAIL" },
   { moduleCode: "BARCODE_PRINT", label: "Barcode Printing", href: "/admin/pos/barcode-print", icon: FiTag, industry: "RETAIL" },
   { moduleCode: "PRODUCTS", label: "Products", href: "/admin/products/view", icon: FiShoppingBag, industry: "RETAIL" },
   { moduleCode: "CATEGORIES", label: "Categories", href: "/admin/categories", icon: FiBox, industry: "RETAIL" },

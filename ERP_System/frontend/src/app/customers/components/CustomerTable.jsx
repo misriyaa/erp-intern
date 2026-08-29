@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
 import styles from "../customers.module.css";
 
-export default function CustomerTable({ customers = [], onDelete, onEdit }) {
+export default function CustomerTable({ customers = [], onDelete, onEdit, readOnly = false }) {
   if (!customers.length) {
     return (
       <div className={styles.tableWrapper}>
@@ -79,23 +79,27 @@ export default function CustomerTable({ customers = [], onDelete, onEdit }) {
                         <FiEye size={15} />
                       </Link>
 
-                      <button
-                        type="button"
-                        className={`${styles.actionBtn} ${styles.editBtn}`}
-                        onClick={() => onEdit && onEdit(customer)}
-                        title="Edit Customer"
-                      >
-                        <FiEdit2 size={15} />
-                      </button>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.editBtn}`}
+                          onClick={() => onEdit && onEdit(customer)}
+                          title="Edit Customer"
+                        >
+                          <FiEdit2 size={15} />
+                        </button>
+                      )}
 
-                      <button
-                        type="button"
-                        className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                        onClick={() => onDelete && onDelete(customer)}
-                        title="Delete Customer"
-                      >
-                        <FiTrash2 size={15} />
-                      </button>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                          onClick={() => onDelete && onDelete(customer)}
+                          title="Delete Customer"
+                        >
+                          <FiTrash2 size={15} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </td>

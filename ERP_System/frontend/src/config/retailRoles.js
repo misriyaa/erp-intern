@@ -63,6 +63,7 @@ export const RETAIL_ROLE_ACCESS = {
   ],
   ACCOUNTANT: [
     "DASHBOARD",
+    "POS_HISTORY",
     "SALES",
     "INVOICES",
     "PURCHASES",

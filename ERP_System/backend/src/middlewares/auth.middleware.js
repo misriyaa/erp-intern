@@ -123,6 +123,7 @@ export const attachUserIfAuthenticated = async (req, res, next) => {
             } else if (roleUpper.includes("ACCOUNTANT") || roleUpper.includes("FINANCE")) {
               userModules = [
                 "DASHBOARD",
+                "POS_HISTORY",
                 "SALES",
                 "INVOICES",
                 "PURCHASES",

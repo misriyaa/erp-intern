@@ -156,9 +156,10 @@ export function CompanyProvider({ children }) {
           if (allowed === codeUpper) return true;
           if (allowed === "INVENTORY" && (codeUpper === "WAREHOUSE" || codeUpper === "WAREHOUSES" || codeUpper === "STOCK_TRANSFER" || codeUpper === "STOCK-TRANSFER")) return true;
           if (allowed === "WAREHOUSE" && (codeUpper === "INVENTORY" || codeUpper === "STOCK_TRANSFER" || codeUpper === "STOCK-TRANSFER")) return true;
-          if (allowed === "POS" && (codeUpper === "SALES" || codeUpper === "POS")) return true;
-          if (allowed === "SALES" && (codeUpper === "POS" || codeUpper === "INVOICES")) return true;
-          if (allowed === "BARCODE_PRINT" && (codeUpper === "SALES" || codeUpper === "PRODUCTS" || codeUpper === "BARCODE_PRINT")) return true;
+          if (allowed === "POS" && codeUpper === "POS") return true;
+          if (allowed === "POS_HISTORY" && (codeUpper === "POS_HISTORY" || codeUpper === "POS-HISTORY")) return true;
+          if (allowed === "BARCODE_PRINT" && (codeUpper === "BARCODE_PRINT" || codeUpper === "BARCODE-PRINT")) return true;
+          if (allowed === "SALES" && (codeUpper === "SALES" || codeUpper === "INVOICES")) return true;
           return false;
         });
         return isAllowed;

@@ -2960,9 +2960,9 @@ export default function EmployeePage() {
                             )}
                             {normalizeRetailRole(formData.role) === "ACCOUNTANT" && (
                               <>
-                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Financial Accounting & Reports Access</div>
-                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Sales Orders, Invoices, Purchases (view), Customers (view), Suppliers (view), Reports & Analytics</div>
-                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: POS, Product setup, Categories, Brands, Warehouse, Employees</div>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Financial Accounting & Audit Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, POS Sales History (view-only), Sales Orders, Invoices, Purchases (view), Customers (view), Suppliers (view), Reports & Analytics</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Operational POS Terminal, Barcode Printing, Product setup, Categories, Brands, Warehouse, Employees, Store Settings</div>
                               </>
                             )}
                           </div>

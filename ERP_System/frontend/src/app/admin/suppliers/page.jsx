@@ -43,7 +43,10 @@ const emptyForm = {
 };
 
 export default function SuppliersPage() {
-  const { isGym, isTextile } = useCompany();
+  const { isGym, isTextile, user } = useCompany();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase();
+  const isAccountant = roleUpper.includes("ACCOUNTANT");
+  
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -350,14 +353,16 @@ export default function SuppliersPage() {
             <FiChevronDown size={14} />
           </button>
 
-          <button
-            type="button"
-            className={styles.addButton}
-            onClick={handleAddNew}
-          >
-            <FiPlus size={17} />
-            Add New
-          </button>
+          {!isAccountant && (
+            <button
+              type="button"
+              className={styles.addButton}
+              onClick={handleAddNew}
+            >
+              <FiPlus size={17} />
+              Add New
+            </button>
+          )}
         </div>
       </div>
 
@@ -620,40 +625,46 @@ export default function SuppliersPage() {
                       </td>
 
                       <td>
-                        <div className={styles.actionWrapper}>
-                          <button
-                            type="button"
-                            className={styles.actionButton}
-                            onClick={() =>
-                              setOpenMenu(
-                                openMenu === supplier.id ? null : supplier.id
-                              )
-                            }
-                          >
-                            <FiMoreVertical size={17} />
-                          </button>
+                        {!isAccountant ? (
+                          <div className={styles.actionWrapper}>
+                            <button
+                              type="button"
+                              className={styles.actionButton}
+                              onClick={() =>
+                                setOpenMenu(
+                                  openMenu === supplier.id ? null : supplier.id
+                                )
+                              }
+                            >
+                              <FiMoreVertical size={17} />
+                            </button>
 
-                          {openMenu === supplier.id && (
-                            <div className={styles.actionMenu}>
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(supplier)}
-                              >
-                                <FiEdit2 size={14} />
-                                Edit
-                              </button>
+                            {openMenu === supplier.id && (
+                              <div className={styles.actionMenu}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEdit(supplier)}
+                                >
+                                  <FiEdit2 size={14} />
+                                  Edit
+                                </button>
 
-                              <button
-                                type="button"
-                                className={styles.deleteItem}
-                                onClick={() => handleDelete(supplier.id)}
-                              >
-                                <FiTrash2 size={14} />
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                                <button
+                                  type="button"
+                                  className={styles.deleteItem}
+                                  onClick={() => handleDelete(supplier.id)}
+                                >
+                                  <FiTrash2 size={14} />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
+                            View Only
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

@@ -23,9 +23,14 @@ import {
 import CustomerTable from "./components/CustomerTable";
 import CustomerForm from "./components/CustomerForm";
 import { useAlert } from "@/context/AlertContext";
+import { useCompany } from "@/context/CompanyContext";
 import styles from "./customers.module.css";
 
 export default function CustomersPage() {
+  const { user } = useCompany();
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase();
+  const isAccountant = roleUpper.includes("ACCOUNTANT");
+
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -202,15 +207,17 @@ export default function CustomersPage() {
             <FiChevronDown size={14} />
           </button>
 
-          <button type="button" className={styles.addButton} onClick={handleAddNew}>
-            <FiPlus size={17} />
-            Add Customer
-          </button>
+          {!isAccountant && (
+            <button type="button" className={styles.addButton} onClick={handleAddNew}>
+              <FiPlus size={17} />
+              Add Customer
+            </button>
+          )}
         </div>
       </div>
 
       {/* ADD / EDIT CUSTOMER FORM CARD */}
-      {showAddForm && (
+      {showAddForm && !isAccountant && (
         <div className={styles.addCard}>
           <div className={styles.addHeader}>
             <div>
@@ -261,8 +268,8 @@ export default function CustomersPage() {
 
             {/* SORT */}
             <button type="button" className={styles.toolbarButton} onClick={handleSort}>
-              <FiArrowDown size={15} />
-              Sort: {sortOrder.toUpperCase()}
+              <FiArrowDown size={16} />
+              Sort ({sortOrder})
               <FiChevronDown size={14} />
             </button>
 
@@ -292,8 +299,9 @@ export default function CustomersPage() {
         ) : (
           <CustomerTable
             customers={filteredCustomers}
-            onDelete={handleDeleteCustomer}
-            onEdit={handleEditCustomer}
+            onDelete={isAccountant ? undefined : handleDeleteCustomer}
+            onEdit={isAccountant ? undefined : handleEditCustomer}
+            readOnly={isAccountant}
           />
         )}
       </div>
