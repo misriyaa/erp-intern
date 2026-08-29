@@ -227,9 +227,9 @@ export default function LaundryOrders() {
 
                 <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>${order.totalAmount.toFixed(2)}</div>
-                    <div style={{ fontSize: "12px", color: order.balanceAmount > 0 ? "#ef4444" : "#16a34a", fontWeight: "600" }}>
-                      {order.balanceAmount > 0 ? `Unpaid: $${order.balanceAmount.toFixed(2)}` : "Fully Paid"}
+                    <div style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>${parseFloat(order.totalAmount || 0).toFixed(2)}</div>
+                    <div style={{ fontSize: "12px", color: parseFloat(order.balanceAmount || 0) > 0 ? "#ef4444" : "#16a34a", fontWeight: "600" }}>
+                      {parseFloat(order.balanceAmount || 0) > 0 ? `Unpaid: $${parseFloat(order.balanceAmount).toFixed(2)}` : "Fully Paid"}
                     </div>
                   </div>
 
@@ -314,18 +314,18 @@ export default function LaundryOrders() {
                     <span style={{ marginLeft: "8px", color: "#2563eb", fontSize: "11px", fontWeight: "600" }}>{item.service?.name}</span>
                     {item.notes && <span style={{ display: "block", fontSize: "11px", color: "#64748b", fontStyle: "italic" }}>Instruction: {item.notes}</span>}
                   </div>
-                  <strong>${item.totalAmount.toFixed(2)}</strong>
+                  <strong>${parseFloat(item.totalAmount || 0).toFixed(2)}</strong>
                 </div>
               ))}
             </div>
 
             {/* Financial breakdown */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px", marginBottom: "20px", fontSize: "13px", color: "#475569" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal:</span><strong>${selectedOrder.subtotal.toFixed(2)}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Tax:</span><strong>${selectedOrder.taxAmount.toFixed(2)}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", color: "#0f172a" }}><span>Total:</span><strong>${selectedOrder.totalAmount.toFixed(2)}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between", color: "#16a34a" }}><span>Paid Amount:</span><strong>${selectedOrder.paidAmount.toFixed(2)}</strong></div>
-              <div style={{ display: "flex", justifyContent: "space-between", color: "#ef4444" }}><span>Balance Due:</span><strong>${selectedOrder.balanceAmount.toFixed(2)}</strong></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal:</span><strong>${parseFloat(selectedOrder.subtotal || 0).toFixed(2)}</strong></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Tax:</span><strong>${parseFloat(selectedOrder.taxAmount || 0).toFixed(2)}</strong></div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", color: "#0f172a" }}><span>Total:</span><strong>${parseFloat(selectedOrder.totalAmount || 0).toFixed(2)}</strong></div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#16a34a" }}><span>Paid Amount:</span><strong>${parseFloat(selectedOrder.paidAmount || 0).toFixed(2)}</strong></div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#ef4444" }}><span>Balance Due:</span><strong>${parseFloat(selectedOrder.balanceAmount || 0).toFixed(2)}</strong></div>
             </div>
 
             <div style={{ display: "flex", gap: "12px" }}>
