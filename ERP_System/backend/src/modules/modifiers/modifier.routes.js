@@ -7,8 +7,8 @@ router.post("/", modifierController.createModifierGroup);
 router.get("/", modifierController.getModifierGroups);
 router.get("/:id", modifierController.getModifierGroupById);
 router.put("/:id", modifierController.updateModifierGroup);
-router.post("/link", modifierController.linkMenuItemModifierGroup);
-router.post("/unlink", modifierController.unlinkMenuItemModifierGroup);
+router.post("/link", modifierController.linkMenuItem);
+router.post("/unlink", modifierController.unlinkMenuItem);
 router.delete("/:id", modifierController.deleteModifierGroup);
 
 export default router;
