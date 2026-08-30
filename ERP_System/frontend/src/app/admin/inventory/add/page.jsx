@@ -147,11 +147,14 @@ export default function AddInventoryPage() {
                       required
                     >
                       <option value="">Select Product</option>
-                      {products.map((prod) => (
-                        <option key={prod.id} value={prod.id}>
-                          {prod.name} ({prod.sku})
-                        </option>
-                      ))}
+                      {products.map((prod) => {
+                        const currentStock = prod.inventories?.reduce((acc, inv) => acc + Number(inv.quantity || 0), 0) ?? (prod.initialStock !== undefined && prod.initialStock !== null ? Number(prod.initialStock) : 0);
+                        return (
+                          <option key={prod.id} value={prod.id}>
+                            {prod.name} ({prod.sku}) — Stock: {currentStock}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 

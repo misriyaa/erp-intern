@@ -5,27 +5,27 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/adminPanel/Sidebar/Sidebar";
 import Header from "@/components/adminPanel/Header/Header";
+import CashierNavbar from "@/components/common/CashierNavbar";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { CompanyProvider, useCompany } from "@/context/CompanyContext";
 import IndustryRouteGuard from "@/components/common/IndustryRouteGuard";
-import { FiMonitor, FiShoppingCart, FiLogOut, FiUser } from "react-icons/fi";
 import styles from "./AppLayout.module.css";
 
 function AppShell({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, isLaundry, isRestaurant, clearSession } = useCompany();
+  const { user, isLaundry, isRestaurant, isGym, isTextile, clearSession } = useCompany();
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
   const closeSidebar = () => setSidebarOpen(false);
 
   const roleUpper = (user?.role || "").toUpperCase();
   const isCashier = roleUpper.includes("CASHIER");
+  const isRetailCashier = isCashier && !isLaundry && !isRestaurant && !isGym && !isTextile;
 
   const posRoute = isLaundry ? "/laundry/pos" : isRestaurant ? "/restaurant/pos" : "/pos";
-  const ordersRoute = isLaundry ? "/laundry/orders" : isRestaurant ? "/restaurant/orders" : "/sales";
 
   // Redirect Cashier away from Dashboard directly to POS Screen
   useEffect(() => {
@@ -34,14 +34,19 @@ function AppShell({ children }) {
     }
   }, [isCashier, pathname, posRoute, router]);
 
-  const handleLogout = () => {
-    clearSession();
-    if (typeof window !== "undefined") {
-      window.location.href = "/auth/login";
-    }
-  };
+  // Dedicated Full-Width Top-Nav Layout for Retail Cashier Only
+  if (isRetailCashier) {
+    return (
+      <div className={styles.cashierAppWrapper}>
+        <CashierNavbar />
+        <main className={styles.cashierPageBody}>
+          <IndustryRouteGuard>{children}</IndustryRouteGuard>
+        </main>
+      </div>
+    );
+  }
 
-  // Standard ERP Layout with Sidebar for all roles (including Retail Cashier)
+  // Standard ERP Layout with Sidebar for Admins/Managers and other ERP modes
   return (
     <div className={styles.appWrapper}>
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />

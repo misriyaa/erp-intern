@@ -142,8 +142,17 @@ export default function Sidebar({ isOpen, onClose }) {
     
   ];
 
+  const isRetailCashier = isCashier && !isAdmin && !isManager && (isRetail || (!isLaundry && !isGym && !isTextile && !isMedical && !isRestaurant));
+
+  const retailCashierNavItems = [
+    { label: "POS Terminal", href: "/pos", icon: FiGrid },
+    { label: "POS Sales History", href: "/pos/history", icon: FiClock },
+  ];
+
   // Filter master catalog based on enabled modules, role and industry context
-  const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
+  const visibleNavItems = isRetailCashier
+    ? retailCashierNavItems
+    : MASTER_NAVIGATION_CATALOG.filter((item) => {
     if (item.adminOnly && !isAdmin) {
       return false;
     }
@@ -167,7 +176,7 @@ export default function Sidebar({ isOpen, onClose }) {
         if (!cashierHrefs.includes(item.href)) {
           return false;
         }
-      } else if (isRetail || (!isLaundry && !isGym && !isTextile && !isMedical)) {
+      } else {
         const cashierHrefs = ["/pos", "/pos/history"];
         if (!cashierHrefs.includes(item.href)) {
           return false;
@@ -213,7 +222,6 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
-
 
     // Custom filtering for Manager in Gym industry
     if (isGym && isManager) {
@@ -283,7 +291,9 @@ export default function Sidebar({ isOpen, onClose }) {
         )}
 
         <h4 className={styles.title}>
-          {isGym
+          {isRetailCashier
+            ? "RETAIL POS"
+            : isGym
             ? "GYM MANAGEMENT MODULES"
             : isTextile
             ? "TEXTILE ERP MODULES"
