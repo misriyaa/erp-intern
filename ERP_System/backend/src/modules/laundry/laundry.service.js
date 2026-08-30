@@ -166,6 +166,14 @@ export const updateGarmentStatusService = async (id, status) => {
   return await laundryRepository.updateGarmentStatusRepo(id, status);
 };
 
+export const getGarmentsService = async (companyId, filters) => {
+  return await laundryRepository.getGarmentsRepo(companyId, filters);
+};
+
+export const createGarmentService = async (companyId, garmentData) => {
+  return await laundryRepository.createGarmentRepo(companyId, garmentData);
+};
+
 // ==========================================
 // LAUNDRY DELIVERIES SERVICE
 // ==========================================
@@ -180,4 +188,8 @@ export const updateDeliveryStatusService = async (orderId, payload) => {
 
 export const getLaundryStatsService = async (companyId, laundryId) => {
   return await laundryRepository.getLaundryStatsRepo(companyId, laundryId);
+};
+
+export const getLaundryReportsService = async (companyId, laundryId) => {
+  return await laundryRepository.getLaundryReportsRepo(companyId, laundryId);
 };

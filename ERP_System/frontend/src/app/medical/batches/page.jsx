@@ -46,21 +46,12 @@ export default function BatchesRegistry() {
       setBatches(batchRes.data || []);
       const medList = medRes.data || [];
       setMedicines(medList);
-      if (medList.length > 0) {
-        setMedicineId(medList[0].id);
-      }
 
       const supList = supRes.data || supRes || [];
       setSuppliers(supList);
-      if (supList.length > 0) {
-        setSupplierId(supList[0].id);
-      }
 
       const whList = whRes.data || [];
       setWarehouses(whList);
-      if (whList.length > 0) {
-        setWarehouseId(whList[0].id);
-      }
 
     } catch (err) {
       console.error(err);
@@ -110,7 +101,7 @@ export default function BatchesRegistry() {
           sellingPrice: parseFloat(selPrice),
           quantity: parseInt(qty),
           medicine: med || { genericName: "Paracetamol", product: { name: "Panadol" } },
-          supplier: suppliers.find(s => s.id === supplierId) || { name: "Generic Supplier" },
+          supplier: suppliers.find(s => s.id === supplierId) || { companyName: "Generic Supplier" },
           warehouse: warehouses.find(w => w.id === warehouseId) || { name: "Central Pharmacy Warehouse" }
         }
       ]);
@@ -160,12 +151,14 @@ export default function BatchesRegistry() {
             
             {/* Medicine */}
             <div>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>SELECT MEDICINE</label>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>SELECT MEDICINE *</label>
               <select 
+                required
                 value={medicineId}
                 onChange={(e) => setMedicineId(e.target.value)}
                 style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               >
+                <option value="">-- Choose Medicine --</option>
                 {medicines.map(m => (
                   <option key={m.id} value={m.id}>{m.product?.name || m.genericName}</option>
                 ))}
@@ -174,7 +167,7 @@ export default function BatchesRegistry() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>BATCH NUMBER</label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>BATCH NUMBER *</label>
                 <input 
                   type="text"
                   required
@@ -186,7 +179,7 @@ export default function BatchesRegistry() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>QUANTITY</label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>QUANTITY *</label>
                 <input 
                   type="number"
                   required
@@ -223,7 +216,7 @@ export default function BatchesRegistry() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>PURCHASE COST ($)</label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>PURCHASE COST ($) *</label>
                 <input 
                   type="number"
                   step="0.01"
@@ -236,7 +229,7 @@ export default function BatchesRegistry() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>RETAIL SELL PRICE ($)</label>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b", marginBottom: "4px" }}>RETAIL SELL PRICE ($) *</label>
                 <input 
                   type="number"
                   step="0.01"
@@ -257,9 +250,9 @@ export default function BatchesRegistry() {
                   onChange={(e) => setSupplierId(e.target.value)}
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                 >
-                  <option value="">-- Choose Supplier --</option>
+                  <option value="">-- Choose Supplier (Optional) --</option>
                   {suppliers.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.companyName}</option>
                   ))}
                 </select>
               </div>
@@ -271,6 +264,7 @@ export default function BatchesRegistry() {
                   onChange={(e) => setWarehouseId(e.target.value)}
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                 >
+                  <option value="">-- Choose Warehouse (Optional) --</option>
                   {warehouses.map(w => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}

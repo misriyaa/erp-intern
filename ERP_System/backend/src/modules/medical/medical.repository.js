@@ -417,3 +417,57 @@ export const getMedicalDashboardStatsRepo = async (companyId) => {
     outOfStockBatches: outOfStock
   };
 };
+
+export const getMedicalReportsRepo = async (companyId) => {
+  const salesMovements = await prisma.stockMovement.findMany({
+    where: {
+      companyId,
+      type: "SALE"
+    },
+    include: {
+      product: true
+    }
+  });
+
+  let costOfGoods = 0;
+  let grossRevenue = 0;
+  const drugSalesMap = {};
+
+  for (const m of salesMovements) {
+    const qty = Math.abs(parseFloat(m.quantity));
+    const cost = qty * parseFloat(m.product.costPrice || 0);
+    const sales = qty * parseFloat(m.product.sellingPrice || 0);
+
+    costOfGoods += cost;
+    grossRevenue += sales;
+
+    const pId = m.productId;
+    const name = m.product.name;
+
+    if (!drugSalesMap[pId]) {
+      drugSalesMap[pId] = { name, sales: 0, cost: 0 };
+    }
+    drugSalesMap[pId].sales += sales;
+    drugSalesMap[pId].cost += cost;
+  }
+
+  const grossProfit = grossRevenue - costOfGoods;
+  const netMargins = grossRevenue > 0 ? ((grossProfit / grossRevenue) * 100).toFixed(1) + "%" : "0.0%";
+
+  const cogsByDrug = Object.values(drugSalesMap).map(d => {
+    const profit = d.sales - d.cost;
+    const margin = d.sales > 0 ? Math.round((profit / d.sales) * 100) : 0;
+    return {
+      name: d.name,
+      sales: d.sales,
+      margin
+    };
+  }).sort((a, b) => b.sales - a.sales).slice(0, 5);
+
+  return {
+    grossProfit,
+    costOfGoods,
+    netMargins,
+    cogsByDrug
+  };
+};

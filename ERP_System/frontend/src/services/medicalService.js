@@ -80,4 +80,16 @@ export const medicalService = {
     const res = await apiClient.get("/medical/dashboard/stats");
     return res.data;
   },
+
+  // Returns
+  getPurchaseReturns: async () => {
+    const res = await apiClient.get("/returns/purchase");
+    return res.data;
+  },
+
+  // Reports
+  getReports: async () => {
+    const res = await apiClient.get("/medical/dashboard/reports");
+    return res.data;
+  },
 };

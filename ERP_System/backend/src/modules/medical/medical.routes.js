@@ -12,6 +12,7 @@ const router = Router();
 
 // Dashboard Stats
 router.get("/dashboard/stats", requireModuleAccess("MEDICAL_SHOP"), medicalController.getMedicalDashboardStatsController);
+router.get("/dashboard/reports", requireModuleAccess("MEDICAL_SHOP"), medicalController.getMedicalReportsController);
 
 // Medical Shops (Branches of type MEDICAL_SHOP)
 router.get("/shops", requireModuleAccess("MEDICAL_SHOP"), medicalController.getMedicalShopsController);
