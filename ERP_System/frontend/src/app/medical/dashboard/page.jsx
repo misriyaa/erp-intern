@@ -36,30 +36,32 @@ export default function PharmacyDashboard() {
       setLoading(true);
       const res = await medicalService.getDashboardStats();
       if (res.success && res.data) {
-        setStats(res.data);
-      } else {
-        // Fallback Mock Data
-        setStats({
-          totalBatches: 85,
-          expiredCount: 3,
-          expiringSoon30Count: 5,
-          expiringSoon90Count: 12,
-          lowStockCount: 6,
-          outOfStockCount: 2,
-          expiredBatches: [
-            { id: "b1", batchNumber: "B-PAR-092", medicine: { genericName: "Paracetamol", product: { name: "Panadol 500mg" } }, expiryDate: new Date(Date.now() - 5 * 86400000).toISOString(), quantity: 120 },
-            { id: "b2", batchNumber: "B-AMO-488", medicine: { genericName: "Amoxicillin", product: { name: "Amoxil 250mg" } }, expiryDate: new Date(Date.now() - 15 * 86400000).toISOString(), quantity: 45 }
-          ],
-          expiringSoonBatches: [
-            { id: "b3", batchNumber: "B-IBU-720", medicine: { genericName: "Ibuprofen", product: { name: "Advil 200mg" } }, expiryDate: new Date(Date.now() + 14 * 86400000).toISOString(), quantity: 300 },
-            { id: "b4", batchNumber: "B-CET-002", medicine: { genericName: "Cetirizine", product: { name: "Zyrtec 10mg" } }, expiryDate: new Date(Date.now() + 25 * 86400000).toISOString(), quantity: 180 }
-          ],
-          lowStockBatches: [
-            { id: "b5", batchNumber: "B-LIP-102", medicine: { genericName: "Atorvastatin", product: { name: "Lipitor 10mg" } }, quantity: 8 },
-            { id: "b6", batchNumber: "B-MET-039", medicine: { genericName: "Metformin", product: { name: "Glucophage 500mg" } }, quantity: 14 }
-          ],
-          outOfStockBatches: []
-        });
+        if (res.data.totalBatches > 0) {
+          setStats(res.data);
+        } else {
+          // Fallback Mock Data if database is fresh
+          setStats({
+            totalBatches: 85,
+            expiredCount: 3,
+            expiringSoon30Count: 5,
+            expiringSoon90Count: 12,
+            lowStockCount: 6,
+            outOfStockCount: 2,
+            expiredBatches: [
+              { id: "b1", batchNumber: "B-PAR-092", medicine: { genericName: "Paracetamol", product: { name: "Panadol 500mg" } }, expiryDate: new Date(Date.now() - 5 * 86400000).toISOString(), quantity: 120, isMock: true },
+              { id: "b2", batchNumber: "B-AMO-488", medicine: { genericName: "Amoxicillin", product: { name: "Amoxil 250mg" } }, expiryDate: new Date(Date.now() - 15 * 86400000).toISOString(), quantity: 45, isMock: true }
+            ],
+            expiringSoonBatches: [
+              { id: "b3", batchNumber: "B-IBU-720", medicine: { genericName: "Ibuprofen", product: { name: "Advil 200mg" } }, expiryDate: new Date(Date.now() + 14 * 86400000).toISOString(), quantity: 300, isMock: true },
+              { id: "b4", batchNumber: "B-CET-002", medicine: { genericName: "Cetirizine", product: { name: "Zyrtec 10mg" } }, expiryDate: new Date(Date.now() + 25 * 86400000).toISOString(), quantity: 180, isMock: true }
+            ],
+            lowStockBatches: [
+              { id: "b5", batchNumber: "B-LIP-102", medicine: { genericName: "Atorvastatin", product: { name: "Lipitor 10mg" } }, quantity: 8, isMock: true },
+              { id: "b6", batchNumber: "B-MET-039", medicine: { genericName: "Metformin", product: { name: "Glucophage 500mg" } }, quantity: 14, isMock: true }
+            ],
+            outOfStockBatches: []
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -154,7 +156,10 @@ export default function PharmacyDashboard() {
                 {stats.expiredBatches.map(b => (
                   <tr key={b.id} style={{ borderBottom: "1px solid #f8fafc", fontSize: "13px" }}>
                     <td style={{ padding: "8px", fontWeight: "700" }}>{b.batchNumber}</td>
-                    <td style={{ padding: "8px" }}>{b.medicine?.product?.name || b.medicine?.genericName}</td>
+                    <td style={{ padding: "8px" }}>
+                      {b.medicine?.product?.name || b.medicine?.genericName}
+                      {b.isMock && <span style={{ marginLeft: "6px", fontSize: "10px", color: "#94a3b8" }}>(Sample)</span>}
+                    </td>
                     <td style={{ padding: "8px", color: "#ef4444", fontWeight: "600" }}>{new Date(b.expiryDate).toLocaleDateString()}</td>
                     <td style={{ padding: "8px" }}>{b.quantity}</td>
                   </tr>
@@ -181,7 +186,10 @@ export default function PharmacyDashboard() {
                 {stats.lowStockBatches.map(b => (
                   <tr key={b.id} style={{ borderBottom: "1px solid #f8fafc", fontSize: "13px" }}>
                     <td style={{ padding: "8px", fontWeight: "700" }}>{b.batchNumber}</td>
-                    <td style={{ padding: "8px" }}>{b.medicine?.product?.name || "Generic Drug"}</td>
+                    <td style={{ padding: "8px" }}>
+                      {b.medicine?.product?.name || "Generic Drug"}
+                      {b.isMock && <span style={{ marginLeft: "6px", fontSize: "10px", color: "#94a3b8" }}>(Sample)</span>}
+                    </td>
                     <td style={{ padding: "8px", color: "#475569" }}>{b.medicine?.genericName}</td>
                     <td style={{ padding: "8px", color: "#ef4444", fontWeight: "700" }}>{b.quantity} units</td>
                   </tr>

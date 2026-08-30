@@ -96,3 +96,7 @@ export const getPrescriptionByIdService = async (id) => {
 export const getMedicalDashboardStatsService = async (companyId) => {
   return await medicalRepository.getMedicalDashboardStatsRepo(companyId);
 };
+
+export const getMedicalReportsService = async (companyId) => {
+  return await medicalRepository.getMedicalReportsRepo(companyId);
+};

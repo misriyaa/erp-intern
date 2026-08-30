@@ -194,6 +194,12 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
+    // Exclude generic reports for Laundry module
+    if (codeUpper === "LAUNDRY") {
+      if (!item.industry && item.moduleCode === "REPORTS") {
+        return false;
+      }
+    }
     if (item.industry) {
       const itemInd = (item.industry || "").toUpperCase();
       if (codeUpper !== itemInd && !codeUpper.includes(itemInd) && !itemInd.includes(codeUpper)) {
