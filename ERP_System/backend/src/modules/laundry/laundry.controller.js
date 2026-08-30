@@ -228,6 +228,26 @@ export const updateGarmentStatusController = async (req, res) => {
   }
 };
 
+export const getGarmentsController = async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    const garments = await laundryService.getGarmentsService(companyId, req.query);
+    return res.status(200).json({ success: true, data: garments });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const createGarmentController = async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    const garment = await laundryService.createGarmentService(companyId, req.body);
+    return res.status(201).json({ success: true, message: "Garment registered successfully", data: garment });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
 // ==========================================
 // LAUNDRY DELIVERIES CONTROLLER
 // ==========================================
@@ -250,6 +270,16 @@ export const getLaundryStatsController = async (req, res) => {
     const companyId = req.user?.companyId;
     const stats = await laundryService.getLaundryStatsService(companyId, req.query.laundryId);
     return res.status(200).json({ success: true, data: stats });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const getLaundryReportsController = async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    const reports = await laundryService.getLaundryReportsService(companyId, req.query.laundryId);
+    return res.status(200).json({ success: true, data: reports });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

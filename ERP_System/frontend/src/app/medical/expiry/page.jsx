@@ -18,18 +18,18 @@ export default function ExpiryManagement() {
     try {
       setLoading(true);
       const res = await medicalService.getBatches({ expiringDays: warningPeriod });
-      if (res.success && res.data) {
+      if (res.success && res.data && res.data.length > 0) {
         setBatches(res.data);
       } else {
         // Fallback Mock Data
         const now = Date.now();
         const mockData = [
-          { id: "eb1", batchNumber: "B-IBU-720", medicine: { genericName: "Ibuprofen", product: { name: "Advil 200mg" } }, expiryDate: new Date(now + 12 * 86400000).toISOString(), quantity: 300, warehouse: { name: "Aisle A" } },
-          { id: "eb2", batchNumber: "B-CET-002", medicine: { genericName: "Cetirizine", product: { name: "Zyrtec 10mg" } }, expiryDate: new Date(now + 24 * 86400000).toISOString(), quantity: 180, warehouse: { name: "Cold Storage" } }
+          { id: "eb1", batchNumber: "B-IBU-720", medicine: { genericName: "Ibuprofen", product: { name: "Advil 200mg" } }, expiryDate: new Date(now + 12 * 86400000).toISOString(), quantity: 300, warehouse: { name: "Aisle A" }, isMock: true },
+          { id: "eb2", batchNumber: "B-CET-002", medicine: { genericName: "Cetirizine", product: { name: "Zyrtec 10mg" } }, expiryDate: new Date(now + 24 * 86400000).toISOString(), quantity: 180, warehouse: { name: "Cold Storage" }, isMock: true }
         ];
 
         if (warningPeriod === "90") {
-          mockData.push({ id: "eb3", batchNumber: "B-MET-039", medicine: { genericName: "Metformin", product: { name: "Glucophage 500mg" } }, expiryDate: new Date(now + 75 * 86400000).toISOString(), quantity: 450, warehouse: { name: "Aisle B" } });
+          mockData.push({ id: "eb3", batchNumber: "B-MET-039", medicine: { genericName: "Metformin", product: { name: "Glucophage 500mg" } }, expiryDate: new Date(now + 75 * 86400000).toISOString(), quantity: 450, warehouse: { name: "Aisle B" }, isMock: true });
         }
         setBatches(mockData);
       }
@@ -125,7 +125,10 @@ export default function ExpiryManagement() {
                   return (
                     <tr key={b.id} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "14px" }}>
                       <td style={{ padding: "12px", fontWeight: "700", color: "#1e293b" }}>{b.batchNumber}</td>
-                      <td style={{ padding: "12px" }}>{b.medicine?.product?.name || "Generic Drug"}</td>
+                      <td style={{ padding: "12px" }}>
+                        {b.medicine?.product?.name || "Generic Drug"}
+                        {b.isMock && <span style={{ marginLeft: "6px", fontSize: "10px", color: "#94a3b8" }}>(Sample)</span>}
+                      </td>
                       <td style={{ padding: "12px", color: "#475569" }}>{b.medicine?.genericName}</td>
                       <td style={{ padding: "12px", color: "#64748b" }}>{b.warehouse?.name || "Main shelf"}</td>
                       <td style={{ padding: "12px", textAlign: "right", fontWeight: "700", color: daysLeft <= 15 ? "#ef4444" : "#d97706" }}>

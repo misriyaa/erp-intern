@@ -55,9 +55,28 @@ export default function LaundryPOS() {
   const [selNotes, setSelNotes] = useState("");
   const [customGarment, setCustomGarment] = useState("");
 
+  // Home Delivery states
+  const [rawCustomers, setRawCustomers] = useState([]);
+  const [isDelivery, setIsDelivery] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+
   useEffect(() => {
     fetchInitData();
   }, []);
+
+  // Autofill delivery info based on selected customer
+  useEffect(() => {
+    const curCust = rawCustomers.find(c => c.id === selectedCustomerId);
+    if (curCust) {
+      setDeliveryPhone(curCust.phone && curCust.phone !== "N/A" ? curCust.phone : "");
+      setDeliveryAddress(curCust.address && curCust.address !== "Counter Outlet" ? curCust.address : "");
+    } else {
+      setDeliveryPhone("");
+      setDeliveryAddress("");
+    }
+  }, [selectedCustomerId, rawCustomers]);
 
   useEffect(() => {
     if (selectedLaundryId) {
@@ -106,6 +125,7 @@ export default function LaundryPOS() {
         phone: c.phone || "N/A"
       }));
 
+      setRawCustomers(rawCustList);
       setCustomers(formattedList);
       if (walkInCust?.id) {
         setSelectedCustomerId(walkInCust.id);
@@ -272,6 +292,17 @@ export default function LaundryPOS() {
       }
     }
 
+    if (isDelivery) {
+      if (!deliveryAddress.trim()) {
+        showWarning("Address Required", "Please enter a delivery address.");
+        return;
+      }
+      if (!deliveryPhone.trim()) {
+        showWarning("Phone Required", "Please enter a contact phone number for delivery.");
+        return;
+      }
+    }
+
     const currentLaundry = laundries.find(l => l.id === selectedLaundryId);
     const numSubtotal = Number(subtotal.toFixed(2));
     const numDiscount = Number(discountAmount.toFixed(2));
@@ -303,6 +334,11 @@ export default function LaundryPOS() {
         method: paymentMethod || "CASH",
         amount: numPaid,
       } : null,
+      delivery: isDelivery ? {
+        deliveryAddress,
+        phone: deliveryPhone,
+        deliveryDate: deliveryDate ? new Date(deliveryDate).toISOString() : null,
+      } : null,
     };
 
     console.log("Submitting Laundry Order Payload:", payload);
@@ -318,6 +354,10 @@ export default function LaundryPOS() {
         setDiscountVal(0);
         setNotes("");
         setPaidAmount(0);
+        setIsDelivery(false);
+        setDeliveryAddress("");
+        setDeliveryPhone("");
+        setDeliveryDate("");
         showSuccess("Order Placed", `Laundry order #${orderRecord.orderNumber || "CONFIRMED"} created successfully!`);
       } else {
         showError("Checkout Failed", res.message || "Failed to create laundry order.");
@@ -548,6 +588,56 @@ export default function LaundryPOS() {
                 style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", resize: "none" }}
               />
             </div>
+
+            {/* HOME DELIVERY SECTION */}
+            <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "12px", marginTop: "12px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "600", color: "#334155" }}>
+                <input 
+                  type="checkbox"
+                  checked={isDelivery}
+                  onChange={(e) => setIsDelivery(e.target.checked)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                />
+                Require Home Delivery?
+              </label>
+
+              {isDelivery && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px", background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>DELIVERY ADDRESS *</label>
+                    <input 
+                      type="text"
+                      placeholder="Street, City, Zipcode..."
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+                    />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>CONTACT PHONE *</label>
+                      <input 
+                        type="text"
+                        placeholder="Phone number"
+                        value={deliveryPhone}
+                        onChange={(e) => setDeliveryPhone(e.target.value)}
+                        style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>DELIVERY DATE</label>
+                      <input 
+                        type="date"
+                        value={deliveryDate}
+                        onChange={(e) => setDeliveryDate(e.target.value)}
+                        style={{ width: "100%", padding: "5px 8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", color: "#334155" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* TOTAL */}

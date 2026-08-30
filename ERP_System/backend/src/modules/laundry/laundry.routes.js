@@ -15,10 +15,17 @@ const router = Router();
 
 // Dashboard Stats
 router.get("/dashboard/stats", requireModuleAccess("LAUNDRY"), laundryController.getLaundryStatsController);
+router.get("/dashboard/reports", requireModuleAccess("LAUNDRY"), laundryController.getLaundryReportsController);
 
 // Laundry Profiles
 router.post("/", requireModuleAccess("LAUNDRY"), createLaundryValidation, validateRequest, laundryController.createLaundryController);
 router.get("/", requireModuleAccess("LAUNDRY"), laundryController.getLaundriesController);
+// Garment tracking (barcode scanning)
+router.get("/garments", requireModuleAccess("LAUNDRY"), laundryController.getGarmentsController);
+router.post("/garments", requireModuleAccess("LAUNDRY"), laundryController.createGarmentController);
+router.get("/garments/scan/:barcode", requireModuleAccess("LAUNDRY"), laundryController.getGarmentByBarcodeController);
+router.put("/garments/:id/status", requireModuleAccess("LAUNDRY"), laundryController.updateGarmentStatusController);
+
 router.get("/:id", requireModuleAccess("LAUNDRY"), laundryController.getLaundryByIdController);
 router.put("/:id", requireModuleAccess("LAUNDRY"), createLaundryValidation, validateRequest, laundryController.updateLaundryController);
 router.delete("/:id", requireModuleAccess("LAUNDRY"), laundryController.deleteLaundryController);
@@ -42,10 +49,6 @@ router.post("/orders", requireModuleAccess("LAUNDRY"), createOrderValidation, va
 router.get("/orders/list", requireModuleAccess("LAUNDRY"), laundryController.getOrdersController);
 router.get("/orders/:id", requireModuleAccess("LAUNDRY"), laundryController.getOrderByIdController);
 router.put("/orders/:id/status", requireModuleAccess("LAUNDRY"), updateOrderStatusValidation, validateRequest, laundryController.updateOrderStatusController);
-
-// Garment tracking (barcode scanning)
-router.get("/garments/scan/:barcode", requireModuleAccess("LAUNDRY"), laundryController.getGarmentByBarcodeController);
-router.put("/garments/:id/status", requireModuleAccess("LAUNDRY"), laundryController.updateGarmentStatusController);
 
 // Delivery Tracking
 router.put("/orders/:orderId/delivery", requireModuleAccess("LAUNDRY"), updateDeliveryStatusValidation, validateRequest, laundryController.updateDeliveryStatusController);

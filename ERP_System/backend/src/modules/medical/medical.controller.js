@@ -210,3 +210,13 @@ export const getMedicalDashboardStatsController = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const getMedicalReportsController = async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    const reports = await medicalService.getMedicalReportsService(companyId);
+    return res.status(200).json({ success: true, data: reports });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

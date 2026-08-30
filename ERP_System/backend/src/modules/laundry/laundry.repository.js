@@ -455,6 +455,94 @@ export const updateGarmentStatusRepo = async (id, status) => {
   });
 };
 
+export const getGarmentsRepo = async (companyId, { status, search } = {}) => {
+  const where = {
+    orderItem: {
+      order: {
+        companyId
+      }
+    }
+  };
+
+  if (status && status !== "ALL") {
+    where.status = status;
+  }
+
+  if (search) {
+    where.OR = [
+      { tagNumber: { contains: search, mode: "insensitive" } },
+      { barcode: { contains: search, mode: "insensitive" } },
+      {
+        orderItem: {
+          order: {
+            orderNumber: { contains: search, mode: "insensitive" }
+          }
+        }
+      }
+    ];
+  }
+
+  return await prisma.laundryGarment.findMany({
+    where,
+    include: {
+      orderItem: {
+        include: {
+          order: {
+            include: {
+              customer: true,
+              branch: true
+            }
+          },
+          service: true
+        }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+};
+
+export const createGarmentRepo = async (companyId, garmentData) => {
+  const { orderItemId, tagNumber, barcode, status, notes } = garmentData;
+
+  const orderItem = await prisma.laundryOrderItem.findFirst({
+    where: {
+      id: orderItemId,
+      order: {
+        companyId
+      }
+    }
+  });
+
+  if (!orderItem) {
+    throw new Error("Order Item not found or unauthorized access.");
+  }
+
+  const generatedTag = tagNumber || `TAG-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+  return await prisma.laundryGarment.create({
+    data: {
+      orderItemId,
+      tagNumber: generatedTag,
+      barcode: barcode || generatedTag,
+      status: status || "RECEIVED",
+      notes: notes || null
+    },
+    include: {
+      orderItem: {
+        include: {
+          order: {
+            include: {
+              customer: true,
+              branch: true
+            }
+          },
+          service: true
+        }
+      }
+    }
+  });
+};
+
 // ==========================================
 // LAUNDRY DELIVERIES REPOSITORY
 // ==========================================
@@ -469,9 +557,40 @@ export const updateDeliveryStatusRepo = async (orderId, { deliveryStatus, delive
     data.deliveryNotes = deliveryNotes;
   }
 
-  return await prisma.laundryDelivery.update({
-    where: { orderId },
-    data,
+  return await prisma.$transaction(async (tx) => {
+    const delivery = await tx.laundryDelivery.update({
+      where: { orderId },
+      data,
+    });
+
+    let newOrderStatus = null;
+    if (deliveryStatus === "OUT_FOR_DELIVERY") {
+      newOrderStatus = "OUT_FOR_DELIVERY";
+    } else if (deliveryStatus === "DELIVERED") {
+      newOrderStatus = "DELIVERED";
+    }
+
+    if (newOrderStatus) {
+      const order = await tx.laundryOrder.findUnique({ where: { id: orderId } });
+      if (order) {
+        await tx.laundryOrder.update({
+          where: { id: orderId },
+          data: { status: newOrderStatus },
+        });
+
+        await tx.laundryStatusHistory.create({
+          data: {
+            orderId,
+            oldStatus: order.status,
+            newStatus: newOrderStatus,
+            changedBy: "SYSTEM",
+            notes: deliveryNotes || `Delivery status changed to ${deliveryStatus}`,
+          },
+        });
+      }
+    }
+
+    return delivery;
   });
 };
 
@@ -483,7 +602,16 @@ export const getLaundryStatsRepo = async (companyId, laundryId) => {
   const where = { companyId };
   if (laundryId) where.laundryId = laundryId;
 
-  const orders = await prisma.laundryOrder.findMany({ where });
+  const orders = await prisma.laundryOrder.findMany({
+    where,
+    include: {
+      items: {
+        include: {
+          service: true,
+        },
+      },
+    },
+  });
 
   const activeStatuses = ["RECEIVED", "INSPECTING", "PROCESSING"];
   const readyStatuses = ["READY", "OUT_FOR_DELIVERY"];
@@ -498,5 +626,119 @@ export const getLaundryStatsRepo = async (companyId, laundryId) => {
     balanceAmount: orders.reduce((sum, o) => sum + parseFloat(o.balanceAmount || 0), 0),
   };
 
-  return stats;
+  // Fetch 5 most recent active queue orders with customer details
+  const activeQueue = await prisma.laundryOrder.findMany({
+    where: {
+      companyId,
+      ...(laundryId ? { laundryId } : {}),
+      status: { in: activeStatuses },
+    },
+    include: {
+      customer: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+
+  // Calculate popular services from order items
+  const serviceCounts = {};
+  let totalItemsQty = 0;
+  for (const o of orders) {
+    for (const item of o.items) {
+      if (item.service) {
+        const serviceName = item.service.name || "Unknown Service";
+        serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + (item.quantity || 0);
+        totalItemsQty += (item.quantity || 0);
+      }
+    }
+  }
+
+  const popularServices = Object.entries(serviceCounts).map(([name, count]) => {
+    const percentage = totalItemsQty > 0 ? Math.round((count / totalItemsQty) * 100) : 0;
+    return { name, count, percentage };
+  }).sort((a, b) => b.count - a.count).slice(0, 5);
+
+  return {
+    stats,
+    activeQueue,
+    popularServices,
+  };
+};
+
+export const getLaundryReportsRepo = async (companyId, laundryId) => {
+  const where = { companyId };
+  if (laundryId) where.laundryId = laundryId;
+
+  const orders = await prisma.laundryOrder.findMany({
+    where,
+    include: {
+      customer: true,
+      items: {
+        include: {
+          service: true,
+        },
+      },
+    },
+  });
+
+  // 1. Avg Turnaround Time calculation
+  const completedOrders = orders.filter(o => o.completedAt && (o.receivedAt || o.createdAt));
+  let turnaroundTime = "N/A";
+  if (completedOrders.length > 0) {
+    const totalDiffMs = completedOrders.reduce((sum, o) => {
+      const start = new Date(o.receivedAt || o.createdAt);
+      const end = new Date(o.completedAt);
+      return sum + (end - start);
+    }, 0);
+    const avgMs = totalDiffMs / completedOrders.length;
+    const avgDays = (avgMs / (1000 * 60 * 60 * 24)).toFixed(1);
+    turnaroundTime = `${avgDays} days`;
+  }
+
+  // 2. Top Customer Spend
+  const customerSpends = {};
+  for (const o of orders) {
+    if (o.customer) {
+      const name = o.customer.name || "Unknown Customer";
+      customerSpends[name] = (customerSpends[name] || 0) + parseFloat(o.totalAmount || 0);
+    }
+  }
+  const topCustomerEntry = Object.entries(customerSpends).sort((a, b) => b[1] - a[1])[0];
+  const topCustomer = topCustomerEntry 
+    ? `${topCustomerEntry[0]} ($${topCustomerEntry[1].toFixed(2)})` 
+    : "No Customer spend data";
+
+  // 3. Washing Capacity Utilization
+  const activeStatuses = ["RECEIVED", "INSPECTING", "PROCESSING"];
+  const totalActive = orders.filter(o => activeStatuses.includes(o.status)).length;
+  const processing = orders.filter(o => o.status === "PROCESSING").length;
+  const activeCapacity = totalActive > 0 ? `${Math.round((processing / totalActive) * 100)}%` : "0%";
+
+  // 4. Revenue contribution by service
+  const serviceRevenue = {};
+  for (const o of orders) {
+    for (const item of o.items) {
+      if (item.service) {
+        const name = item.service.name || "Unknown Service";
+        const amt = parseFloat(item.totalAmount || 0);
+        serviceRevenue[name] = (serviceRevenue[name] || 0) + amt;
+      }
+    }
+  }
+
+  const colors = ["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#cbd5e1"];
+  const revenueByService = Object.entries(serviceRevenue).map(([name, value], idx) => {
+    return {
+      name,
+      value,
+      color: colors[idx % colors.length]
+    };
+  }).sort((a, b) => b.value - a.value);
+
+  return {
+    revenueByService,
+    turnaroundTime,
+    topCustomer,
+    activeCapacity
+  };
 };

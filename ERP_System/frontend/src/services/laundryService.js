@@ -78,6 +78,14 @@ export const laundryService = {
   },
 
   // Garment tracking
+  getGarments: async (params = {}) => {
+    const res = await apiClient.get("/laundry/garments", { params });
+    return res.data;
+  },
+  createGarment: async (data) => {
+    const res = await apiClient.post("/laundry/garments", data);
+    return res.data;
+  },
   scanGarment: async (barcode) => {
     const res = await apiClient.get(`/laundry/garments/scan/${barcode}`);
     return res.data;
@@ -96,6 +104,12 @@ export const laundryService = {
   // Stats
   getLaundryStats: async (laundryId) => {
     const res = await apiClient.get("/laundry/dashboard/stats", { params: { laundryId } });
+    return res.data;
+  },
+
+  // Reports
+  getLaundryReports: async (laundryId) => {
+    const res = await apiClient.get("/laundry/dashboard/reports", { params: { laundryId } });
     return res.data;
   },
 };
