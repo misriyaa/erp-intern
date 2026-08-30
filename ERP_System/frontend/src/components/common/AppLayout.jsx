@@ -42,7 +42,8 @@ function AppShell({ children }) {
   };
 
   // CASHIER DEDICATED SHELL (HIDE SIDEBAR, TOP NAV FOR POS & ORDER HISTORY ONLY)
-  if (isCashier) {
+  if (isCashier && !isLaundry) {
+
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "Inter, sans-serif" }}>
         {/* Cashier Top Navigation Bar */}

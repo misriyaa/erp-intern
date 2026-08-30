@@ -13,10 +13,11 @@ import { getBranches } from "@/services/branchService";
 import { restaurantService } from "@/services/restaurantService";
 import { useCompany } from "@/context/CompanyContext";
 import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
+import { TEXTILE_ROLE_ACCESS, normalizeTextileRole } from "@/config/textileRoles";
 
 export default function AddEmployeePage() {
   const router = useRouter();
-  const { user, company, industryCode, isRestaurant, isRetail } = useCompany();
+  const { user, company, industryCode, isRestaurant, isRetail, isLaundry, isGym, isTextile, isMedical } = useCompany();
 
   const [roles, setRoles] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -30,6 +31,16 @@ export default function AddEmployeePage() {
     branchId: "",
     password: "",
   });
+
+  const [showUnitModal, setShowUnitModal] = useState(false);
+  const [unitForm, setUnitForm] = useState({
+    unitName: "",
+    unitCode: "",
+    unitType: "Weaving",
+    location: "",
+    status: "Active",
+  });
+  const [savingUnit, setSavingUnit] = useState(false);
 
   const [selectedModules, setSelectedModules] = useState([]);
 
@@ -125,6 +136,14 @@ export default function AddEmployeePage() {
       const normalized = normalizeRetailRole(formData.role);
       if (normalized && RETAIL_ROLE_ACCESS[normalized]) {
         setSelectedModules(RETAIL_ROLE_ACCESS[normalized]);
+        return;
+      }
+    }
+
+    if (isTextile) {
+      const normalized = normalizeTextileRole(formData.role);
+      if (normalized && TEXTILE_ROLE_ACCESS[normalized]) {
+        setSelectedModules(TEXTILE_ROLE_ACCESS[normalized]);
         return;
       }
     }
@@ -255,8 +274,14 @@ export default function AddEmployeePage() {
       newErrors.role = "Role is required";
     }
 
-    if (!formData.branchId) {
-      newErrors.branchId = isRestaurant ? "Outlet is required" : "Branch is required";
+    if (isTextile) {
+      if (formData.role !== "Admin" && !formData.branchId) {
+        newErrors.branchId = "Manufacturing Unit is required";
+      }
+    } else {
+      if (!formData.branchId) {
+        newErrors.branchId = isRestaurant ? "Outlet is required" : "Branch is required";
+      }
     }
 
     if (!formData.password) {
@@ -286,6 +311,45 @@ export default function AddEmployeePage() {
     generateEmployeeId();
   }, []);
 
+  const handleCreateManufacturingUnit = async (e) => {
+    e.preventDefault();
+    if (!unitForm.unitName.trim()) {
+      toast.error("Unit name is required");
+      return;
+    }
+    try {
+      setSavingUnit(true);
+      const code = unitForm.unitCode.trim() || `MU-${Date.now().toString().slice(-4)}`;
+      const res = await apiClient.post("/branches", {
+        name: `${unitForm.unitName.trim()} (${unitForm.unitType})`,
+        code,
+        address: unitForm.location.trim() || `${unitForm.unitType} Unit Location`,
+        isActive: unitForm.status === "Active",
+        isTextile: true,
+        type: "TEXTILE_MILL",
+      });
+      const newUnit = res.data?.data || res.data;
+      toast.success(`Manufacturing Unit "${unitForm.unitName}" created successfully!`);
+      await fetchBranches();
+      if (newUnit?.id) {
+        setFormData((prev) => ({ ...prev, branchId: newUnit.id }));
+      }
+      setShowUnitModal(false);
+      setUnitForm({
+        unitName: "",
+        unitCode: "",
+        unitType: "Weaving",
+        location: "",
+        status: "Active",
+      });
+    } catch (err) {
+      console.error("Failed to create manufacturing unit:", err);
+      toast.error(err.response?.data?.message || "Failed to create manufacturing unit");
+    } finally {
+      setSavingUnit(false);
+    }
+  };
+
   const fetchRoles = () => {
     const isTex = Boolean(industryCode?.includes("TEXTILE"));
     const isGymMode = Boolean(industryCode?.includes("GYM"));
@@ -301,6 +365,7 @@ export default function AddEmployeePage() {
       ];
     } else if (isTex) {
       combined = [
+        { id: "Admin", name: "Admin" },
         { id: "Manager", name: "Manager" },
         { id: "Weaver", name: "Weaver" },
         { id: "Dyer", name: "Dyer" },
@@ -518,6 +583,7 @@ export default function AddEmployeePage() {
                   type="submit"
                   className={styles.submitButton}
                   disabled={submitting}
+                  style={isTextile ? { background: "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)", boxShadow: "0 4px 12px rgba(8, 145, 178, 0.25)" } : undefined}
                 >
 
                   {submitting && (
@@ -689,12 +755,33 @@ export default function AddEmployeePage() {
 
                     <div className={styles.formGroup}>
 
-                      <label className={styles.label}>
-                        {isRestaurant ? "Outlet" : "Branch"}{" "}
-                        <span className={styles.required}>
-                          *
-                        </span>
-                      </label>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                        <label className={styles.label} style={{ marginBottom: 0 }}>
+                          {isTextile ? "Manufacturing Unit" : isRestaurant ? "Outlet" : "Branch"}{" "}
+                          <span className={styles.required}>
+                            *
+                          </span>
+                        </label>
+                        {isTextile && (
+                          <button
+                            type="button"
+                            onClick={() => setShowUnitModal(true)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "#0d9488",
+                              fontWeight: "700",
+                              fontSize: "12px",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            + Add Manufacturing Unit
+                          </button>
+                        )}
+                      </div>
 
                       <select
                         name="branchId"
@@ -703,7 +790,10 @@ export default function AddEmployeePage() {
                         className={styles.input}
                         style={errors.branchId ? { borderColor: "#ef4444" } : {}}
                       >
-                        <option value="">{isRestaurant ? "Select Outlet" : "Select Branch"}</option>
+                        <option value="">{isTextile ? "Select Manufacturing Unit" : isRestaurant ? "Select Outlet" : "Select Branch"}</option>
+                        {isTextile && formData.role === "Admin" && (
+                          <option value="ALL">All Manufacturing Units / General Office</option>
+                        )}
                         {branches.length > 0 ? (
                           branches.map((b) => (
                             <option key={b.id} value={b.id}>
@@ -712,7 +802,7 @@ export default function AddEmployeePage() {
                           ))
                         ) : (
                           <option value="" disabled>
-                            {isRestaurant ? "No outlets available" : "No branches available"}
+                            {isTextile ? "No Manufacturing Units found" : isRestaurant ? "No outlets available" : "No branches available"}
                           </option>
                         )}
                       </select>
@@ -769,12 +859,12 @@ export default function AddEmployeePage() {
                 <div className={styles.card}>
 
                   <h2 className={styles.cardTitle}>
-                    Preview
+Preview
                   </h2>
 
                   <div className={styles.previewBody}>
 
-                    <div className={styles.avatar}>
+                    <div className={styles.avatar} style={isTextile ? { background: "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)", color: "#ffffff" } : undefined}>
 
                       {initials ? (
                         initials
@@ -794,15 +884,16 @@ export default function AddEmployeePage() {
                       {formData.role || "Role not set"}
                     </div>
 
-                    {formData.branchId && branches.length > 0 && (
-                      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
-                        📍 {branches.find((b) => b.id === formData.branchId || b.branchId === formData.branchId)?.name || ""}
+                    {formData.branchId && (
+                      <div style={{ fontSize: "12px", color: isTextile ? "#0891b2" : "#94a3b8", fontWeight: isTextile ? "600" : "400", marginTop: "4px" }}>
+                        📍 {formData.branchId === "ALL" ? "All Manufacturing Units / General Office" : branches.find((b) => b.id === formData.branchId || b.branchId === formData.branchId)?.name || ""}
                       </div>
                     )}
 
                     {formData.employeeId && (
                       <span
                         className={styles.previewIdBadge}
+                        style={isTextile ? { background: "#e0f2fe", color: "#0369a1", borderColor: "#bae6fd" } : undefined}
                       >
                         {formData.employeeId}
                       </span>
@@ -812,8 +903,7 @@ export default function AddEmployeePage() {
 
 
                   <p className={styles.previewHint}>
-                    This is how the employee will appear
-                    in your team list once saved.
+                    This is how the employee will appear in your team list once saved.
                   </p>
 
                 </div>
@@ -821,10 +911,91 @@ export default function AddEmployeePage() {
                 {formData.role && (
                   <div className={styles.card} style={{ marginTop: "24px" }}>
                     <h2 className={styles.cardTitle}>
-                      {isRestaurant || isRetail ? "Automatic Role Permissions" : "Module Access Permissions"}
+                      {isRestaurant || isRetail || isLaundry || isTextile ? "Automatic Role Permissions" : "Module Access Permissions"}
                     </h2>
 
-                    {isRestaurant ? (
+                    {isTextile ? (
+                      <div style={{ padding: "16px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155" }}>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 12px 0" }}>
+                          Access is automatically assigned based on the selected role: <strong style={{ color: "#0d9488" }}>{formData.role}</strong>
+                        </p>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {(normalizeTextileRole(formData.role) === "ADMIN" || formData.role === "Admin") && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Full Textile ERP Operational & Administrative Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Textile Products, Raw Materials, Suppliers, Customers, Purchase Management, Production Management, Inventory Stock, Stock Movements, Warehouses, Quality Control, Manufacturing Units, Fabric Sales, Export Management, Units of Measure, Employees / Staff, Reports & Analytics
+                              </div>
+                            </>
+                          )}
+                          {normalizeTextileRole(formData.role) === "MANAGER" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Textile Management & Operations Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Textile Products, Raw Materials, Suppliers, Customers, Purchase Management, Production Management, Inventory Stock, Stock Movements, Warehouses, Quality Control, Manufacturing Units, Fabric Sales, Export Management, Reports & Analytics
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Employees / Staff, Global Company Settings, Role Management
+                              </div>
+                            </>
+                          )}
+                          {normalizeTextileRole(formData.role) === "WEAVER" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Weaver Production Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Production Management (Assigned Production Orders, Production Tracking, Loom Weaving Operations, Assigned Material Details)
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Products setup, Raw Materials master, Suppliers, Customers, Purchases, Warehouses, Quality Control, Sales, Exports, Employees, Financial Reports
+                              </div>
+                            </>
+                          )}
+                          {normalizeTextileRole(formData.role) === "DYER" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Dyer Dyeing Operations Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Production Management (Assigned Dyeing Batches, Dye Recipe Tracking, Chemical Materials Consumption)
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Products setup, Raw Materials master, Suppliers, Customers, Purchases, Warehouses, Quality Control, Sales, Exports, Employees, Financial Reports
+                              </div>
+                            </>
+                          )}
+                          {normalizeTextileRole(formData.role) === "QUALITY_INSPECTOR" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Quality Inspector Inspection Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Quality Control (Fabric Defect Inspection, Grade Point Scoring, Inspection Sheet Recording, Pass/Fail Certification)
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Products setup, Suppliers, Customers, Purchases, Production Batch Creation, Sales, Exports, Employees, Settings
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : isLaundry ? (
+                      <div style={{ padding: "16px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155" }}>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 12px 0" }}>
+                          Access is automatically assigned based on the selected role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
+                        </p>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {formData.role === "Laundry Staff" && (
+                            <>
+                              <div style={{ color: "#10b981", fontSize: "13px", fontWeight: "600" }}>✓ Laundry Operations Access</div>
+                              <div style={{ color: "#cbd5e1", fontSize: "12px" }}>
+                                Dashboard, Laundry POS, Active Orders, Garment Tracking, Processing Queue, Ready Orders, Pickup & Deliveries, Customers
+                              </div>
+                              <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "2px" }}>
+                                ✗ Restricted: Outlets & Branches, Services & Categories, Employees / Staff, Laundry Reports
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : isRestaurant ? (
                       <div style={{ padding: "16px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155" }}>
                         <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 12px 0" }}>
                           Access is automatically assigned based on the selected role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
@@ -970,6 +1141,109 @@ export default function AddEmployeePage() {
 
         </div>
       </div>
+
+      {/* QUICK CREATE MANUFACTURING UNIT MODAL */}
+      {showUnitModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, padding: "20px" }}>
+          <div style={{ background: "#ffffff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "480px", border: "1px solid #e2e8f0", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)", color: "#0f172a" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: 0 }}>Add New Manufacturing Unit</h2>
+              <button
+                type="button"
+                onClick={() => setShowUnitModal(false)}
+                style={{ background: "transparent", border: "none", color: "#64748b", fontSize: "18px", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateManufacturingUnit}>
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>Unit Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Loom Weaving Unit A"
+                  value={unitForm.unitName}
+                  onChange={(e) => setUnitForm({ ...unitForm, unitName: e.target.value })}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", background: "#ffffff", border: "1px solid #cbd5e1", color: "#0f172a", fontSize: "14px", outline: "none" }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>Unit Code</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. WEAV-01"
+                    value={unitForm.unitCode}
+                    onChange={(e) => setUnitForm({ ...unitForm, unitCode: e.target.value })}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", background: "#ffffff", border: "1px solid #cbd5e1", color: "#0f172a", fontSize: "14px", outline: "none" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>Unit Type *</label>
+                  <select
+                    value={unitForm.unitType}
+                    onChange={(e) => setUnitForm({ ...unitForm, unitType: e.target.value })}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", background: "#ffffff", border: "1px solid #cbd5e1", color: "#0f172a", fontSize: "14px", outline: "none" }}
+                  >
+                    <option value="Spinning">Spinning</option>
+                    <option value="Weaving">Weaving</option>
+                    <option value="Dyeing">Dyeing</option>
+                    <option value="Printing">Printing</option>
+                    <option value="Finishing">Finishing</option>
+                    <option value="Quality Control">Quality Control</option>
+                    <option value="Warehouse">Warehouse</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>Location (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. North Mill Complex, Sector 2"
+                  value={unitForm.location}
+                  onChange={(e) => setUnitForm({ ...unitForm, location: e.target.value })}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", background: "#ffffff", border: "1px solid #cbd5e1", color: "#0f172a", fontSize: "14px", outline: "none" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>Status</label>
+                <select
+                  value={unitForm.status}
+                  onChange={(e) => setUnitForm({ ...unitForm, status: e.target.value })}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", background: "#ffffff", border: "1px solid #cbd5e1", color: "#0f172a", fontSize: "14px", outline: "none" }}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowUnitModal(false)}
+                  disabled={savingUnit}
+                  style={{ padding: "10px 16px", borderRadius: "8px", background: "#f8fafc", border: "1px solid #cbd5e1", color: "#475569", fontWeight: "600", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingUnit}
+                  style={{ padding: "10px 20px", borderRadius: "8px", background: "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)", border: "none", color: "#ffffff", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 12px rgba(8, 145, 178, 0.25)" }}
+                >
+                  {savingUnit ? "Saving..." : "Save Manufacturing Unit"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

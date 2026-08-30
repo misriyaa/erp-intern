@@ -51,8 +51,10 @@ const QUICK_SEARCH_ITEMS = [
   { label: "My Profile", href: "/settings/profile", icon: FiUser, category: "Account" },
   { label: "Textile Products", href: "/textile/products", icon: FiBox, category: "Textile" },
   { label: "Raw Materials", href: "/textile/raw-materials", icon: FiBox, category: "Textile" },
-  { label: "Production Tracking", href: "/textile/production", icon: FiClock, category: "Textile" },
+  { label: "Production Management", href: "/textile/production", icon: FiClock, category: "Textile" },
   { label: "Quality Control", href: "/textile/quality-control", icon: FiBox, category: "Textile" },
+  { label: "Stock Movements", href: "/textile/stock-movements", icon: FiBox, category: "Textile" },
+  { label: "Export Management", href: "/textile/exports", icon: FiBox, category: "Textile" },
 ];
 
 export default function Header({ toggleSidebar }) {

@@ -172,13 +172,15 @@ const addEmployee = async (
   const passwordHash = await bcrypt.hash(password, 12);
 
   let assignedBranchId = null;
-  if (branchId) {
+  const effectiveUnitId = req?.body?.manufacturingUnitId || req?.body?.branchId || branchId;
+
+  if (effectiveUnitId) {
     const OR = [];
-    if (isUuid(branchId)) {
-      OR.push({ id: branchId });
+    if (isUuid(effectiveUnitId)) {
+      OR.push({ id: effectiveUnitId });
     }
-    OR.push({ code: branchId });
-    OR.push({ name: { equals: branchId, mode: "insensitive" } });
+    OR.push({ code: effectiveUnitId });
+    OR.push({ name: { equals: effectiveUnitId, mode: "insensitive" } });
 
     const dbBranch = await prisma.branch.findFirst({
       where: { OR }
@@ -188,8 +190,8 @@ const addEmployee = async (
       assignedBranchId = dbBranch.id;
     } else {
       let dbRest = null;
-      if (isUuid(branchId)) {
-        dbRest = await prisma.restaurant.findUnique({ where: { id: branchId } }).catch(() => null);
+      if (isUuid(effectiveUnitId)) {
+        dbRest = await prisma.restaurant.findUnique({ where: { id: effectiveUnitId } }).catch(() => null);
       }
       if (!dbRest) {
         dbRest = await prisma.restaurant.findFirst({ where: { OR } }).catch(() => null);
@@ -198,16 +200,38 @@ const addEmployee = async (
       if (dbRest) {
         assignedBranchId = dbRest.branchId;
       } else {
+        const isTexMode = req?.body?.type === "TEXTILE" || req?.user?.type === "TEXTILE";
         const newBranch = await prisma.branch.create({
           data: {
-            name: branchId.startsWith("b-") ? "Main Store Branch" : branchId,
-            code: `BR-${Date.now().toString().slice(-4)}`,
+            name: effectiveUnitId.startsWith("b-") || effectiveUnitId.startsWith("mu-") ? (isTexMode ? "Main Manufacturing Mill" : "Main Store Branch") : effectiveUnitId,
+            code: isTexMode ? `MU-${Date.now().toString().slice(-4)}` : `BR-${Date.now().toString().slice(-4)}`,
             isActive: true,
           }
         });
         assignedBranchId = newBranch.id;
       }
     }
+  } else if (req?.body?.type === "TEXTILE" || req?.user?.type === "TEXTILE") {
+    // For Textile ERP Admin or general employees without a specific unit, assign/create a General Mill Unit
+    let generalUnit = await prisma.branch.findFirst({
+      where: {
+        OR: [
+          { name: { contains: "Manufacturing", mode: "insensitive" } },
+          { name: { contains: "Mill", mode: "insensitive" } },
+          { name: { contains: "General", mode: "insensitive" } },
+        ]
+      }
+    });
+    if (!generalUnit) {
+      generalUnit = await prisma.branch.create({
+        data: {
+          name: "Main Textile Manufacturing Unit",
+          code: `MU-${Date.now().toString().slice(-4)}`,
+          isActive: true,
+        }
+      });
+    }
+    assignedBranchId = generalUnit.id;
   }
 
   // Create employee

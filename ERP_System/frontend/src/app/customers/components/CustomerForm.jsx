@@ -10,18 +10,32 @@ export default function CustomerForm({
   initialData = {},
   onSubmit,
   onCancel,
+  isTextile = false,
 }) {
   const router = useRouter();
   const { showWarning } = useAlert();
 
   const [form, setForm] = useState({
-    name: initialData.name || "",
+    name: initialData.name || initialData.companyName || "",
+    companyName: initialData.companyName || initialData.name || "",
+    contactPerson: initialData.contactPerson || "",
+    customerType: initialData.customerType || "Garment Manufacturer",
     phone: initialData.phone || "",
     email: initialData.email || "",
     address: initialData.address || "",
+    city: initialData.city || "",
+    state: initialData.state || "",
+    country: initialData.country || "India",
+    gstNumber: initialData.gstNumber || initialData.taxNumber || "",
+    taxNumber: initialData.taxNumber || initialData.gstNumber || "",
+    paymentTerms: initialData.paymentTerms || "Net 30",
     loyaltyId: initialData.loyaltyId || "",
-    creditLimit: initialData.creditLimit || 0,
+    creditLimit:
+      initialData.creditLimit !== undefined && initialData.creditLimit !== null
+        ? String(initialData.creditLimit)
+        : "",
     currentBalance: initialData.currentBalance || 0,
+    status: initialData.status || "ACTIVE",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -34,27 +48,50 @@ export default function CustomerForm({
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       setForm({
-        name: initialData.name || "",
+        name: initialData.name || initialData.companyName || "",
+        companyName: initialData.companyName || initialData.name || "",
+        contactPerson: initialData.contactPerson || "",
+        customerType: initialData.customerType || "Garment Manufacturer",
         phone: initialData.phone || "",
         email: initialData.email || "",
         address: initialData.address || "",
+        city: initialData.city || "",
+        state: initialData.state || "",
+        country: initialData.country || "India",
+        gstNumber: initialData.gstNumber || initialData.taxNumber || "",
+        taxNumber: initialData.taxNumber || initialData.gstNumber || "",
+        paymentTerms: initialData.paymentTerms || "Net 30",
         loyaltyId: initialData.loyaltyId || `LOY-${Math.floor(100000 + Math.random() * 900000)}`,
-        creditLimit: initialData.creditLimit || 0,
+        creditLimit:
+          initialData.creditLimit !== undefined && initialData.creditLimit !== null
+            ? String(initialData.creditLimit)
+            : "",
         currentBalance: initialData.currentBalance || 0,
+        status: initialData.status || "ACTIVE",
       });
     } else {
       generateLoyaltyId();
     }
   }, [initialData]);
 
+  const [phoneError, setPhoneError] = useState("");
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "phone") {
+      const sanitized = value.replace(/[^\d+-\s]/g, "").slice(0, 16);
+      setForm((prev) => ({ ...prev, phone: sanitized }));
+      if (sanitized && sanitized.replace(/\D/g, "").length < 7) {
+        setPhoneError("Phone number must have at least 7 digits");
+      } else {
+        setPhoneError("");
+      }
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
-      [name]:
-        name === "creditLimit" || name === "currentBalance"
-          ? Number(value)
-          : value,
+      [name]: name === "currentBalance" ? Number(value) : value,
     }));
   };
 
@@ -62,20 +99,52 @@ export default function CustomerForm({
     e.preventDefault();
 
     if (!form.name.trim()) {
-      showWarning("Invalid form data", "Customer name is required.");
+      showWarning("Invalid form data", "Customer / Buyer name is required.");
       return;
     }
 
-    if (!form.phone.trim()) {
+    const cleanPhone = form.phone.trim();
+    if (!cleanPhone) {
+      setPhoneError("Phone number is required.");
       showWarning("Invalid form data", "Phone number is required.");
+      return;
+    }
+
+    const digitsOnly = cleanPhone.replace(/\D/g, "");
+    if (digitsOnly.length < 7) {
+      setPhoneError("Phone number must contain at least 7 digits.");
+      showWarning(
+        "Invalid Phone Number",
+        "Please enter a valid phone number with at least 7 digits."
+      );
       return;
     }
 
     try {
       setSubmitting(true);
+      const parsedCreditLimit =
+        form.creditLimit === "" || form.creditLimit === null || isNaN(Number(form.creditLimit))
+          ? 0
+          : Number(form.creditLimit);
+
       const finalForm = {
         ...form,
+        name: form.name.trim(),
+        companyName: form.companyName ? form.companyName.trim() : form.name.trim(),
+        phone: cleanPhone,
+        email: form.email.trim() || undefined,
+        address: form.address.trim() || undefined,
+        city: form.city.trim() || undefined,
+        state: form.state.trim() || undefined,
+        country: form.country.trim() || undefined,
+        gstNumber: form.gstNumber.trim() || undefined,
+        taxNumber: form.taxNumber.trim() || undefined,
+        creditLimit: parsedCreditLimit,
+        currentBalance: Number(form.currentBalance) || 0,
         loyaltyId: form.loyaltyId || `LOY-${Math.floor(100000 + Math.random() * 900000)}`,
+        isTextile: Boolean(isTextile),
+        erpType: isTextile ? "TEXTILE" : undefined,
+        category: isTextile ? "TEXTILE" : undefined,
       };
       await onSubmit(finalForm);
     } finally {
@@ -94,113 +163,196 @@ export default function CustomerForm({
   return (
     <form className={styles.customerForm} onSubmit={handleSubmit}>
       <div className={styles.formGroup}>
-        <label htmlFor="name">Customer Name *</label>
+        <label htmlFor="name">{isTextile ? "Buyer / Customer Name *" : "Customer Name *"}</label>
         <input
           id="name"
           type="text"
           name="name"
           value={form.name}
           onChange={handleChange}
-          placeholder="e.g. John Doe"
+          placeholder={isTextile ? "e.g. Royal Garments & Exports" : "e.g. John Doe"}
           required
         />
       </div>
 
+      {isTextile && (
+        <div className={styles.formGroup}>
+          <label htmlFor="customerType">Buyer Industry / Channel</label>
+          <select
+            id="customerType"
+            name="customerType"
+            value={form.customerType}
+            onChange={handleChange}
+            style={{
+              padding: "10px 12px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              backgroundColor: "#ffffff",
+              fontSize: "14px",
+              width: "100%",
+            }}
+          >
+            <option value="Garment Manufacturer">Garment Manufacturer</option>
+            <option value="Fabric Wholesaler">Fabric Wholesaler</option>
+            <option value="Export House">Export House</option>
+            <option value="Retail Brand Chain">Retail Brand Chain</option>
+            <option value="Boutique / Designer">Boutique / Designer</option>
+            <option value="General Commercial">General Commercial</option>
+          </select>
+        </div>
+      )}
+
       <div className={styles.formGroup}>
-        <label htmlFor="phone">Phone *</label>
+        <label htmlFor="phone">Phone Number *</label>
         <input
           id="phone"
-          type="text"
+          type="tel"
           name="phone"
           value={form.phone}
           onChange={handleChange}
-          placeholder="e.g. +1 (555) 019-2834"
+          placeholder="e.g. 9876543210"
           required
+          style={{
+            borderColor: phoneError ? "#ef4444" : undefined,
+          }}
         />
+        {phoneError && (
+          <span
+            style={{
+              fontSize: "12px",
+              color: "#ef4444",
+              marginTop: "4px",
+              display: "block",
+              fontWeight: 500,
+            }}
+          >
+            {phoneError}
+          </span>
+        )}
       </div>
 
       <div className={styles.formGroup}>
-        <label htmlFor="email">Email</label>
+        <label htmlFor="email">Email Address</label>
         <input
           id="email"
           type="email"
           name="email"
           value={form.email}
           onChange={handleChange}
-          placeholder="customer@example.com"
+          placeholder="buyer@example.com"
         />
       </div>
 
-      <div className={styles.formGroup}>
-        <label htmlFor="loyaltyId">
-          Customer Loyalty ID <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "700" }}>(Auto-Generated)</span>
-        </label>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <input
-            id="loyaltyId"
-            type="text"
-            name="loyaltyId"
-            value={form.loyaltyId}
-            onChange={handleChange}
-            placeholder="e.g. LOY-889901"
-            style={{ fontWeight: "700", color: "#0f172a" }}
-          />
-          <button
-            type="button"
-            onClick={generateLoyaltyId}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "1px solid #cbd5e1",
-              background: "#ffffff",
-              fontWeight: "600",
-              cursor: "pointer",
-              fontSize: "12px",
-              whiteSpace: "nowrap",
-            }}
-            title="Generate new Loyalty ID"
-          >
-            ⚡ Auto Generate
-          </button>
+      {isTextile ? (
+        <>
+          <div className={styles.formGroup}>
+            <label htmlFor="gstNumber">GST / Tax ID Number</label>
+            <input
+              id="gstNumber"
+              type="text"
+              name="gstNumber"
+              value={form.gstNumber}
+              onChange={handleChange}
+              placeholder="e.g. 33AAAAA0000A1Z5"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="paymentTerms">Credit / Payment Terms</label>
+            <select
+              id="paymentTerms"
+              name="paymentTerms"
+              value={form.paymentTerms}
+              onChange={handleChange}
+              style={{
+                padding: "10px 12px",
+                borderRadius: "8px",
+                border: "1px solid #cbd5e1",
+                backgroundColor: "#ffffff",
+                fontSize: "14px",
+                width: "100%",
+              }}
+            >
+              <option value="Immediate / Cash">Immediate / Cash</option>
+              <option value="Net 15">Net 15 Days</option>
+              <option value="Net 30">Net 30 Days</option>
+              <option value="Net 45">Net 45 Days</option>
+              <option value="Net 60">Net 60 Days</option>
+              <option value="LC at Sight">Letter of Credit (LC)</option>
+            </select>
+          </div>
+        </>
+      ) : (
+        <div className={styles.formGroup}>
+          <label htmlFor="loyaltyId">
+            Customer Loyalty ID <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "700" }}>(Auto-Generated)</span>
+          </label>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input
+              id="loyaltyId"
+              type="text"
+              name="loyaltyId"
+              value={form.loyaltyId}
+              onChange={handleChange}
+              placeholder="e.g. LOY-889901"
+              style={{ fontWeight: "700", color: "#0f172a" }}
+            />
+            <button
+              type="button"
+              onClick={generateLoyaltyId}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "8px",
+                border: "1px solid #cbd5e1",
+                background: "#ffffff",
+                fontWeight: "600",
+                cursor: "pointer",
+                fontSize: "12px",
+                whiteSpace: "nowrap",
+              }}
+              title="Generate new Loyalty ID"
+            >
+              ⚡ Auto Generate
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.formGroup}>
-        <label htmlFor="creditLimit">Credit Limit</label>
+        <label htmlFor="creditLimit">Credit Limit (₹)</label>
         <input
           id="creditLimit"
           type="number"
-          step="0.01"
-          min="0"
           name="creditLimit"
           value={form.creditLimit}
           onChange={handleChange}
-          placeholder="0.00"
+          placeholder="e.g. 50000"
+          min="0"
+          step="any"
         />
       </div>
 
       <div className={styles.formGroup}>
-        <label htmlFor="currentBalance">Current Balance</label>
+        <label htmlFor="city">City / Region</label>
         <input
-          id="currentBalance"
-          type="number"
-          step="0.01"
-          min="0"
-          name="currentBalance"
-          value={form.currentBalance}
+          id="city"
+          type="text"
+          name="city"
+          value={form.city}
           onChange={handleChange}
-          placeholder="0.00"
+          placeholder={isTextile ? "e.g. Tirupur, Surat, Coimbatore" : "e.g. New York"}
         />
       </div>
 
-      <div className={styles.formGroupFull}>
-        <label htmlFor="address">Address</label>
+      <div className={styles.formGroup}>
+        <label htmlFor="address">Delivery / Factory Address</label>
         <textarea
           id="address"
           name="address"
           value={form.address}
           onChange={handleChange}
-          placeholder="Enter street, city, state address"
+          placeholder="Enter address details..."
+          rows={3}
         />
       </div>
 
@@ -218,9 +370,10 @@ export default function CustomerForm({
           type="submit"
           className={styles.saveButton}
           disabled={submitting}
+          style={isTextile ? { backgroundColor: "#0d9488" } : undefined}
         >
           <FiSave size={16} />
-          {submitting ? "Saving..." : "Save Customer"}
+          {submitting ? "Saving..." : isTextile ? "Save Textile Customer" : "Save Customer"}
         </button>
       </div>
     </form>

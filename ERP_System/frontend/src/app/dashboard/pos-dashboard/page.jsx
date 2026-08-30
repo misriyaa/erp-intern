@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import DashboardNav from "@/components/adminPanel/DashboardNav/DashboardNav";
 import apiClient from "@/services/apiClient";
 import {
@@ -146,6 +148,7 @@ function MiniChart({ data, type = "green" }) {
 }
 
 export default function PosDashboard() {
+  const router = useRouter();
   const [metrics, setMetrics] = useState({
     totalSales: "₹145.8K",
     totalCustomers: "1,240",
@@ -157,6 +160,11 @@ export default function PosDashboard() {
   const [recentOrdersList, setRecentOrdersList] = useState(defaultRecentOrders);
   const [categoryRadarData, setCategoryRadarData] = useState(defaultCategoryData);
   const [loading, setLoading] = useState(true);
+
+  // Filter states
+  const [timeFilter, setTimeFilter] = useState("this_year");
+  const [chartPeriod, setChartPeriod] = useState("This Year");
+  const [radarFilter, setRadarFilter] = useState("All");
 
   useEffect(() => {
     fetchLivePosMetrics();
@@ -244,6 +252,26 @@ export default function PosDashboard() {
     }
   };
 
+  const handlePeriodChange = (period) => {
+    setChartPeriod(period);
+    if (period === "Last 6 Months") {
+      setMonthlySalesList(defaultMonthlySales.slice(-6));
+    } else if (period === "This Month") {
+      setMonthlySalesList(defaultMonthlySales.slice(-1));
+    } else {
+      setMonthlySalesList(defaultMonthlySales);
+    }
+  };
+
+  const handleRadarFilterChange = (filter) => {
+    setRadarFilter(filter);
+    if (filter === "Top 4") {
+      setCategoryRadarData(defaultCategoryData.slice(0, 4));
+    } else {
+      setCategoryRadarData(defaultCategoryData);
+    }
+  };
+
   return (
     <main className={styles.dashboard}>
       <DashboardNav />
@@ -256,12 +284,30 @@ export default function PosDashboard() {
         </div>
 
         <div className={styles.headerRight}>
+          {/* Header Action Filter */}
+          <select
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value)}
+            className={styles.headerSelect}
+            aria-label="Filter POS timeframe"
+          >
+            <option value="today">Today (Live)</option>
+            <option value="this_week">This Week</option>
+            <option value="this_month">This Month</option>
+            <option value="this_year">This Year</option>
+          </select>
+
           <div className={styles.statusPill}>
             <span className={styles.statusDot} />
             POS Terminal Active
           </div>
 
-          <button className={styles.primaryButton}>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={() => router.push("/pos")}
+            title="Open POS Terminal"
+          >
             <span>+</span> New Sale
           </button>
         </div>
@@ -327,7 +373,16 @@ export default function PosDashboard() {
               <h2>Monthly POS Volume</h2>
               <p>Total checkout transactions per month</p>
             </div>
-            <button className={styles.cardAction}>This Year ▾</button>
+            <select
+              value={chartPeriod}
+              onChange={(e) => handlePeriodChange(e.target.value)}
+              className={styles.cardSelect}
+              aria-label="Filter Monthly Volume Period"
+            >
+              <option value="This Year">This Year</option>
+              <option value="Last 6 Months">Last 6 Months</option>
+              <option value="This Month">This Month</option>
+            </select>
           </div>
 
           <div className={styles.chartContainer}>
@@ -350,7 +405,15 @@ export default function PosDashboard() {
               <h2>Sales by Category</h2>
               <p>Product performance radar</p>
             </div>
-            <button className={styles.cardAction}>Filters ▾</button>
+            <select
+              value={radarFilter}
+              onChange={(e) => handleRadarFilterChange(e.target.value)}
+              className={styles.cardSelect}
+              aria-label="Filter Categories"
+            >
+              <option value="All">All Categories</option>
+              <option value="Top 4">Top 4 Categories</option>
+            </select>
           </div>
 
           <div className={styles.chartContainer}>
@@ -375,7 +438,9 @@ export default function PosDashboard() {
               <h2>Top Checkout Items</h2>
               <p>Best-selling items across terminals</p>
             </div>
-            <button className={styles.viewAll}>View All →</button>
+            <Link href="/admin/products" className={styles.viewAll}>
+              View All →
+            </Link>
           </div>
 
           <div className={styles.productList}>
@@ -405,7 +470,9 @@ export default function PosDashboard() {
               <h2>Recent POS Orders</h2>
               <p>Latest register checkouts</p>
             </div>
-            <button className={styles.viewAll}>View All →</button>
+            <Link href="/pos/history" className={styles.viewAll}>
+              View All →
+            </Link>
           </div>
 
           <div className={styles.ordersList}>
@@ -430,4 +497,4 @@ export default function PosDashboard() {
       </section>
     </main>
   );
-}
+}

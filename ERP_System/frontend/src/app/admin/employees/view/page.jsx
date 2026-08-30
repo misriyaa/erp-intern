@@ -30,6 +30,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
 import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
+import { TEXTILE_ROLE_ACCESS, normalizeTextileRole } from "@/config/textileRoles";
 
 
 export default function EmployeePage() {
@@ -43,6 +44,7 @@ export default function EmployeePage() {
     isTextile,
     isRestaurant,
     isRetail,
+    isLaundry,
   } = useCompany();
 
   const { settings, logoUrl } = useSettings();
@@ -638,6 +640,28 @@ export default function EmployeePage() {
     }
 
 
+    else if (isLaundry) {
+      combined = [
+        {
+          id: "Manager",
+          name: "Manager",
+        },
+        {
+          id: "Cashier",
+          name: "Cashier",
+        },
+        {
+          id: "Processing Staff",
+          name: "Processing Staff",
+        },
+        {
+          id: "Delivery Driver",
+          name: "Delivery Driver",
+        },
+      ];
+    }
+
+
     else {
       combined = [
         {
@@ -980,6 +1004,13 @@ export default function EmployeePage() {
       }
     }
 
+    if (name === "role" && isTextile) {
+      const normalized = normalizeTextileRole(value);
+      if (normalized && TEXTILE_ROLE_ACCESS[normalized]) {
+        setSelectedModules(TEXTILE_ROLE_ACCESS[normalized]);
+      }
+    }
+
     if (errors[name]) {
       setErrors((previous) => ({
         ...previous,
@@ -1030,6 +1061,13 @@ export default function EmployeePage() {
         existingPerms = RETAIL_ROLE_ACCESS[normalized];
       } else {
         existingPerms = RETAIL_ROLE_ACCESS.STORE_MANAGER;
+      }
+    } else if (isTextile) {
+      const normalized = normalizeTextileRole(employee.role?.name || employee.role);
+      if (normalized && TEXTILE_ROLE_ACCESS[normalized]) {
+        existingPerms = TEXTILE_ROLE_ACCESS[normalized];
+      } else {
+        existingPerms = TEXTILE_ROLE_ACCESS.ADMIN;
       }
     } else if (employee.permissions) {
       try {
@@ -1191,9 +1229,9 @@ export default function EmployeePage() {
 
       const updateData = {
         ...formData,
-        permissions:
-          selectedModules,
+        permissions: isLaundry ? undefined : selectedModules,
       };
+
 
 
       const response =
@@ -2203,7 +2241,9 @@ export default function EmployeePage() {
                                 />
 
                                 <span>
-                                  {isRestaurant
+                                  {isTextile
+                                    ? "Manufacturing Unit"
+                                    : isRestaurant
                                     ? "Outlet"
                                     : "Branch"}
                                 </span>
@@ -2678,7 +2718,9 @@ export default function EmployeePage() {
                       }
                       htmlFor="branchId"
                     >
-                      {isRestaurant
+                      {isTextile
+                        ? "Manufacturing Unit"
+                        : isRestaurant
                         ? "Outlet"
                         : "Branch"}
                     </label>
@@ -2707,11 +2749,15 @@ export default function EmployeePage() {
                     >
 
                       <option value="">
-                        {isRestaurant
+                        {isTextile
+                          ? "Select Manufacturing Unit"
+                          : isRestaurant
                           ? "Select Outlet"
                           : "Select Branch"}
                       </option>
-
+                      {isTextile && formData.role === "Admin" && (
+                        <option value="ALL">All Manufacturing Units / General Office</option>
+                      )}
 
                       {branches.length >
                       0 ? (
@@ -2739,7 +2785,9 @@ export default function EmployeePage() {
                           value=""
                           disabled
                         >
-                          {isRestaurant
+                          {isTextile
+                            ? "No Manufacturing Units found"
+                            : isRestaurant
                             ? "No outlets available"
                             : "No branches available"}
                         </option>
@@ -2912,7 +2960,112 @@ export default function EmployeePage() {
                       borderTop: "1px solid #334155",
                     }}
                   >
-                    {isRetail ? (
+                    {isTextile ? (
+                      <div>
+                        <h3
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            color: "#f8fafc",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Automatic Role Permissions
+                        </h3>
+
+                        <div style={{ padding: "14px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155", marginTop: "8px" }}>
+                          <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 10px 0" }}>
+                            Access is automatically assigned based on role: <strong style={{ color: "#0d9488" }}>{formData.role}</strong>
+                          </p>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {(normalizeTextileRole(formData.role) === "ADMIN" || formData.role === "Admin") && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Full Textile ERP Operational & Administrative Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Textile Products, Raw Materials, Suppliers, Customers, Purchase Management, Production Management, Inventory Stock, Stock Movements, Warehouses, Quality Control, Manufacturing Units, Fabric Sales, Export Management, Units of Measure, Employees / Staff, Reports & Analytics</div>
+                              </>
+                            )}
+                            {normalizeTextileRole(formData.role) === "MANAGER" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Textile Management & Operations Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Textile Products, Raw Materials, Suppliers, Customers, Purchase Management, Production Management, Inventory Stock, Stock Movements, Warehouses, Quality Control, Manufacturing Units, Fabric Sales, Export Management, Reports & Analytics</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "2px" }}>✗ Restricted: Employees / Staff, Global Company Settings, Role Management</div>
+                              </>
+                            )}
+                            {normalizeTextileRole(formData.role) === "WEAVER" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Weaver Production Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Production Management (Assigned Production Orders, Production Tracking, Loom Weaving Operations, Assigned Material Details)</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "2px" }}>✗ Restricted: Products setup, Raw Materials master, Suppliers, Customers, Purchases, Warehouses, Quality Control, Sales, Exports, Employees, Financial Reports</div>
+                              </>
+                            )}
+                            {normalizeTextileRole(formData.role) === "DYER" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Dyer Production Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Production Management (Assigned Production Orders, Production Tracking, Dyeing & Washing Stage, Assigned Material Details)</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "2px" }}>✗ Restricted: Products setup, Raw Materials master, Suppliers, Customers, Purchases, Warehouses, Quality Control, Sales, Exports, Employees, Financial Reports</div>
+                              </>
+                            )}
+                            {normalizeTextileRole(formData.role) === "QUALITY_INSPECTOR" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Quality Inspector Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Quality Control (Inspections, Defect Grading, QC Logs & Approvals), Assigned Production Tracking</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "2px" }}>✗ Restricted: Products setup, Raw Materials, Suppliers, Customers, Purchases, Sales, Exports, Employees, Financial Reports</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : isLaundry ? (
+                      <div>
+                        <h3
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            color: "#f8fafc",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Automatic Role Permissions
+                        </h3>
+
+                        <div style={{ padding: "14px", borderRadius: "8px", backgroundColor: "#0f172a", border: "1px solid #334155", marginTop: "8px" }}>
+                          <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 10px 0" }}>
+                            Access is automatically assigned based on role: <strong style={{ color: "#6366f1" }}>{formData.role}</strong>
+                          </p>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {(formData.role === "Manager" || formData.role === "Admin") && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Full Laundry ERP Operational & Management Access</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Laundry POS, Active Orders, Outlets & Branches, Services & Categories, Garment Tracking, Processing Queue, Ready Orders, Pickup & Deliveries, Customers, Employees & Staff, Laundry Reports</div>
+                              </>
+                            )}
+                            {formData.role === "Cashier" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Cashier POS & Billing Operations</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Laundry POS, Active Orders, Customers, Pickup / Deliveries</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Outlets & Branches, Services & Categories, Employees / Staff, Laundry Reports</div>
+                              </>
+                            )}
+                            {formData.role === "Processing Staff" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Laundry Processing Operations</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Active Orders, Garment Tracking & Barcode Scan, Processing Queue, Ready Orders</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Laundry POS, Services & Categories, Outlets, Employees / Staff, Reports, Customers</div>
+                              </>
+                            )}
+                            {formData.role === "Delivery Driver" && (
+                              <>
+                                <div style={{ color: "#10b981", fontSize: "12px", fontWeight: "600" }}>✓ Delivery & Dispatch Operations</div>
+                                <div style={{ color: "#cbd5e1", fontSize: "11px" }}>Dashboard, Ready Orders, Pickup / Deliveries</div>
+                                <div style={{ color: "#ef4444", fontSize: "11px" }}>✗ Restricted: Laundry POS, Active Orders, Processing Queue, Garment Tracking, Services, Outlets, Employees, Reports</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : isRetail ? (
                       <div>
                         <h3
                           style={{

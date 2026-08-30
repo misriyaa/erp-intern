@@ -33,6 +33,7 @@ import {
   FiTrendingUp,
   FiHeart,
   FiActivity,
+  FiGlobe,
 } from "react-icons/fi";
 
 export const INDUSTRY_CODES = {
@@ -109,6 +110,9 @@ export const ROUTE_MODULE_MAP = {
   "/textile/raw-materials": "RAW_MATERIALS",
   "/textile/production": "PRODUCTION",
   "/textile/quality-control": "QUALITY_CONTROL",
+  "/textile/stock-movements": "STOCK_MOVEMENTS",
+  "/textile/exports": "EXPORT_MANAGEMENT",
+  "/textile/export-management": "EXPORT_MANAGEMENT",
 
   // Restaurant Modules
   "/restaurant/dashboard": "RESTAURANT",
@@ -178,15 +182,23 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "SUPPLIERS", label: "Equipment Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "GYM" },
 
   // Textile Industry Modules
+  { moduleCode: "DASHBOARD", label: "Dashboard", href: "/dashboard", icon: FiGrid, industry: "TEXTILE" },
   { moduleCode: "PRODUCTS", label: "Textile Products", href: "/textile/products", icon: FiShoppingBag, industry: "TEXTILE" },
   { moduleCode: "RAW_MATERIALS", label: "Raw Materials", href: "/textile/raw-materials", icon: FiLayers, industry: "TEXTILE" },
-  { moduleCode: "PRODUCTION", label: "Production Tracking", href: "/textile/production", icon: FiCpu, industry: "TEXTILE" },
+  { moduleCode: "SUPPLIERS", label: "Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "TEXTILE" },
+  { moduleCode: "CUSTOMERS", label: "Customers", href: "/customers", icon: FiUsers, industry: "TEXTILE" },
+  { moduleCode: "PURCHASES", label: "Purchase Management", href: "/purchases", icon: FiShoppingCart, industry: "TEXTILE" },
+  { moduleCode: "PRODUCTION", label: "Production Management", href: "/textile/production", icon: FiCpu, industry: "TEXTILE" },
   { moduleCode: "INVENTORY", label: "Inventory Stock", href: "/warehouse/stock", icon: FiPackage, industry: "TEXTILE" },
-  { moduleCode: "WAREHOUSES", label: "Mill Warehouses", href: "/warehouse", icon: FiHome, industry: "TEXTILE" },
+  { moduleCode: "STOCK_MOVEMENTS", label: "Stock Movements", href: "/textile/stock-movements", icon: FiActivity, industry: "TEXTILE" },
+  { moduleCode: "WAREHOUSES", label: "Warehouses", href: "/warehouse", icon: FiHome, industry: "TEXTILE" },
   { moduleCode: "QUALITY_CONTROL", label: "Quality Control", href: "/textile/quality-control", icon: FiCheckCircle, industry: "TEXTILE" },
-  { moduleCode: "BRANCHES", label: "Mills & Manufacturing Units", href: "/admin/branches", icon: FiMapPin, industry: "TEXTILE" },
-  { moduleCode: "SUPPLIERS", label: "Yarn & Dye Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "TEXTILE" },
-  { moduleCode: "SALES", label: "Fabric Sales & Export", href: "/sales", icon: FiShoppingCart, industry: "TEXTILE" },
+  { moduleCode: "BRANCHES", label: "Manufacturing Units", href: "/admin/branches", icon: FiMapPin, industry: "TEXTILE" },
+  { moduleCode: "SALES", label: "Fabric Sales", href: "/sales", icon: FiShoppingCart, industry: "TEXTILE" },
+  { moduleCode: "EXPORT_MANAGEMENT", label: "Export Management", href: "/textile/exports", icon: FiGlobe, industry: "TEXTILE" },
+  { moduleCode: "PRODUCTS", label: "Units of Measure", href: "/admin/units", icon: FiBox, industry: "TEXTILE" },
+  { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck, industry: "TEXTILE" },
+  { moduleCode: "REPORTS", label: "Reports & Analytics", href: "/reports", icon: FiBarChart2, industry: "TEXTILE" },
 
   // Retail Industry Modules
   { moduleCode: "POS", label: "POS Terminal", href: "/pos", icon: FiMonitor, industry: "RETAIL" },
@@ -195,7 +207,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "PRODUCTS", label: "Products", href: "/admin/products/view", icon: FiShoppingBag, industry: "RETAIL" },
   { moduleCode: "CATEGORIES", label: "Categories", href: "/admin/categories", icon: FiBox, industry: "RETAIL" },
   { moduleCode: "BRANDS", label: "Brands", href: "/admin/brand", icon: FiTag, industry: "RETAIL" },
-  { moduleCode: "PRODUCTS", label: "Units of Measure", href: "/admin/units", icon: FiBox, industry: "TEXTILE, RESTAURANT" },
+  { moduleCode: "PRODUCTS", label: "Units of Measure", href: "/admin/units", icon: FiBox, industry: "RETAIL" },
   { moduleCode: "WAREHOUSE", label: "Warehouse Management", href: "/warehouse", icon: FiBriefcase, industry: "RETAIL" },
   { moduleCode: "CUSTOMERS", label: "Customers", href: "/customers", icon: FiUsers, industry: "RETAIL, MEDICAL_SHOP" },
   { moduleCode: "SUPPLIERS", label: "Goods Vendors & Suppliers", href: "/admin/suppliers", icon: FiTruck, industry: "RETAIL, MEDICAL_SHOP" },
@@ -228,6 +240,8 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "LAUNDRY", label: "Processing Queue", href: "/laundry/processing", icon: FiClock, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Ready Orders", href: "/laundry/ready", icon: FiCheckCircle, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Pickup / Deliveries", href: "/laundry/delivery", icon: FiTruck, industry: "LAUNDRY" },
+  { moduleCode: "CUSTOMERS", label: "Customers", href: "/customers", icon: FiUsers, industry: "LAUNDRY" },
+  { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck, industry: "LAUNDRY" },
   { moduleCode: "LAUNDRY", label: "Laundry Reports", href: "/laundry/reports", icon: FiBarChart2, industry: "LAUNDRY" },
 
   // Medical Shop Industry Modules

@@ -79,6 +79,26 @@
   50% { opacity: 0.5; transform: scale(1.2); }
 }
 
+.headerSelect {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.headerSelect:hover,
+.headerSelect:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
 .primaryButton {
   display: inline-flex;
   align-items: center;
@@ -91,6 +111,9 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
   box-shadow: 0 4px 14px rgba(15, 118, 110, 0.3);
   transition: all 0.2s ease;
 }
@@ -226,23 +249,28 @@
   font-size: 13px;
 }
 
-.cardAction, .viewAll {
-  background: transparent;
+.cardAction, .viewAll, .cardSelect {
+  background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  padding: 6px 14px;
+  padding: 6px 12px;
   color: #475569;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  outline: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
   transition: all 0.2s ease;
 }
 
-.cardAction:hover, .viewAll:hover {
+.cardAction:hover, .viewAll:hover, .cardSelect:hover, .cardSelect:focus {
   background: #f8fafc;
   color: #0f766e;
   border-color: #0f766e;
 }
+
 
 /* ================= CHARTS GRID ================= */
 

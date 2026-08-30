@@ -14,6 +14,7 @@ export const RETAIL_ROLE_ACCESS = {
   STORE_MANAGER: [
     "DASHBOARD",
     "POS",
+    "POS_HISTORY",
     "BARCODE_PRINT",
     "PRODUCTS",
     "CATEGORIES",
@@ -34,6 +35,7 @@ export const RETAIL_ROLE_ACCESS = {
   CASHIER: [
     "DASHBOARD",
     "POS",
+    "POS_HISTORY",
     "CUSTOMERS",
     "BARCODE_PRINT",
     "INVOICES",

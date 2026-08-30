@@ -118,11 +118,19 @@ export const createProduct = async (data) => {
 
   const product = await productRepository.createProduct(cleanData);
 
-  // Initialize Inventory record in default Warehouse
+  // Initialize Inventory record in selected/default Warehouse
   try {
-    let warehouse = await prisma.warehouse.findFirst({
-      where: { companyId: cleanData.companyId || undefined },
-    });
+    let warehouse = null;
+    if (data.warehouseId) {
+      warehouse = await prisma.warehouse.findFirst({
+        where: { id: data.warehouseId, companyId: cleanData.companyId || undefined },
+      });
+    }
+    if (!warehouse) {
+      warehouse = await prisma.warehouse.findFirst({
+        where: { companyId: cleanData.companyId || undefined },
+      });
+    }
     if (!warehouse) {
       warehouse = await prisma.warehouse.create({
         data: {
@@ -145,6 +153,21 @@ export const createProduct = async (data) => {
         maximumStock: cleanData.maximumStock ? parseInt(cleanData.maximumStock) : 1000,
       },
     });
+
+    if (initialQty > 0) {
+      await prisma.stockMovement.create({
+        data: {
+          productId: product.id,
+          warehouseId: warehouse.id,
+          companyId: cleanData.companyId || null,
+          type: "IN",
+          quantity: initialQty,
+          referenceType: "OPENING_STOCK",
+          reason: "Opening Stock Initialization",
+          date: cleanData.openingStockDate || new Date(),
+        },
+      }).catch(() => {});
+    }
   } catch (invErr) {
     // Inventory initialization soft notice
   }

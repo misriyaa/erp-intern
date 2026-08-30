@@ -29,7 +29,27 @@ export const createInventory = async (data) => {
     throw new Error("Inventory already exists for this product and warehouse.");
   }
 
-  return await inventoryRepository.createInventory(data);
+  const inventory = await inventoryRepository.createInventory(data);
+
+  if (product.isTextile && Number(data.quantity) > 0) {
+    try {
+      const textileRepo = await import("../textile/textile.repository.js");
+      await textileRepo.createStockMovementRepo(product.companyId, {
+        type: "STOCK_IN",
+        item: product.name,
+        sku: product.sku,
+        quantity: Number(data.quantity),
+        unit: product.stockUnit || product.unit?.name || "Meters",
+        source: "Warehouse Initial Stock Entry",
+        destination: warehouse.name || "Main Warehouse",
+        reason: `Initial stock record created for ${product.name} in ${warehouse.name}`,
+      });
+    } catch (e) {
+      console.warn("Soft notice recording stock movement on inventory create:", e);
+    }
+  }
+
+  return inventory;
 };
 
 export const getAllInventories = async (companyId) => {

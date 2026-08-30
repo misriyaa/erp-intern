@@ -504,239 +504,412 @@
 }
 
 /* =========================================================
-   MIDDLE GRID
+   MIDDLE WIDGET GRID (RESPONSIVE 2-COLUMN SIDE-BY-SIDE)
 ========================================================= */
 
 .middleGrid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  margin-bottom: 24px;
+}
 
-  grid-template-columns:
-    1fr
-    1fr;
-
-  gap: 14px;
-
-  margin-top: 14px;
+@media (max-width: 1024px) {
+  .middleGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 /* =========================================================
-   LIST CARD
+   WIDGET CARD
 ========================================================= */
 
-.listCard {
-  min-width: 0;
-
-  padding-bottom: 8px;
-}
-
-.listCard .cardHeader {
-  padding-bottom: 8px;
-}
-
-.viewButton {
-  min-height: 35px;
-
-  padding: 6px 11px;
-
-  font-size: 13px;
-}
-
-.viewButton span {
-  font-size: 18px;
-
-  line-height: 1;
-}
-
-/* =========================================================
-   SUPPLIERS
-========================================================= */
-
-.supplierList {
-  padding: 7px 20px 8px;
-}
-
-.supplierRow {
-  min-height: 53px;
-
-  display: grid;
-
-  grid-template-columns:
-    45px
-    minmax(170px, 1fr)
-    minmax(120px, 0.8fr)
-    65px;
-
-  align-items: center;
-
-  gap: 10px;
-
-  border-bottom: 0 solid #edf0f2;
-}
-
-.supplierIcon {
-  width: 45px;
-  height: 45px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 7px;
-
-  background: #f7f8fa;
-
-  color: #f28b16;
-
-  font-size: 17px;
-}
-
-.supplierName,
-.supplied {
-  min-width: 0;
-
+.widgetCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
-}
-
-.supplierName small,
-.supplied small,
-.warehouseName small,
-.contact small,
-.capacity small {
-  margin-bottom: 1px;
-
-  color: #718198;
-
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.supplierName strong,
-.supplied strong,
-.warehouseName strong,
-.contact strong,
-.capacity strong {
   overflow: hidden;
-
-  color: #203653;
-
-  font-size: 13px;
-  line-height: 1.35;
-
-  font-weight: 650;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.supplied strong {
-  font-size: 13px;
+.widgetCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
-/* =========================================================
-   STATUS
-========================================================= */
-
-.activeStatus,
-.inactiveStatus {
-  justify-self: end;
-
-  display: inline-flex;
+.widgetHeader {
+  display: flex;
   align-items: center;
-  justify-content: center;
-
-  min-width: 59px;
-
-  padding: 5px 8px;
-
-  border-radius: 5px;
-
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.activeStatus {
-  background: #e9f6f1;
-  color: #008d6d;
-}
-
-.inactiveStatus {
-  background: #fdeaea;
-  color: #e33d3d;
-}
-
-/* =========================================================
-   WAREHOUSE
-========================================================= */
-
-.warehouseList {
-  padding: 7px 20px 8px;
-}
-
-.warehouseRow {
-  min-height: 53px;
-
-  display: grid;
-
-  grid-template-columns:
-    minmax(190px, 1.4fr)
-    minmax(150px, 1fr)
-    minmax(100px, 0.65fr)
-    48px;
-
-  align-items: center;
-
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
   gap: 12px;
 }
 
-.warehouseName,
-.contact,
-.capacity {
-  min-width: 0;
-
+.headerTitleGroup {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
-.capacityCircle {
-  --progress: 180deg;
-  --circle-color: #079574;
+.widgetTitle {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
 
-  width: 44px;
-  height: 44px;
+.widgetSubtitle {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+}
 
-  position: relative;
+.viewLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
 
+.viewLink:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.widgetList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px 20px;
+  flex-grow: 1;
+}
+
+/* =========================================================
+   SUPPLIER ITEMS
+========================================================= */
+
+.supplierItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  gap: 14px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.supplierItem:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.supplierAvatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 15px;
   display: grid;
   place-items: center;
-
-  border-radius: 50%;
-
-  background:
-    conic-gradient(
-      var(--circle-color) var(--progress),
-      #edf0f2 var(--progress)
-    );
 }
 
-.capacityCircle::before {
-  content: "";
-
-  position: absolute;
-
-  inset: 4px;
-
-  border-radius: 50%;
-
-  background: #ffffff;
+.supplierDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
-.capacityCircle span {
-  position: relative;
-  z-index: 1;
+.supplierNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
-  color: #203653;
+.supplierName {
+  color: #1e293b;
+  font-size: 13.5px;
+  font-weight: 700;
+}
 
+.supplierCode {
   font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.supplierContact {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badgePill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  white-space: nowrap;
+}
+
+.badgeNumber {
+  font-size: 13px;
+  font-weight: 800;
+  color: #059669;
+}
+
+.badgeText {
+  font-size: 11px;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.badgeNeutral {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   WAREHOUSE ITEMS & PROGRESS
+========================================================= */
+
+.warehouseItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  gap: 16px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.warehouseItem:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.warehouseDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.warehouseNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.warehouseName {
+  color: #1e293b;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.warehouseCode {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.warehouseContact {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.progressBarTrack {
+  flex: 1;
+  height: 7px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.progressPercent {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.capacityMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  min-width: 90px;
+}
+
+.capacityAmount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.capacityUnits {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.emptyState {
+  padding: 36px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* =========================================================
+   BOTTOM TABLE SECTION
+========================================================= */
+
+.bottomSection {
+  width: 100%;
+  margin-top: 6px;
+  margin-bottom: 24px;
+}
+
+.tableCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.tableCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 12px;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table td {
+  padding: 14px 24px;
+  color: #334155;
+  font-size: 13.5px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.productNameText {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.skuTag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.qtyPill {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.priceTag {
+  color: #0f172a;
   font-weight: 700;
 }
 

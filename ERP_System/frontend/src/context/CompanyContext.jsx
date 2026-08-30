@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
+import { TEXTILE_ROLE_ACCESS, normalizeTextileRole } from "@/config/textileRoles";
 
 const CompanyContext = createContext(null);
 
@@ -166,6 +167,28 @@ export function CompanyProvider({ children }) {
       }
     }
 
+    // 1.5. TEXTILE ERP - Priority Automated Role-Based Access Rules
+    if (isTextile) {
+      const normalizedTextile = normalizeTextileRole(roleUpper);
+      if (normalizedTextile && TEXTILE_ROLE_ACCESS[normalizedTextile]) {
+        const allowedModules = TEXTILE_ROLE_ACCESS[normalizedTextile];
+        const isAllowed = allowedModules.some((allowed) => {
+          if (allowed === codeUpper) return true;
+          if (allowed === "RAW_MATERIALS" && (codeUpper === "RAW_MATERIALS" || codeUpper === "RAW-MATERIALS")) return true;
+          if (allowed === "PRODUCTION" && (codeUpper === "PRODUCTION" || codeUpper === "PRODUCTION_TRACKING" || codeUpper === "PRODUCTION-TRACKING")) return true;
+          if (allowed === "QUALITY_CONTROL" && (codeUpper === "QUALITY_CONTROL" || codeUpper === "QUALITY-CONTROL" || codeUpper === "QC")) return true;
+          if (allowed === "WAREHOUSE" && (codeUpper === "WAREHOUSES" || codeUpper === "WAREHOUSE")) return true;
+          if (allowed === "WAREHOUSES" && (codeUpper === "WAREHOUSES" || codeUpper === "WAREHOUSE")) return true;
+          if (allowed === "EXPORT_MANAGEMENT" && (codeUpper === "EXPORT_MANAGEMENT" || codeUpper === "EXPORTS")) return true;
+          if (allowed === "EXPORTS" && (codeUpper === "EXPORT_MANAGEMENT" || codeUpper === "EXPORTS")) return true;
+          if (allowed === "BRANCHES" && (codeUpper === "BRANCHES" || codeUpper === "MANUFACTURING_UNITS")) return true;
+          if (allowed === "MANUFACTURING_UNITS" && (codeUpper === "BRANCHES" || codeUpper === "MANUFACTURING_UNITS")) return true;
+          return false;
+        });
+        return isAllowed;
+      }
+    }
+
     // 2. RESTAURANT ERP - Priority Role Access Defaults (Never dependent on manual permissions)
     if (isRestaurant) {
       if (roleUpper.includes("MANAGER")) {
@@ -271,7 +294,7 @@ export function CompanyProvider({ children }) {
     if (isGym && ["DASHBOARD", "MEMBERS", "MEMBERSHIP_PLANS", "TRAINERS", "ATTENDANCE", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "SUPPLIERS", "REPORTS", "SETTINGS", "INVENTORY"].includes(codeUpper)) {
       return true;
     }
-    if (isTextile && ["DASHBOARD", "PRODUCTS", "RAW_MATERIALS", "PRODUCTION", "INVENTORY", "WAREHOUSES", "WAREHOUSE", "QUALITY_CONTROL", "SUPPLIERS", "SALES", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
+    if (isTextile && ["DASHBOARD", "PRODUCTS", "RAW_MATERIALS", "SUPPLIERS", "CUSTOMERS", "BRANCHES", "WAREHOUSES", "WAREHOUSE", "UNITS", "EMPLOYEES", "PURCHASES", "PRODUCTION", "QUALITY_CONTROL", "INVENTORY", "STOCK_MOVEMENTS", "SALES", "EXPORT_MANAGEMENT", "EXPORTS", "PAYMENTS", "EXPENSES", "REPORTS", "SETTINGS"].includes(codeUpper)) {
       return true;
     }
     if (isLaundry && ["DASHBOARD", "LAUNDRY", "INVENTORY", "WAREHOUSE", "CUSTOMERS", "SUPPLIERS", "PAYMENTS", "EXPENSES", "BRANCHES", "EMPLOYEES", "REPORTS", "SETTINGS"].includes(codeUpper)) {

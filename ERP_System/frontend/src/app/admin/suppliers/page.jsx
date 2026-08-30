@@ -160,17 +160,21 @@ export default function SuppliersPage() {
 
       if (editingId) {
         const res = await updateSupplier(editingId, payload);
-        showSuccess("Product updated", res.message || "Supplier details updated successfully.");
+        showSuccess("Supplier updated", res?.message || "Supplier details updated successfully.");
       } else {
         const res = await createSupplier(payload);
-        showSuccess("Product created", res.message || "New supplier recorded successfully.");
+        showSuccess("Supplier created", res?.message || "New supplier recorded successfully.");
       }
 
       await fetchSupplierData();
       handleCancel();
     } catch (err) {
       console.error("Supplier save error:", err);
-      showError("Database error", err.response?.data?.message || err.message || "Failed to save supplier.");
+      const validationErrors = err.response?.data?.errors;
+      const errorMsg = Array.isArray(validationErrors)
+        ? validationErrors.map((e) => e.msg || e.message).join(", ")
+        : err.response?.data?.message || err.message || "Failed to save supplier.";
+      showError("Supplier Save Failed", errorMsg);
     } finally {
       setSubmitting(false);
     }

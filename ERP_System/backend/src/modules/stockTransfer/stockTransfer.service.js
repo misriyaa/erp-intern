@@ -2,6 +2,8 @@ import prisma from "../../config/prisma.js";
 import * as stockTransferRepository from "./stockTransfer.repository.js";
 import * as warehouseRepository from "../warehouse/warehouse.repository.js";
 import * as productRepository from "../products/product.repository.js";
+import { emitDashboardUpdate } from "../../config/socket.js";
+
 
 export const createStockTransfer = async (data) => {
 
@@ -55,7 +57,7 @@ export const createStockTransfer = async (data) => {
       if (!product) {
         throw new Error("Product not found.");
       }
-      const sourceInventory = await tx.inventory.findFirst({
+      let sourceInventory = await tx.inventory.findFirst({
         where: {
           productId: item.productId,
           warehouseId: data.fromWarehouseId,
@@ -63,12 +65,23 @@ export const createStockTransfer = async (data) => {
       });
 
       if (!sourceInventory) {
-        throw new Error("Product not available in source warehouse.");
+        if (product.initialStock && parseFloat(product.initialStock) > 0) {
+          sourceInventory = await tx.inventory.create({
+            data: {
+              productId: item.productId,
+              warehouseId: data.fromWarehouseId,
+              quantity: parseFloat(product.initialStock),
+            },
+          });
+        } else {
+          throw new Error("Product not available in source warehouse.");
+        }
       }
 
       const itemQty = parseInt(item.quantity);
-      if (sourceInventory.quantity < itemQty) {
-        throw new Error("Insufficient stock.");
+      const currentSourceQty = parseFloat(sourceInventory.quantity);
+      if (currentSourceQty < itemQty) {
+        throw new Error(`Insufficient stock in source warehouse (Available: ${currentSourceQty}).`);
       }
 
       await tx.stockTransferItem.create({
@@ -84,7 +97,7 @@ export const createStockTransfer = async (data) => {
           id: sourceInventory.id,
         },
         data: {
-          quantity: sourceInventory.quantity - itemQty,
+          quantity: currentSourceQty - itemQty,
         },
       });
 
@@ -101,7 +114,7 @@ export const createStockTransfer = async (data) => {
             id: destinationInventory.id,
           },
           data: {
-            quantity: destinationInventory.quantity + itemQty,
+            quantity: parseFloat(destinationInventory.quantity) + itemQty,
           },
         });
       } else {
@@ -113,6 +126,7 @@ export const createStockTransfer = async (data) => {
           },
         });
       }
+
 
       await tx.stockMovement.create({
         data: {
@@ -139,7 +153,17 @@ export const createStockTransfer = async (data) => {
 
     return transfer;
   });
+
+  try {
+    emitDashboardUpdate(data.companyId, "stock.updated", { fromWarehouseId: data.fromWarehouseId, toWarehouseId: data.toWarehouseId });
+    emitDashboardUpdate(data.companyId, "reports.updated", { source: "stockTransfer" });
+  } catch (err) {
+    // Socket emit fallback
+  }
+
+  return created;
 };
+
 
 export const getAllStockTransfers = async () => {
   return await stockTransferRepository.getAllStockTransfers();

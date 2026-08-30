@@ -8,14 +8,15 @@ import {
   FiSave,
   FiX,
   FiPackage,
+  FiEdit3,
 } from "react-icons/fi";
 import { getWarehouses } from "@/services/warehouseService";
 import { getProducts } from "@/services/productService";
-import { createPurchase } from "@/services/purchaseService";
+import { createPurchase, getPurchase, updatePurchase } from "@/services/purchaseService";
 import { useAlert } from "@/context/AlertContext";
 import SupplierSelect from "./SupplierSelect";
 
-export default function PurchaseForm() {
+export default function PurchaseForm({ purchaseId, isEdit = false }) {
   const router = useRouter();
   const { showSuccess, showError } = useAlert();
 
@@ -23,6 +24,7 @@ export default function PurchaseForm() {
   const [warehouses, setWarehouses] = useState([]);
   const [products, setProducts] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingPurchase, setLoadingPurchase] = useState(isEdit && Boolean(purchaseId));
 
   // Form state
   const [supplierId, setSupplierId] = useState("");
@@ -49,12 +51,8 @@ export default function PurchaseForm() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Load dynamic data on mount
+  // Load master data (warehouses, products)
   useEffect(() => {
-    // Generate default purchase order number
-    const randomSeq = Math.floor(100000 + Math.random() * 900000);
-    setPurchaseNo(`PO-${randomSeq}`);
-
     async function loadMasterData() {
       try {
         setLoadingData(true);
@@ -66,7 +64,7 @@ export default function PurchaseForm() {
         if (whRes.status === "fulfilled") {
           const whData = whRes.value?.data || whRes.value || [];
           setWarehouses(Array.isArray(whData) ? whData : []);
-          if (Array.isArray(whData) && whData.length > 0) {
+          if (!isEdit && Array.isArray(whData) && whData.length > 0) {
             setWarehouseId(whData[0].id);
           }
         }
@@ -76,14 +74,67 @@ export default function PurchaseForm() {
           setProducts(Array.isArray(prodData) ? prodData : []);
         }
       } catch (err) {
-        console.error("Failed to load purchase form data", err);
+        console.error("Failed to load purchase form master data:", err);
       } finally {
         setLoadingData(false);
       }
     }
 
     loadMasterData();
-  }, []);
+  }, [isEdit]);
+
+  // If in edit mode, load existing purchase order data
+  useEffect(() => {
+    if (!isEdit || !purchaseId) {
+      if (!isEdit) {
+        const randomSeq = Math.floor(100000 + Math.random() * 900000);
+        setPurchaseNo(`PO-${randomSeq}`);
+      }
+      return;
+    }
+
+    async function loadExistingPurchase() {
+      try {
+        setLoadingPurchase(true);
+        const res = await getPurchase(purchaseId);
+        const data = res?.data || res;
+
+        if (data) {
+          setPurchaseNo(data.purchaseNo || "");
+          setSupplierId(data.supplierId || data.supplier?.id || "");
+          setWarehouseId(data.warehouseId || data.warehouse?.id || "");
+          if (data.purchaseDate) {
+            setPurchaseDate(new Date(data.purchaseDate).toISOString().split("T")[0]);
+          }
+          setStatus(data.status || "PENDING");
+          setNotes(data.notes || "");
+          setTaxRate(data.taxRate !== undefined && data.taxRate !== null ? Number(data.taxRate) : 0);
+
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            const mappedItems = data.items.map((it) => {
+              const qty = Number(it.quantity) || 1;
+              const unitP = Number(it.unitPrice !== undefined ? it.unitPrice : (it.product?.costPrice || it.product?.sellingPrice || 0));
+              const totP = Number(it.totalPrice !== undefined ? it.totalPrice : qty * unitP);
+              return {
+                productId: it.productId || it.product?.id || "",
+                quantity: qty,
+                unitPrice: unitP,
+                totalPrice: totP,
+              };
+            });
+            setItems(mappedItems);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load existing purchase order:", err);
+        showError("Loading Error", "Failed to load purchase order details.");
+      } finally {
+        setLoadingPurchase(false);
+      }
+    }
+
+    loadExistingPurchase();
+  }, [isEdit, purchaseId]);
 
   // Update a single line item
   const updateItem = (index, field, value) => {
@@ -92,7 +143,7 @@ export default function PurchaseForm() {
 
     if (field === "productId") {
       currentItem.productId = value;
-      const selectedProd = products.find((p) => p.id === value);
+      const selectedProd = products.find((p) => String(p.id) === String(value));
       if (selectedProd) {
         const price = Number(selectedProd.costPrice || selectedProd.sellingPrice || 0);
         currentItem.unitPrice = price;
@@ -135,7 +186,7 @@ export default function PurchaseForm() {
   };
 
   // Calculations
-  const subtotal = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  const subtotal = items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const taxAmount = (subtotal * (Number(taxRate) || 0)) / 100;
   const grandTotal = subtotal + taxAmount;
   const totalQty = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
@@ -181,11 +232,16 @@ export default function PurchaseForm() {
         })),
       };
 
-      await createPurchase(payload);
-      showSuccess("Purchase Created", `Purchase order ${payload.purchaseNo} created successfully!`);
+      if (isEdit && purchaseId) {
+        await updatePurchase(purchaseId, payload);
+        showSuccess("Purchase Updated", `Purchase order ${payload.purchaseNo} updated successfully!`);
+      } else {
+        await createPurchase(payload);
+        showSuccess("Purchase Created", `Purchase order ${payload.purchaseNo} created successfully!`);
+      }
       router.push("/purchases");
     } catch (err) {
-      console.error("Purchase creation failed:", err);
+      console.error(isEdit ? "Purchase update failed:" : "Purchase creation failed:", err);
       const msg =
         err.response?.data?.message ||
         err.message ||
@@ -197,13 +253,25 @@ export default function PurchaseForm() {
     }
   };
 
+  if (loadingPurchase) {
+    return (
+      <section className="addCard" style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
+        <p style={{ fontSize: "16px", fontWeight: 600 }}>Loading purchase order details...</p>
+      </section>
+    );
+  }
+
   return (
     <section className="addCard">
-      {/* ADD HEADER */}
+      {/* HEADER */}
       <div className="addHeader">
         <div>
-          <h2>Add Purchase Order</h2>
-          <p>Create a new purchase order for supplier inventory.</p>
+          <h2>{isEdit ? "Edit Purchase Order" : "Add Purchase Order"}</h2>
+          <p>
+            {isEdit
+              ? "Modify purchase order details, supplier, items, or status."
+              : "Create a new purchase order for supplier inventory."}
+          </p>
         </div>
         <button
           type="button"
@@ -243,6 +311,7 @@ export default function PurchaseForm() {
             value={purchaseNo}
             onChange={(e) => setPurchaseNo(e.target.value)}
             placeholder="e.g. PO-891814"
+            disabled={isEdit}
           />
         </div>
 
@@ -584,14 +653,15 @@ export default function PurchaseForm() {
           </button>
 
           <button type="submit" className="saveButton" disabled={submitting}>
-            <FiSave size={16} />
-            {submitting ? "Saving Purchase..." : "Save Purchase Order"}
+            {isEdit ? <FiEdit3 size={16} /> : <FiSave size={16} />}
+            {submitting ? (isEdit ? "Updating Purchase..." : "Saving Purchase...") : (isEdit ? "Update Purchase Order" : "Save Purchase Order")}
           </button>
         </div>
       </form>
     </section>
   );
 }
+
 
 
 

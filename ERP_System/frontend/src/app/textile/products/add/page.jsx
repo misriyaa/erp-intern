@@ -16,7 +16,6 @@ import {
   FiPlus,
   FiTrash2,
   FiZap,
-  FiShoppingBag,
   FiCheckCircle,
 } from "react-icons/fi";
 
@@ -25,16 +24,10 @@ import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
 import { useCompany } from "@/context/CompanyContext";
 
-const DEFAULT_UNITS = [
-  { id: "meter", name: "Meter", code: "m" },
-  { id: "yard", name: "Yard", code: "yd" },
-  { id: "pcs", name: "Pieces", code: "pcs" },
-  { id: "roll", name: "Roll", code: "roll" },
-  { id: "kg", name: "Kilogram", code: "kg" },
-];
+const STOCK_UNITS = ["Meter", "Yard", "Piece", "Roll", "KG"];
 
 const WEAVE_TYPES = [
-  "Plain weave",
+  "Plain Weave",
   "Twill",
   "Satin",
   "Jacquard",
@@ -64,52 +57,75 @@ const TEXTURE_FINISHES = [
   "Crinkle",
 ];
 
+const PRESET_COLOR_MAP = {
+  "royal blue": "#1e40af",
+  "navy blue": "#1e3a8a",
+  "sky blue": "#38bdf8",
+  "crimson red": "#dc2626",
+  "ruby red": "#b91c1c",
+  "emerald green": "#059669",
+  "olive green": "#65a30d",
+  "charcoal black": "#1f2937",
+  "black": "#000000",
+  "pearl white": "#f8fafc",
+  "white": "#ffffff",
+  "golden yellow": "#eab308",
+  "mustard": "#ca8a04",
+  "maroon": "#881337",
+  "purple": "#9333ea",
+  "lavender": "#c084fc",
+  "peach": "#fb923c",
+  "beige": "#f5f5dc",
+  "grey": "#6b7280",
+  "silver": "#9ca3af",
+};
+
 const initialProduct = {
+  // Step 1: Basic Info
   name: "",
   sku: "",
   barcode: "",
   categoryId: "",
-  subcategory: "Shirting Fabric",
+  subcategory: "",
   brandId: "",
-  baseUnitId: "",
-  description: "",
   status: "ACTIVE",
+  description: "",
 
-  // Textile Fabric Specifications
+  // Step 2: Fabric Specs
   isTextile: true,
   fabricComposition: "100% Cotton",
   gsm: "180",
   rollWidth: "58",
   widthUnit: "Inches",
-  color: "Royal Blue",
-  colorCode: "#1e40af",
   pattern: "Plain / Solid",
-  weaveType: "Plain weave",
+  weaveType: "Plain Weave",
   textureFinish: "Soft",
 
-  // Inventory
+  // Step 3: Inventory & Stock
   stockUnit: "Meter",
   initialStock: "500",
-  openingStockDate: new Date().toISOString().split("T")[0],
-  reorderLevel: "50",
-  minimumStock: "20",
-  maximumStock: "2000",
-  warehouseLocation: "Textile Mill Warehouse #1",
-  rackLocation: "Rack FAB-12",
   numberOfRolls: "10",
+  openingStockDate: new Date().toISOString().split("T")[0],
+  reorderLevel: "50", // Low Stock Alert Level
+  warehouseId: "",
+  rackLocation: "Rack FAB-12",
 
+  // Step 4: Pricing & GST
   costPrice: "240",
-  sellingPrice: "350",
   wholesalePrice: "310",
-  retailPrice: "390",
+  sellingPrice: "350",
+  retailPrice: "390", // MRP
   discountValue: "0",
   discountType: "PERCENT",
   taxRate: "12",
 
+  // Step 5: Supplier / Manufacturing Information
   supplierId: "",
-  supplierProductCode: "YARN-TEX-901",
+  supplierProductCode: "TEX-SUP-901",
+  branchId: "", // Manufacturing Unit
   leadTime: "7",
 
+  // Step 6: Product Variants
   hasVariants: false,
 };
 
@@ -119,41 +135,77 @@ export default function AddTextileProductPage() {
   const { isTextile, isRetail } = useCompany();
 
   useEffect(() => {
-    console.log("WARNING: TextileFabricProductForm (Add) rendered. isTextile:", isTextile, "isRetail:", isRetail);
     if (!isTextile) {
-      console.log("Redirecting non-textile user away from Textile Product Add...");
       router.replace("/admin/products/add");
     }
-  }, [isTextile, isRetail, router]);
+  }, [isTextile, router]);
 
   const [product, setProduct] = useState(initialProduct);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [units, setUnits] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [branches, setBranches] = useState([]); // Manufacturing Units
   const [submitting, setSubmitting] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
 
+  // Quick Add Category Modal State
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: "",
+    description: "",
+    status: "ACTIVE",
+  });
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  // Quick Add Brand/Mill Modal State
+  const [showBrandModal, setShowBrandModal] = useState(false);
+  const [brandFormData, setBrandFormData] = useState({
+    name: "",
+    type: "Textile Mill",
+    location: "",
+    contactPerson: "",
+    phone: "",
+    status: "ACTIVE",
+  });
+  const [savingBrand, setSavingBrand] = useState(false);
+
   // Dynamic Variants state
   const [variants, setVariants] = useState([]);
-  const [quickColors, setQuickColors] = useState("Royal Blue, Emerald Green, Crimson Red, Charcoal Black, Pearl White");
-
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-
   const fileInputRef = useRef(null);
 
+  const generateSkuCode = (fabricName = "") => {
+    let prefix = "FAB-TEX";
+    if (fabricName && fabricName.trim().length >= 3) {
+      const clean = fabricName.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (clean.length >= 3) {
+        prefix = `FAB-${clean.slice(0, 4)}`;
+      }
+    }
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+    return `${prefix}-${randomSuffix}`;
+  };
+
   useEffect(() => {
+    setProduct((prev) => {
+      if (!prev.sku) {
+        return { ...prev, sku: generateSkuCode() };
+      }
+      return prev;
+    });
     fetchFormData();
   }, []);
 
   const fetchFormData = async () => {
     try {
-      const [catRes, brandRes, unitRes, suppRes] = await Promise.allSettled([
+      const [catRes, brandRes, suppRes, whRes, branchRes] = await Promise.allSettled([
         apiClient.get("/categories"),
         apiClient.get("/brands"),
-        apiClient.get("/units"),
         apiClient.get("/suppliers"),
+        apiClient.get("/warehouses"),
+        apiClient.get("/branches"),
       ]);
 
       if (catRes.status === "fulfilled") {
@@ -164,21 +216,23 @@ export default function AddTextileProductPage() {
         const brandList = brandRes.value.data?.data || brandRes.value.data || [];
         setBrands(Array.isArray(brandList) ? brandList : []);
       }
-      if (unitRes.status === "fulfilled") {
-        const unitList = unitRes.value.data?.data || unitRes.value.data || [];
-        setUnits(Array.isArray(unitList) && unitList.length > 0 ? unitList : DEFAULT_UNITS);
-      } else {
-        setUnits(DEFAULT_UNITS);
-      }
       if (suppRes.status === "fulfilled") {
-        const rawSupp = suppRes.value.data?.data || suppRes.value.data || [];
-        const suppArray = Array.isArray(rawSupp) ? rawSupp : [];
-        const textSupp = suppArray.filter((s) => s.isTextile === true || s.category === "TEXTILE" || s.companyName?.toLowerCase().includes("cotton") || s.companyName?.toLowerCase().includes("dye") || s.companyName?.toLowerCase().includes("mill") || s.companyName?.toLowerCase().includes("yarn"));
-        setSuppliers(textSupp.length > 0 ? textSupp : suppArray);
+        const suppList = suppRes.value.data?.data || suppRes.value.data || [];
+        setSuppliers(Array.isArray(suppList) ? suppList : []);
+      }
+      if (whRes.status === "fulfilled") {
+        const whList = whRes.value.data?.data || whRes.value.data || [];
+        setWarehouses(Array.isArray(whList) ? whList : []);
+        if (whList.length > 0 && !product.warehouseId) {
+          setProduct((prev) => ({ ...prev, warehouseId: whList[0].id }));
+        }
+      }
+      if (branchRes.status === "fulfilled") {
+        const bList = branchRes.value.data?.data || branchRes.value.data || [];
+        setBranches(Array.isArray(bList) ? bList : []);
       }
     } catch (error) {
       console.error("Error fetching form data:", error);
-      setUnits(DEFAULT_UNITS);
     }
   };
 
@@ -190,20 +244,123 @@ export default function AddTextileProductPage() {
     }));
   };
 
+  // Handler: Save New Category from Quick-Add Modal
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    if (!categoryFormData.name.trim()) {
+      toast.error("Category name is required.");
+      return;
+    }
+
+    const trimmedName = categoryFormData.name.trim();
+    const existing = categories.find(
+      (c) => c.name?.toLowerCase().trim() === trimmedName.toLowerCase()
+    );
+    if (existing) {
+      toast.error("A category with this name already exists.");
+      setProduct((prev) => ({ ...prev, categoryId: existing.id }));
+      setShowCategoryModal(false);
+      return;
+    }
+
+    try {
+      setSavingCategory(true);
+      const res = await apiClient.post("/categories", {
+        name: trimmedName,
+        description: categoryFormData.description.trim() || undefined,
+        status: categoryFormData.status || "ACTIVE",
+      });
+
+      const newCat = res.data?.data || res.data;
+      if (newCat && newCat.id) {
+        setCategories((prev) => [...prev, newCat]);
+        setProduct((prev) => ({ ...prev, categoryId: newCat.id }));
+        toast.success(`Category "${newCat.name}" created and selected!`);
+        setShowCategoryModal(false);
+        setCategoryFormData({ name: "", description: "", status: "ACTIVE" });
+      } else {
+        throw new Error(res.data?.message || "Failed to create category");
+      }
+    } catch (err) {
+      console.error("Error creating category:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to create category.");
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  // Handler: Save New Brand / Mill from Quick-Add Modal
+  const handleSaveBrand = async (e) => {
+    e.preventDefault();
+    if (!brandFormData.name.trim()) {
+      toast.error("Brand / Mill name is required.");
+      return;
+    }
+
+    const trimmedName = brandFormData.name.trim();
+    const existing = brands.find(
+      (b) => b.name?.toLowerCase().trim() === trimmedName.toLowerCase()
+    );
+    if (existing) {
+      toast.error("A Brand / Mill with this name already exists.");
+      setProduct((prev) => ({ ...prev, brandId: existing.id }));
+      setShowBrandModal(false);
+      return;
+    }
+
+    try {
+      setSavingBrand(true);
+      const descParts = [];
+      if (brandFormData.type) descParts.push(`[Type: ${brandFormData.type}]`);
+      if (brandFormData.location) descParts.push(`Location: ${brandFormData.location}`);
+      if (brandFormData.contactPerson) descParts.push(`Contact: ${brandFormData.contactPerson}`);
+      if (brandFormData.phone) descParts.push(`Phone: ${brandFormData.phone}`);
+      const description = descParts.join(" | ");
+
+      const res = await apiClient.post("/brands", {
+        name: trimmedName,
+        description: description || undefined,
+        status: brandFormData.status || "ACTIVE",
+      });
+
+      const newBrand = res.data?.data || res.data;
+      if (newBrand && newBrand.id) {
+        setBrands((prev) => [...prev, newBrand]);
+        setProduct((prev) => ({ ...prev, brandId: newBrand.id }));
+        toast.success(`Brand / Mill "${newBrand.name}" created and selected!`);
+        setShowBrandModal(false);
+        setBrandFormData({
+          name: "",
+          type: "Textile Mill",
+          location: "",
+          contactPerson: "",
+          phone: "",
+          status: "ACTIVE",
+        });
+      } else {
+        throw new Error(res.data?.message || "Failed to create brand");
+      }
+    } catch (err) {
+      console.error("Error creating brand:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to create Brand / Mill.");
+    } finally {
+      setSavingBrand(false);
+    }
+  };
+
+  // Step 6: Variant Management
   const handleAddVariant = () => {
     const variantIndex = variants.length + 1;
-    const baseSku = product.sku || "FAB-TEX";
+    const baseSku = product.sku.trim() || "FAB-TEX";
     const newVariant = {
       id: Date.now().toString(),
-      sku: `${baseSku}-VAR-${variantIndex}`,
       color: "",
-      rollWidth: product.rollWidth || "58",
-      widthUnit: product.widthUnit || "Inches",
-      gsm: product.gsm || "180",
-      pattern: product.pattern || "Plain / Solid",
+      colorCode: "#3b82f6",
+      sku: `${baseSku}-VAR-${variantIndex}`,
+      barcode: "",
       stock: "150",
-      numberOfRolls: "3",
       sellingPrice: product.sellingPrice || "350",
+      status: "ACTIVE",
     };
     setVariants((prev) => [...prev, newVariant]);
   };
@@ -214,34 +371,50 @@ export default function AddTextileProductPage() {
 
   const handleVariantChange = (id, field, value) => {
     setVariants((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, [field]: value } : v))
+      prev.map((v) => {
+        if (v.id === id) {
+          const updated = { ...v, [field]: value };
+          if (field === "color") {
+            const matchHex = PRESET_COLOR_MAP[value.toLowerCase().trim()];
+            if (matchHex) {
+              updated.colorCode = matchHex;
+            }
+          }
+          return updated;
+        }
+        return v;
+      })
     );
   };
 
   const handleGenerateQuickColorVariants = () => {
     if (!quickColors.trim()) {
-      toast.error("Please enter color names separated by commas (e.g. Blue, Red, White)");
+      toast.error("Please enter color names separated by commas (e.g. Royal Blue, Red, White)");
       return;
     }
     const colorList = quickColors.split(",").map((c) => c.trim()).filter(Boolean);
-    const baseSku = product.sku || "FAB-TEX";
+    const baseSku = product.sku.trim() || "FAB-TEX";
 
-    const generated = colorList.map((colName, idx) => ({
-      id: `${Date.now()}-${idx}`,
-      sku: `${baseSku}-${colName.toUpperCase().replace(/\s+/g, "_").slice(0, 8)}`,
-      color: colName,
-      rollWidth: product.rollWidth || "58",
-      widthUnit: product.widthUnit || "Inches",
-      gsm: product.gsm || "180",
-      pattern: product.pattern || "Plain / Solid",
-      stock: "200",
-      numberOfRolls: "4",
-      sellingPrice: product.sellingPrice || "350",
-    }));
+    const generated = colorList.map((colName, idx) => {
+      const cleanCol = colName.toLowerCase();
+      const hexCode = PRESET_COLOR_MAP[cleanCol] || `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`;
+      const skuSuffix = colName.toUpperCase().replace(/[^A-Z0-9]/g, "_").slice(0, 8);
+
+      return {
+        id: `${Date.now()}-${idx}`,
+        color: colName,
+        colorCode: hexCode,
+        sku: `${baseSku}-${skuSuffix}`,
+        barcode: "",
+        stock: "200",
+        sellingPrice: product.sellingPrice || "350",
+        status: "ACTIVE",
+      };
+    });
 
     setVariants(generated);
     setProduct((prev) => ({ ...prev, hasVariants: true }));
-    toast.success(`Generated ${generated.length} dynamic color variants!`);
+    toast.success(`Generated ${generated.length} color variants!`);
   };
 
   const handleImageChange = (e) => {
@@ -262,11 +435,18 @@ export default function AddTextileProductPage() {
 
   const validateForm = () => {
     if (!product.name.trim()) {
-      showWarning("Validation Required", "Please enter a fabric product name.");
+      showWarning("Validation Required", "Please enter a Fabric / Product Name.");
+      scrollToSection(1, "tex-basic-info");
+      return false;
+    }
+    if (!product.categoryId) {
+      showWarning("Validation Required", "Please select a Category.");
+      scrollToSection(1, "tex-basic-info");
       return false;
     }
     if (!product.sellingPrice || Number(product.sellingPrice) <= 0) {
-      showWarning("Validation Required", "Please specify a valid selling price per meter/yard.");
+      showWarning("Validation Required", `Please specify a valid Selling Price per ${product.stockUnit}.`);
+      scrollToSection(4, "tex-pricing");
       return false;
     }
     return true;
@@ -289,30 +469,28 @@ export default function AddTextileProductPage() {
       formData.append("status", product.status);
 
       if (product.categoryId) formData.append("categoryId", product.categoryId);
-      if (product.subcategoryId) formData.append("subcategoryId", product.subcategoryId);
+      if (product.subcategory) formData.append("subcategory", product.subcategory.trim());
       if (product.brandId) formData.append("brandId", product.brandId);
-      if (product.baseUnitId) formData.append("baseUnitId", product.baseUnitId);
 
+      // Fabric Specs
       formData.append("fabricComposition", product.fabricComposition);
       formData.append("gsm", product.gsm);
       formData.append("rollWidth", product.rollWidth);
       formData.append("widthUnit", product.widthUnit);
-      formData.append("color", product.color);
-      formData.append("colorCode", product.colorCode);
       formData.append("pattern", product.pattern);
       formData.append("weaveType", product.weaveType);
       formData.append("textureFinish", product.textureFinish);
 
+      // Inventory & Stock
       formData.append("stockUnit", product.stockUnit);
       formData.append("initialStock", product.initialStock || "0");
-      formData.append("openingStockDate", product.openingStockDate);
-      formData.append("reorderLevel", product.reorderLevel || "0");
-      formData.append("minimumStock", product.minimumStock || "0");
-      formData.append("maximumStock", product.maximumStock || "0");
-      formData.append("warehouseLocation", product.warehouseLocation);
-      formData.append("rackLocation", product.rackLocation);
       formData.append("numberOfRolls", product.numberOfRolls || "0");
+      formData.append("openingStockDate", product.openingStockDate);
+      formData.append("reorderLevel", product.reorderLevel || "0"); // Low Stock Alert Level
+      if (product.warehouseId) formData.append("warehouseId", product.warehouseId);
+      formData.append("rackLocation", product.rackLocation);
 
+      // Pricing & GST
       formData.append("costPrice", product.costPrice || "0");
       formData.append("sellingPrice", product.sellingPrice || "0");
       formData.append("wholesalePrice", product.wholesalePrice || "0");
@@ -321,10 +499,13 @@ export default function AddTextileProductPage() {
       formData.append("discountType", product.discountType);
       formData.append("taxRate", product.taxRate || "0");
 
+      // Supplier / Manufacturing
       if (product.supplierId) formData.append("supplierId", product.supplierId);
       formData.append("supplierProductCode", product.supplierProductCode);
+      if (product.branchId) formData.append("branchId", product.branchId);
       formData.append("leadTime", product.leadTime || "0");
 
+      // Variants
       if (product.hasVariants && variants.length > 0) {
         formData.append("hasVariants", "true");
         formData.append("variants", JSON.stringify(variants));
@@ -373,7 +554,7 @@ export default function AddTextileProductPage() {
           </span>
           <h1 className={styles.heroTitle}>Add Textile Fabric Product</h1>
           <p className={styles.heroSubtitle}>
-            Register finished fabric rolls, GSM metrics, weave specifications, roll inventory counts, and dynamic color matrix.
+            Register finished fabric rolls, weave specifications, inventory stock, and color variants matrix.
           </p>
         </div>
 
@@ -397,7 +578,7 @@ export default function AddTextileProductPage() {
         </div>
       </div>
 
-      {/* VISUAL STEPPER NAVIGATION */}
+      {/* VISUAL STEPPER NAVIGATION (6 Steps) */}
       <div className={styles.stepperNav}>
         <div
           className={`${styles.stepItem} ${activeStep === 1 ? styles.activeTextileStep : ""}`}
@@ -420,7 +601,7 @@ export default function AddTextileProductPage() {
           onClick={() => scrollToSection(3, "tex-inventory")}
         >
           <div className={styles.stepNumber}>3</div>
-          <span className={styles.stepTitle}>Roll Inventory</span>
+          <span className={styles.stepTitle}>Inventory & Stock</span>
         </div>
 
         <div
@@ -436,7 +617,7 @@ export default function AddTextileProductPage() {
           onClick={() => scrollToSection(5, "tex-supplier")}
         >
           <div className={styles.stepNumber}>5</div>
-          <span className={styles.stepTitle}>Yarn Supplier</span>
+          <span className={styles.stepTitle}>Supplier / Manufacturing</span>
         </div>
 
         <div
@@ -444,14 +625,14 @@ export default function AddTextileProductPage() {
           onClick={() => scrollToSection(6, "tex-variants")}
         >
           <div className={styles.stepNumber}>6</div>
-          <span className={styles.stepTitle}>Color Variants</span>
+          <span className={styles.stepTitle}>Product Variants</span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className={styles.formLayout}>
         {/* LEFT COLUMN */}
         <div className={styles.mainColumn}>
-          {/* SECTION 1: Basic Information */}
+          {/* STEP 1: Basic Information */}
           <div id="tex-basic-info" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
@@ -460,7 +641,7 @@ export default function AddTextileProductPage() {
                 </div>
                 <h2>1. Basic Product Information</h2>
               </div>
-              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Fabric Title</span>
+              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Core Identity</span>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.formGroup}>
@@ -472,25 +653,55 @@ export default function AddTextileProductPage() {
                   name="name"
                   value={product.name}
                   onChange={handleChange}
-                  placeholder="e.g. Jacquard Damask Shirting Fabric"
+                  placeholder="e.g. Premium Cotton Poplin 40s"
                   required
                 />
               </div>
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Product Code / SKU</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>
+                      Product Code / SKU <span className={styles.required}>*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSku = generateSkuCode(product.name);
+                        setProduct((prev) => ({ ...prev, sku: newSku }));
+                        toast.success(`Generated SKU: ${newSku}`);
+                      }}
+                      title="Auto Generate Unique SKU Code"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "3px 8px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        color: "#0d9488",
+                        background: "#ccfbf1",
+                        border: "1px solid #99f6e4",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <FiZap size={13} /> Auto Generate
+                    </button>
+                  </div>
                   <input
                     type="text"
                     name="sku"
                     value={product.sku}
                     onChange={handleChange}
-                    placeholder="e.g. FAB-JD-001"
+                    placeholder="e.g. FAB-TEX-892301"
+                    required
                   />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Barcode / EAN</label>
+                  <label>Barcode / EAN (Optional)</label>
                   <input
                     type="text"
                     name="barcode"
@@ -502,12 +713,39 @@ export default function AddTextileProductPage() {
               </div>
 
               <div className={styles.row}>
+                {/* Category with Quick Add Button */}
                 <div className={styles.formGroup}>
-                  <label>Category <span className={styles.required}>*</span></label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>
+                      Category <span className={styles.required}>*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryModal(true)}
+                      title="Add New Textile Category"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "3px 8px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        color: "#0d9488",
+                        background: "#ccfbf1",
+                        border: "1px solid #99f6e4",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <FiPlus size={13} /> Add
+                    </button>
+                  </div>
                   <select
                     name="categoryId"
                     value={product.categoryId}
                     onChange={handleChange}
+                    required
                   >
                     <option value="">Select Category (Cotton, Silk, Linen...)</option>
                     {categories.map((c) => (
@@ -519,20 +757,44 @@ export default function AddTextileProductPage() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Subcategory</label>
+                  <label>Subcategory (Optional)</label>
                   <input
                     type="text"
                     name="subcategory"
                     value={product.subcategory}
                     onChange={handleChange}
-                    placeholder="Shirting, Suiting, Curtain..."
+                    placeholder="e.g. Shirting, Suiting, Denim..."
                   />
                 </div>
               </div>
 
               <div className={styles.row}>
+                {/* Brand / Mill with Quick Add Button */}
                 <div className={styles.formGroup}>
-                  <label>Brand / Mill Name</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>Brand / Mill Name (Optional)</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowBrandModal(true)}
+                      title="Add New Brand / Mill"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "3px 8px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        color: "#0d9488",
+                        background: "#ccfbf1",
+                        border: "1px solid #99f6e4",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <FiPlus size={13} /> Add
+                    </button>
+                  </div>
                   <select
                     name="brandId"
                     value={product.brandId}
@@ -548,20 +810,20 @@ export default function AddTextileProductPage() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Status</label>
+                  <label>Status <span className={styles.required}>*</span></label>
                   <select
                     name="status"
                     value={product.status}
                     onChange={handleChange}
                   >
-                    <option value="ACTIVE">Active (Available)</option>
-                    <option value="INACTIVE">Inactive (Archived)</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
                   </select>
                 </div>
               </div>
 
               <div className={styles.formGroup}>
-                <label>Product Description</label>
+                <label>Product Description (Optional)</label>
                 <textarea
                   name="description"
                   value={product.description}
@@ -573,7 +835,7 @@ export default function AddTextileProductPage() {
             </div>
           </div>
 
-          {/* SECTION 2: Fabric Specifications */}
+          {/* STEP 2: Fabric Specifications */}
           <div id="tex-specs" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
@@ -593,7 +855,7 @@ export default function AddTextileProductPage() {
                     name="fabricComposition"
                     value={product.fabricComposition}
                     onChange={handleChange}
-                    placeholder="e.g. 80% Cotton, 20% Silk"
+                    placeholder="e.g. 100% Cotton, Cotton Blend, Polyester"
                   />
                 </div>
 
@@ -611,47 +873,26 @@ export default function AddTextileProductPage() {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Roll Width</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <input
-                      type="number"
-                      name="rollWidth"
-                      value={product.rollWidth}
-                      onChange={handleChange}
-                      placeholder="58"
-                      style={{ width: "100%" }}
-                    />
-                    <select
-                      name="widthUnit"
-                      value={product.widthUnit}
-                      onChange={handleChange}
-                      style={{ width: "130px" }}
-                    >
-                      <option value="Inches">Inches</option>
-                      <option value="CM">CM</option>
-                    </select>
-                  </div>
+                  <label>Fabric Width</label>
+                  <input
+                    type="number"
+                    name="rollWidth"
+                    value={product.rollWidth}
+                    onChange={handleChange}
+                    placeholder="e.g. 58"
+                  />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Color Name & Hex Swatch</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <input
-                      type="text"
-                      name="color"
-                      value={product.color}
-                      onChange={handleChange}
-                      placeholder="Royal Blue"
-                      style={{ width: "100%" }}
-                    />
-                    <input
-                      type="color"
-                      name="colorCode"
-                      value={product.colorCode || "#1e40af"}
-                      onChange={handleChange}
-                      style={{ width: "50px", padding: "2px", height: "46px", cursor: "pointer", borderRadius: "8px" }}
-                    />
-                  </div>
+                  <label>Width Unit</label>
+                  <select
+                    name="widthUnit"
+                    value={product.widthUnit}
+                    onChange={handleChange}
+                  >
+                    <option value="Inches">Inches</option>
+                    <option value="CM">CM</option>
+                  </select>
                 </div>
               </div>
 
@@ -704,14 +945,14 @@ export default function AddTextileProductPage() {
             </div>
           </div>
 
-          {/* SECTION 3: Inventory Details */}
+          {/* STEP 3: Inventory & Stock */}
           <div id="tex-inventory" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiArchive />
                 </div>
-                <h2>3. Roll & Stock Inventory</h2>
+                <h2>3. Inventory & Stock</h2>
               </div>
               <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Mill Quantities</span>
             </div>
@@ -724,16 +965,16 @@ export default function AddTextileProductPage() {
                     value={product.stockUnit}
                     onChange={handleChange}
                   >
-                    <option value="Meter">Meter</option>
-                    <option value="Yard">Yard</option>
-                    <option value="Piece">Piece</option>
-                    <option value="Roll">Roll</option>
-                    <option value="KG">KG</option>
+                    {STOCK_UNITS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Initial Stock Quantity ({product.stockUnit}s)</label>
+                  <label>Opening Stock Quantity ({product.stockUnit}s)</label>
                   <input
                     type="number"
                     name="initialStock"
@@ -746,7 +987,7 @@ export default function AddTextileProductPage() {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Number of Fabric Rolls</label>
+                  <label>Number of Fabric Rolls (Optional)</label>
                   <input
                     type="number"
                     name="numberOfRolls"
@@ -769,7 +1010,7 @@ export default function AddTextileProductPage() {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Reorder Level (Alert Threshold)</label>
+                  <label>Low Stock Alert Level ({product.stockUnit}s)</label>
                   <input
                     type="number"
                     name="reorderLevel"
@@ -780,38 +1021,19 @@ export default function AddTextileProductPage() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Minimum Stock Level</label>
-                  <input
-                    type="number"
-                    name="minimumStock"
-                    value={product.minimumStock}
+                  <label>Warehouse</label>
+                  <select
+                    name="warehouseId"
+                    value={product.warehouseId}
                     onChange={handleChange}
-                    placeholder="20"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.row}>
-                <div className={styles.formGroup}>
-                  <label>Maximum Stock Level (Optional)</label>
-                  <input
-                    type="number"
-                    name="maximumStock"
-                    value={product.maximumStock}
-                    onChange={handleChange}
-                    placeholder="2000"
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label>Warehouse Location</label>
-                  <input
-                    type="text"
-                    name="warehouseLocation"
-                    value={product.warehouseLocation}
-                    onChange={handleChange}
-                    placeholder="Textile Mill Warehouse #1"
-                  />
+                  >
+                    <option value="">Select Warehouse</option>
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name} {wh.code ? `(${wh.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -828,21 +1050,23 @@ export default function AddTextileProductPage() {
             </div>
           </div>
 
-          {/* SECTION 4: Multi-tier Pricing & Taxes */}
+          {/* STEP 4: Pricing & GST */}
           <div id="tex-pricing" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiDollarSign />
                 </div>
-                <h2>4. Multi-tier Pricing & Taxes</h2>
+                <h2>4. Pricing & GST</h2>
               </div>
-              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Rates per Meter</span>
+              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>
+                Price Per {product.stockUnit}
+              </span>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Purchase Cost (₹ / {product.stockUnit})</label>
+                  <label>Cost Price (₹ per {product.stockUnit})</label>
                   <input
                     type="number"
                     name="costPrice"
@@ -854,7 +1078,9 @@ export default function AddTextileProductPage() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Selling Price (₹ / {product.stockUnit}) <span className={styles.required}>*</span></label>
+                  <label>
+                    Selling Price (₹ per {product.stockUnit}) <span className={styles.required}>*</span>
+                  </label>
                   <input
                     type="number"
                     name="sellingPrice"
@@ -869,7 +1095,7 @@ export default function AddTextileProductPage() {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Wholesale Price (₹)</label>
+                  <label>Wholesale Price (₹ per {product.stockUnit}) (Optional)</label>
                   <input
                     type="number"
                     name="wholesalePrice"
@@ -881,7 +1107,7 @@ export default function AddTextileProductPage() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Retail Price / MRP (₹)</label>
+                  <label>MRP / Retail Price (₹ per {product.stockUnit}) (Optional)</label>
                   <input
                     type="number"
                     name="retailPrice"
@@ -895,7 +1121,7 @@ export default function AddTextileProductPage() {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Discount Value</label>
+                  <label>Default Discount (Optional)</label>
                   <div style={{ display: "flex", gap: "8px" }}>
                     <input
                       type="number"
@@ -910,16 +1136,16 @@ export default function AddTextileProductPage() {
                       name="discountType"
                       value={product.discountType}
                       onChange={handleChange}
-                      style={{ width: "130px" }}
+                      style={{ width: "140px" }}
                     >
-                      <option value="PERCENT">%</option>
+                      <option value="PERCENT">Percentage (%)</option>
                       <option value="FIXED">Flat (₹)</option>
                     </select>
                   </div>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Tax / GST Rate (%)</label>
+                  <label>GST Rate (%)</label>
                   <select
                     name="taxRate"
                     value={product.taxRate}
@@ -935,27 +1161,27 @@ export default function AddTextileProductPage() {
             </div>
           </div>
 
-          {/* SECTION 5: Supplier Information */}
+          {/* STEP 5: Supplier / Manufacturing Information */}
           <div id="tex-supplier" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiTruck />
                 </div>
-                <h2>5. Supplier Information</h2>
+                <h2>5. Supplier / Manufacturing Information</h2>
               </div>
-              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Yarn & Dye Distributors</span>
+              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Supply & Mill</span>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Default Supplier</label>
+                  <label>Default Supplier / Manufacturer (Optional)</label>
                   <select
                     name="supplierId"
                     value={product.supplierId}
                     onChange={handleChange}
                   >
-                    <option value="">Select Yarn & Dye Supplier</option>
+                    <option value="">Select Supplier / Manufacturer</option>
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name || s.companyName}
@@ -965,38 +1191,56 @@ export default function AddTextileProductPage() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Supplier Product Code</label>
+                  <label>Supplier Product Code (Optional)</label>
                   <input
                     type="text"
                     name="supplierProductCode"
                     value={product.supplierProductCode}
                     onChange={handleChange}
-                    placeholder="YARN-TEX-901"
+                    placeholder="e.g. TEX-SUP-901"
                   />
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label>Lead Time (Days)</label>
-                <input
-                  type="number"
-                  name="leadTime"
-                  value={product.leadTime}
-                  onChange={handleChange}
-                  placeholder="7"
-                />
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Manufacturing Unit (Optional)</label>
+                  <select
+                    name="branchId"
+                    value={product.branchId}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Manufacturing Unit / Branch</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} {b.code ? `(${b.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Lead Time in Days (Optional)</label>
+                  <input
+                    type="number"
+                    name="leadTime"
+                    value={product.leadTime}
+                    onChange={handleChange}
+                    placeholder="7"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 6: Dynamic Product Variants */}
+          {/* STEP 6: Product Variants */}
           <div id="tex-variants" className={styles.card}>
             <div className={styles.cardHeader} style={{ justifyContent: "space-between" }}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiGrid />
                 </div>
-                <h2>6. Dynamic Product Variants</h2>
+                <h2>6. Product Variants</h2>
               </div>
               <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "700", color: "#0d9488" }}>
                 <input
@@ -1006,13 +1250,13 @@ export default function AddTextileProductPage() {
                   onChange={handleChange}
                   style={{ width: "18px", height: "18px", accentColor: "#0d9488" }}
                 />
-                Enable Dynamic Product Variants
+                Enable Product Variants
               </label>
             </div>
 
             {product.hasVariants && (
               <div className={styles.cardBody}>
-                {/* Quick Generator Box */}
+                {/* Quick Color Generator Box */}
                 <div
                   style={{
                     background: "#f0fdf4",
@@ -1026,7 +1270,7 @@ export default function AddTextileProductPage() {
                     ⚡ Quick Color Variants Generator
                   </label>
                   <p style={{ fontSize: "13px", color: "#15803d", margin: "0 0 12px 0" }}>
-                    Enter color names separated by commas to instantly generate variant rows with default width & GSM:
+                    Enter color names separated by commas to instantly generate variant rows with matched color swatches:
                   </p>
 
                   <div style={{ display: "flex", gap: "10px" }}>
@@ -1034,7 +1278,7 @@ export default function AddTextileProductPage() {
                       type="text"
                       value={quickColors}
                       onChange={(e) => setQuickColors(e.target.value)}
-                      placeholder="Royal Blue, Emerald Green, Crimson Red, Black"
+                      placeholder="Royal Blue, Emerald Green, Crimson Red, Charcoal Black"
                       style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #86efac", fontSize: "14px" }}
                     />
                     <button
@@ -1059,18 +1303,18 @@ export default function AddTextileProductPage() {
                   </div>
                 </div>
 
-                {/* Matrix Table */}
+                {/* Variants Matrix Table */}
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                     <thead>
                       <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Color Name</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Swatch / Hex</th>
                         <th style={{ padding: "10px", textAlign: "left" }}>Variant SKU</th>
-                        <th style={{ padding: "10px", textAlign: "left" }}>Color</th>
-                        <th style={{ padding: "10px", textAlign: "left" }}>Width</th>
-                        <th style={{ padding: "10px", textAlign: "left" }}>GSM</th>
-                        <th style={{ padding: "10px", textAlign: "left" }}>Stock (Meters)</th>
-                        <th style={{ padding: "10px", textAlign: "left" }}>Rolls</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Barcode</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Stock ({product.stockUnit})</th>
                         <th style={{ padding: "10px", textAlign: "left" }}>Price (₹)</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Status</th>
                         <th style={{ padding: "10px", textAlign: "center" }}>Action</th>
                       </tr>
                     </thead>
@@ -1080,36 +1324,43 @@ export default function AddTextileProductPage() {
                           <td style={{ padding: "8px" }}>
                             <input
                               type="text"
-                              value={v.sku}
-                              onChange={(e) => handleVariantChange(v.id, "sku", e.target.value)}
-                              style={{ width: "100%", padding: "6px", fontSize: "13px" }}
-                            />
-                          </td>
-                          <td style={{ padding: "8px" }}>
-                            <input
-                              type="text"
                               value={v.color}
                               onChange={(e) => handleVariantChange(v.id, "color", e.target.value)}
-                              placeholder="Royal Blue"
-                              style={{ width: "100%", padding: "6px", fontSize: "13px" }}
+                              placeholder="e.g. Royal Blue"
+                              style={{ width: "100%", minWidth: "120px", padding: "6px", fontSize: "13px" }}
+                            />
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <input
+                                type="color"
+                                value={v.colorCode || "#1e40af"}
+                                onChange={(e) => handleVariantChange(v.id, "colorCode", e.target.value)}
+                                style={{ width: "32px", height: "32px", padding: "2px", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                              />
+                              <input
+                                type="text"
+                                value={v.colorCode || "#1e40af"}
+                                onChange={(e) => handleVariantChange(v.id, "colorCode", e.target.value)}
+                                style={{ width: "80px", padding: "6px", fontSize: "12px" }}
+                              />
+                            </div>
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <input
+                              type="text"
+                              value={v.sku}
+                              onChange={(e) => handleVariantChange(v.id, "sku", e.target.value)}
+                              style={{ width: "100%", minWidth: "130px", padding: "6px", fontSize: "13px" }}
                             />
                           </td>
                           <td style={{ padding: "8px" }}>
                             <input
                               type="text"
-                              value={v.rollWidth}
-                              onChange={(e) => handleVariantChange(v.id, "rollWidth", e.target.value)}
-                              placeholder="58"
-                              style={{ width: "60px", padding: "6px", fontSize: "13px" }}
-                            />
-                          </td>
-                          <td style={{ padding: "8px" }}>
-                            <input
-                              type="text"
-                              value={v.gsm}
-                              onChange={(e) => handleVariantChange(v.id, "gsm", e.target.value)}
-                              placeholder="180"
-                              style={{ width: "60px", padding: "6px", fontSize: "13px" }}
+                              value={v.barcode}
+                              onChange={(e) => handleVariantChange(v.id, "barcode", e.target.value)}
+                              placeholder="Optional"
+                              style={{ width: "100px", padding: "6px", fontSize: "13px" }}
                             />
                           </td>
                           <td style={{ padding: "8px" }}>
@@ -1123,18 +1374,20 @@ export default function AddTextileProductPage() {
                           <td style={{ padding: "8px" }}>
                             <input
                               type="number"
-                              value={v.numberOfRolls}
-                              onChange={(e) => handleVariantChange(v.id, "numberOfRolls", e.target.value)}
-                              style={{ width: "60px", padding: "6px", fontSize: "13px" }}
-                            />
-                          </td>
-                          <td style={{ padding: "8px" }}>
-                            <input
-                              type="number"
                               value={v.sellingPrice}
                               onChange={(e) => handleVariantChange(v.id, "sellingPrice", e.target.value)}
                               style={{ width: "80px", padding: "6px", fontSize: "13px" }}
                             />
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <select
+                              value={v.status || "ACTIVE"}
+                              onChange={(e) => handleVariantChange(v.id, "status", e.target.value)}
+                              style={{ padding: "6px", fontSize: "12px" }}
+                            >
+                              <option value="ACTIVE">Active</option>
+                              <option value="INACTIVE">Inactive</option>
+                            </select>
                           </td>
                           <td style={{ padding: "8px", textAlign: "center" }}>
                             <button
@@ -1234,18 +1487,422 @@ export default function AddTextileProductPage() {
             </div>
             <div className={styles.cardBody} style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6" }}>
               <p style={{ margin: "0 0 12px 0" }}>
-                <strong>Base Product vs Variants:</strong> Create base fabric type (e.g. <em>Cotton Shirting</em>) and generate color/width variants matrix under it.
+                <strong>Product vs Variants:</strong> Register base fabric composition (e.g. <em>100% Cotton Poplin</em>) and manage color ways under Product Variants.
               </p>
               <p style={{ margin: "0 0 12px 0" }}>
-                <strong>GSM Metric:</strong> GSM indicates fabric weight per square meter (e.g. Shirting 120-160 GSM, Denim 300+ GSM).
+                <strong>Dynamic Unit Pricing:</strong> Pricing applies per selected stock unit ({product.stockUnit}), ensuring consistency across Meters, Yards, Rolls, or KG.
               </p>
               <p style={{ margin: 0 }}>
-                <strong>Multi-roll Metrics:</strong> Store metrics in Meters, Yards, or Rolls for precise mill warehouse auditing.
+                <strong>Opening Inventory:</strong> Registering initial stock creates warehouse inventory and an opening stock movement record.
               </p>
             </div>
           </div>
         </div>
       </form>
+
+      {/* QUICK ADD CATEGORY MODAL */}
+      {showCategoryModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "16px",
+          }}
+          onClick={() => setShowCategoryModal(false)}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              width: "100%",
+              maxWidth: "460px",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15)",
+              border: "1px solid #e2e8f0",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: "18px 22px",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#f8fafc",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    background: "#ccfbf1",
+                    color: "#0f766e",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <FiLayers size={18} />
+                </div>
+                <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                  Add New Textile Category
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCategoryModal(false)}
+                style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer" }}
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} style={{ padding: "20px 22px" }}>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                  Category Name <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={categoryFormData.name}
+                  onChange={(e) => setCategoryFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. Cotton Fabrics, Silk Blends, Denim"
+                  required
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={categoryFormData.description}
+                  onChange={(e) => setCategoryFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter category details, fabric classifications..."
+                  rows={3}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "22px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                  Status
+                </label>
+                <select
+                  value={categoryFormData.status}
+                  onChange={(e) => setCategoryFormData((prev) => ({ ...prev, status: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(false)}
+                  style={{
+                    padding: "9px 16px",
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCategory}
+                  style={{
+                    padding: "9px 18px",
+                    background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: "700",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {savingCategory ? "Saving..." : "Save Category"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK ADD BRAND / MILL MODAL */}
+      {showBrandModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "16px",
+          }}
+          onClick={() => setShowBrandModal(false)}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              width: "100%",
+              maxWidth: "500px",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15)",
+              border: "1px solid #e2e8f0",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: "18px 22px",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#f8fafc",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    background: "#ccfbf1",
+                    color: "#0f766e",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <FiPackage size={18} />
+                </div>
+                <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                  Add New Brand / Mill
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBrandModal(false)}
+                style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer" }}
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBrand} style={{ padding: "20px 22px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+                <div style={{ gridColumn: "span 2" }}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                    Brand / Mill Name <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={brandFormData.name}
+                    onChange={(e) => setBrandFormData((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Vardhman Textiles, Kaveri Ginning Mills"
+                    required
+                    autoFocus
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                    Type
+                  </label>
+                  <select
+                    value={brandFormData.type}
+                    onChange={(e) => setBrandFormData((prev) => ({ ...prev, type: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <option value="Textile Mill">Textile Mill</option>
+                    <option value="Brand">Brand</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                    Status
+                  </label>
+                  <select
+                    value={brandFormData.status}
+                    onChange={(e) => setBrandFormData((prev) => ({ ...prev, status: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                  Location (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={brandFormData.location}
+                  onChange={(e) => setBrandFormData((prev) => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g. Surat, Gujarat / Coimbatore, Tamil Nadu"
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "22px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                    Contact Person (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={brandFormData.contactPerson}
+                    onChange={(e) => setBrandFormData((prev) => ({ ...prev, contactPerson: e.target.value }))}
+                    placeholder="e.g. Rajesh Mill Manager"
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                    Phone (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={brandFormData.phone}
+                    onChange={(e) => setBrandFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="e.g. +91 9876543210"
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowBrandModal(false)}
+                  style={{
+                    padding: "9px 16px",
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingBrand}
+                  style={{
+                    padding: "9px 18px",
+                    background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: "700",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {savingBrand ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

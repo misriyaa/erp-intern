@@ -334,6 +334,17 @@ export default function DashboardHome() {
               </div>
             )}
 
+            {/* ACTION: + New Sale Button */}
+            <button
+              type="button"
+              className={styles.newSaleBtn}
+              onClick={() => router.push("/pos")}
+              title="Open Retail POS Terminal"
+            >
+              <Plus size={16} />
+              <span>New Sale</span>
+            </button>
+
             <button
               className={styles.notificationButton}
               onClick={fetchDashboardData}

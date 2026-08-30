@@ -7,6 +7,8 @@ import { useSettings } from "@/context/SettingsContext";
 import { useCompany } from "@/context/CompanyContext";
 import { MASTER_NAVIGATION_CATALOG } from "@/config/industries";
 import { restaurantService } from "@/services/restaurantService";
+import { canAccessLaundryRoute } from "@/config/laundryPermissions";
+
 
 import {
   FiGrid,
@@ -145,8 +147,22 @@ export default function Sidebar({ isOpen, onClose }) {
     if (item.adminOnly && !isAdmin) {
       return false;
     }
-    if (isCashier && !isAdmin && !isManager && (isRestaurant || industryCode?.includes("LAUNDRY"))) {
-      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders", "/laundry/pos", "/laundry/orders"];
+
+    const codeUpper = (industryCode || "").toUpperCase();
+
+    // Dedicated Laundry ERP RBAC dynamic sidebar filtering
+    if (codeUpper === "LAUNDRY") {
+      if (item.href === "/dashboard") {
+        return false;
+      }
+      if (item.industry && item.industry !== "LAUNDRY" && !item.industry.includes("LAUNDRY")) {
+        return false;
+      }
+      return canAccessLaundryRoute(user, item.href);
+    }
+
+    if (isCashier && !isAdmin && !isManager && isRestaurant) {
+      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders"];
       if (!cashierHrefs.includes(item.href)) {
         return false;
       }
@@ -163,9 +179,14 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
-    const codeUpper = (industryCode || "").toUpperCase();
     if (item.href === "/dashboard" && ["RESTAURANT", "LAUNDRY"].includes(codeUpper)) {
       return false;
+    }
+    // For Textile ERP: exclude duplicate shared items ("Dashboard", "Employees / Staff", "Reports & Analytics")
+    if (codeUpper === "TEXTILE") {
+      if (!item.industry && (item.moduleCode === "DASHBOARD" || item.moduleCode === "EMPLOYEES" || item.moduleCode === "REPORTS")) {
+        return false;
+      }
     }
     // For Restaurant ERP: exclude duplicate shared items ("Employees / Staff" and generic "Reports & Analytics")
     if (codeUpper === "RESTAURANT") {
@@ -185,6 +206,7 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
+
 
     // Custom filtering for Manager in Gym industry
     if (isGym && isManager) {
@@ -264,7 +286,7 @@ export default function Sidebar({ isOpen, onClose }) {
             ? "LAUNDRY MODULES"
             : isMedical
             ? "MEDICAL SHOP MODULES"
-            : "SUPERMARKET & RESTAURANT ERP"}
+            : "RETAIL ERP"}
         </h4>
 
         {loading ? (
@@ -289,7 +311,7 @@ export default function Sidebar({ isOpen, onClose }) {
             );
           })
         ) : (
-          visibleNavItems.map((item) => {
+          visibleNavItems.map((item, idx) => {
             const IconComp = item.icon;
             const active = isActivePath(item.href);
             const finalHref = selectedRestaurantId && item.href.startsWith("/restaurant/")
@@ -298,7 +320,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
             return (
               <Link
-                key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
+                key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}-${idx}`}
                 href={finalHref}
                 className={active ? styles.active : ""}
                 onClick={handleLinkClick}

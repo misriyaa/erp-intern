@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   FiTrendingUp,
   FiShoppingBag,
@@ -10,6 +10,10 @@ import {
   FiAlertTriangle,
   FiSearch,
   FiGrid,
+  FiRefreshCw,
+  FiCheckCircle,
+  FiTruck,
+  FiLayers,
 } from "react-icons/fi";
 import {
   ResponsiveContainer,
@@ -37,11 +41,12 @@ import ReportCard from "./components/ReportCard";
 import ExportButton from "./components/ExportButton";
 import { useCompany } from "@/context/CompanyContext";
 import apiClient from "@/services/apiClient";
+import socketService from "@/services/socketService";
 import "./reports.css";
 
 export default function ReportsPage() {
   const { isGym } = useCompany();
-  const [activeTab, setActiveTab] = useState("sales"); // 'sales' | 'purchases' | 'inventory' for retail, 'memberships' | 'payments' | 'attendance' for gym
+  const [activeTab, setActiveTab] = useState("sales"); // 'sales' | 'purchases' | 'inventory'
 
   // Read URL search params safely without Suspense issues
   useEffect(() => {
@@ -90,6 +95,9 @@ export default function ReportsPage() {
   const [gymPayments, setGymPayments] = useState([]);
   const [gymAttendance, setGymAttendance] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Initialize dates to last 30 days
@@ -117,7 +125,7 @@ export default function ReportsPage() {
       if (isGym) return;
       try {
         const response = await getReportFilters();
-        if (response.success) {
+        if (response.success && response.data) {
           setFiltersData(response.data);
         }
       } catch (err) {
@@ -128,83 +136,122 @@ export default function ReportsPage() {
   }, [isGym]);
 
   // Fetch Gym data when in Gym mode
-  useEffect(() => {
-    if (!isGym) return;
-
-    const fetchGymData = async () => {
-      setLoading(true);
-      try {
-        if (activeTab === "memberships") {
-          const res = await apiClient.get("/gym/members");
-          if (res.data.success) {
-            setGymMembers(res.data.data || []);
-          }
-        } else if (activeTab === "payments") {
-          const res = await apiClient.get("/gym/payments");
-          if (res.data.success) {
-            setGymPayments(res.data.data || []);
-          }
-        } else if (activeTab === "attendance") {
-          const res = await apiClient.get("/gym/attendance");
-          if (res.data.success) {
-            setGymAttendance(res.data.data || []);
-          }
+  const fetchGymData = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      if (activeTab === "memberships") {
+        const res = await apiClient.get("/gym/members");
+        if (res.data.success) {
+          setGymMembers(res.data.data || []);
         }
-      } catch (err) {
-        console.error("Failed to load Gym reports data:", err);
-        toast.error("Failed to load Gym reports data");
-      } finally {
-        setLoading(false);
+      } else if (activeTab === "payments") {
+        const res = await apiClient.get("/gym/payments");
+        if (res.data.success) {
+          setGymPayments(res.data.data || []);
+        }
+      } else if (activeTab === "attendance") {
+        const res = await apiClient.get("/gym/attendance");
+        if (res.data.success) {
+          setGymAttendance(res.data.data || []);
+        }
       }
-    };
-
-    fetchGymData();
-  }, [isGym, activeTab]);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("Failed to load Gym reports data:", err);
+      setErrorMessage("Failed to load Gym reports data. Please try again.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [activeTab]);
 
   // Fetch report data on tab, date, or filter changes (Retail / Textile)
-  useEffect(() => {
-    if (isGym) return;
+  const fetchReport = useCallback(async (isSilent = false) => {
+    if (isGym) {
+      fetchGymData();
+      return;
+    }
     if (!dateState.startDate || !dateState.endDate) return;
 
-    const fetchReport = async () => {
+    if (!isSilent) {
       setLoading(true);
-      try {
-        let response;
-        if (activeTab === "sales") {
-          response = await getSalesReport({
-            startDate: dateState.startDate,
-            endDate: dateState.endDate,
-            groupBy: dateState.groupBy,
-            customerId: selectedFilters.customerId,
-          });
-        } else if (activeTab === "purchases") {
-          response = await getPurchaseReport({
-            startDate: dateState.startDate,
-            endDate: dateState.endDate,
-            groupBy: dateState.groupBy,
-            supplierId: selectedFilters.supplierId,
-          });
-        } else if (activeTab === "inventory") {
-          response = await getInventoryReport({
-            warehouseId: selectedFilters.warehouseId,
-          });
-        }
+    } else {
+      setRefreshing(true);
+    }
+    setErrorMessage(null);
 
-        if (response?.success) {
-          setReportData(response.data);
-        } else {
-          toast.error("Failed to fetch report data");
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error(err.response?.data?.message || "An error occurred while fetching reports");
-      } finally {
-        setLoading(false);
+    try {
+      let response;
+      if (activeTab === "sales") {
+        response = await getSalesReport({
+          startDate: dateState.startDate,
+          endDate: dateState.endDate,
+          groupBy: dateState.groupBy,
+          customerId: selectedFilters.customerId,
+        });
+      } else if (activeTab === "purchases") {
+        response = await getPurchaseReport({
+          startDate: dateState.startDate,
+          endDate: dateState.endDate,
+          groupBy: dateState.groupBy,
+          supplierId: selectedFilters.supplierId,
+        });
+      } else if (activeTab === "inventory") {
+        response = await getInventoryReport({
+          warehouseId: selectedFilters.warehouseId,
+        });
       }
+
+      if (response?.success) {
+        setReportData(response.data);
+        setLastUpdated(new Date());
+      } else {
+        setErrorMessage("Failed to fetch report data.");
+      }
+    } catch (err) {
+      console.error("Report fetch error:", err);
+      const msg = err.response?.data?.message || err.message || "An error occurred while fetching reports";
+      setErrorMessage(msg);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [isGym, activeTab, dateState, selectedFilters, fetchGymData]);
+
+  useEffect(() => {
+    fetchReport(false);
+  }, [fetchReport]);
+
+  // Real-time socket auto-refresh listener
+  useEffect(() => {
+    const handleLiveUpdate = () => {
+      console.log("⚡ Real-time report update event received - refetching data");
+      fetchReport(true);
     };
 
-    fetchReport();
-  }, [isGym, activeTab, dateState, selectedFilters]);
+    socketService.on("reports.updated", handleLiveUpdate);
+    socketService.on("dashboard.updated", handleLiveUpdate);
+    socketService.on("sale.completed", handleLiveUpdate);
+    socketService.on("stock.updated", handleLiveUpdate);
+    socketService.on("purchase.updated", handleLiveUpdate);
+    socketService.on("purchase.created", handleLiveUpdate);
+
+    // Lightweight 30-second interval fallback
+    const interval = setInterval(() => {
+      fetchReport(true);
+    }, 30000);
+
+    return () => {
+      socketService.off("reports.updated", handleLiveUpdate);
+      socketService.off("dashboard.updated", handleLiveUpdate);
+      socketService.off("sale.completed", handleLiveUpdate);
+      socketService.off("stock.updated", handleLiveUpdate);
+      socketService.off("purchase.updated", handleLiveUpdate);
+      socketService.off("purchase.created", handleLiveUpdate);
+      clearInterval(interval);
+    };
+  }, [fetchReport]);
 
   // Reset local queries when switching tabs
   const handleTabChange = (tab) => {
@@ -214,16 +261,26 @@ export default function ReportsPage() {
 
   // Helper: format currency
   const formatCurrency = (val) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(val || 0);
+    if (isGym) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(val || 0);
+    }
+    return `₹${Number(val || 0).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   // Summary Metrics calculations
   const summary = reportData?.summary || {};
   const items = reportData?.items || [];
   const chartData = reportData?.chartData || [];
+  const topProducts = reportData?.topProducts || [];
+  const topSuppliers = reportData?.topSuppliers || [];
+  const warehouseBreakdown = reportData?.warehouseBreakdown || [];
+  const lowStockProducts = reportData?.lowStockProducts || [];
 
   // Client side search filter for the details table
   const filteredItems = isGym
@@ -421,14 +478,46 @@ export default function ReportsPage() {
   return (
     <div className="reports-page-wrapper p-6">
       
-      {/* Header section */}
-      <div className="reports-header-section">
-        <h1>{isGym ? "Gym Reports & Analytics" : "Reports & Analytics"}</h1>
-        <p>
-          {isGym
-            ? "Monitor your gym membership growth, fee payments, and attendance logs in real-time."
-            : "Monitor your sales volume, purchase transactions, and inventory values in real-time."}
-        </p>
+      {/* Header section with Live Sync and Manual Refresh */}
+      <div className="reports-header-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+        <div>
+          <h1>{isGym ? "Gym Reports & Analytics" : "Reports & Analytics"}</h1>
+          <p>
+            {isGym
+              ? "Monitor your gym membership growth, fee payments, and attendance logs in real-time."
+              : "Monitor your sales volume, purchase transactions, and inventory values in real-time."}
+          </p>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {lastUpdated && (
+            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 500 }}>
+              Live Synced: {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => fetchReport(false)}
+            disabled={loading || refreshing}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              border: "1px solid #e2e8f0",
+              background: "#ffffff",
+              color: "#0f172a",
+              fontWeight: 600,
+              fontSize: "13px",
+              cursor: loading || refreshing ? "not-allowed" : "pointer",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+            }}
+          >
+            <FiRefreshCw className={loading || refreshing ? "animate-spin" : ""} size={14} />
+            {loading || refreshing ? "Refreshing..." : "Refresh Data"}
+          </button>
+        </div>
       </div>
 
       {/* Tabs navigation */}
@@ -499,11 +588,51 @@ export default function ReportsPage() {
         />
       )}
 
+      {/* Error state */}
+      {errorMessage && (
+        <div
+          style={{
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#b91c1c",
+            padding: "16px 20px",
+            borderRadius: "12px",
+            marginBottom: "20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <strong style={{ display: "block", fontSize: "14px", marginBottom: "2px" }}>
+              Unable to load report data
+            </strong>
+            <span style={{ fontSize: "13px" }}>{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchReport(false)}
+            style={{
+              padding: "6px 14px",
+              background: "#b91c1c",
+              color: "#ffffff",
+              borderRadius: "6px",
+              border: "none",
+              fontWeight: 600,
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Loading indicator */}
       {loading ? (
         <div className="reports-loading-container bg-white rounded-xl border border-gray-200">
           <div className="reports-loader"></div>
-          <p className="text-gray-500 font-medium">Fetching analysis data...</p>
+          <p className="text-gray-500 font-medium">Fetching real-time analytics data...</p>
         </div>
       ) : (
         <>
@@ -596,23 +725,23 @@ export default function ReportsPage() {
                 {activeTab === "sales" && (
                   <>
                     <ReportCard
-                      title="Total Revenue"
+                      title="Total Sales Revenue"
                       value={formatCurrency(summary.totalSales)}
-                      subtext="Net sales sum"
+                      subtext="Net sales volume"
                       type="sales"
                       icon={<FiDollarSign size={22} />}
                     />
                     <ReportCard
                       title="Sales Orders"
                       value={summary.totalOrders || 0}
-                      subtext="Completed orders"
+                      subtext="Completed transactions"
                       type="purchases"
                       icon={<FiFileText size={22} />}
                     />
                     <ReportCard
-                      title="Average Value"
+                      title="Average Order Value"
                       value={formatCurrency(summary.averageOrderValue)}
-                      subtext="Per transaction"
+                      subtext="Per completed order"
                       type="inventory"
                       icon={<FiTrendingUp size={22} />}
                     />
@@ -629,25 +758,32 @@ export default function ReportsPage() {
                 {activeTab === "purchases" && (
                   <>
                     <ReportCard
-                      title="Total Spend"
+                      title="Total Purchases Spend"
                       value={formatCurrency(summary.totalPurchases)}
-                      subtext="Purchasing expenditures"
+                      subtext="Supplier expenditures"
                       type="purchases"
                       icon={<FiShoppingBag size={22} />}
                     />
                     <ReportCard
                       title="Purchase Orders"
                       value={summary.totalOrders || 0}
-                      subtext="Supplier transactions"
+                      subtext="PO records count"
                       type="sales"
                       icon={<FiFileText size={22} />}
                     />
                     <ReportCard
-                      title="Average Purchase"
-                      value={formatCurrency(summary.averageOrderValue)}
-                      subtext="Spend per order"
+                      title="Received Deliveries"
+                      value={summary.receivedPurchases || 0}
+                      subtext="Stock added to warehouse"
                       type="inventory"
-                      icon={<FiTrendingUp size={22} />}
+                      icon={<FiCheckCircle size={22} />}
+                    />
+                    <ReportCard
+                      title="Pending Purchases"
+                      value={summary.pendingPurchases || 0}
+                      subtext="Awaiting stock receipt"
+                      type="warning"
+                      icon={<FiTruck size={22} />}
                     />
                   </>
                 )}
@@ -655,28 +791,28 @@ export default function ReportsPage() {
                 {activeTab === "inventory" && (
                   <>
                     <ReportCard
-                      title="Total Items"
+                      title="Total Stock Units"
                       value={summary.totalItems || 0}
-                      subtext="Quantity in warehouses"
+                      subtext="Units across all warehouses"
                       type="inventory"
                       icon={<FiPackage size={22} />}
                     />
                     <ReportCard
-                      title="Valuation (Cost)"
+                      title="Inventory Valuation (Cost)"
                       value={formatCurrency(summary.totalValuationCost)}
-                      subtext="Asset value at cost"
+                      subtext="Asset balance at cost"
                       type="sales"
                       icon={<FiDollarSign size={22} />}
                     />
                     <ReportCard
-                      title="Valuation (Retail)"
+                      title="Inventory Valuation (Retail)"
                       value={formatCurrency(summary.totalValuationRetail)}
                       subtext="Potential value at sell price"
                       type="purchases"
                       icon={<FiTrendingUp size={22} />}
                     />
                     <ReportCard
-                      title="Low Stock Items"
+                      title="Low / Out of Stock"
                       value={summary.lowStockCount || 0}
                       subtext="Requires reordering"
                       type="warning"
@@ -788,7 +924,7 @@ export default function ReportsPage() {
             activeTab !== "inventory" && chartData.length > 0 && (
               <div className="reports-chart-card">
                 <div className="chart-card-header">
-                  <h3>{activeTab === "sales" ? "Sales & Income Over Time" : "Purchase Expenses Over Time"}</h3>
+                  <h3>{activeTab === "sales" ? "Sales Volume & Income Trend" : "Purchase Expenses Over Time"}</h3>
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase">
                     By {dateState.groupBy}
                   </span>
@@ -833,6 +969,154 @@ export default function ReportsPage() {
             )
           )}
 
+          {/* Top Selling Products / Top Suppliers / Warehouse Breakdown Section */}
+          {!isGym && activeTab === "sales" && topProducts.length > 0 && (
+            <div className="reports-chart-card" style={{ marginBottom: "24px" }}>
+              <div className="chart-card-header">
+                <h3>Top Selling Products</h3>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>Ranked by units sold</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", padding: "16px" }}>
+                {topProducts.map((p, idx) => (
+                  <div
+                    key={p.id}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                      <span
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "50%",
+                          background: idx === 0 ? "#f59e0b" : idx === 1 ? "#94a3b8" : "#cbd5e1",
+                          color: "#ffffff",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <strong style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>{p.name}</strong>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>SKU: {p.sku || "N/A"}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "4px" }}>
+                      <span>Units Sold: <strong>{p.unitsSold}</strong></span>
+                      <span style={{ color: "#2563eb", fontWeight: 700 }}>{formatCurrency(p.revenue)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isGym && activeTab === "purchases" && topSuppliers.length > 0 && (
+            <div className="reports-chart-card" style={{ marginBottom: "24px" }}>
+              <div className="chart-card-header">
+                <h3>Top Suppliers by Purchase Volume</h3>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>Ranked by spend</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", padding: "16px" }}>
+                {topSuppliers.map((s, idx) => (
+                  <div
+                    key={s.id || idx}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                      <span
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "50%",
+                          background: "#10b981",
+                          color: "#ffffff",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <strong style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>{s.name}</strong>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>{s.orderCount} Orders</span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "4px" }}>
+                      <span>Total Volume:</span>
+                      <span style={{ color: "#059669", fontWeight: 700 }}>{formatCurrency(s.totalSpend)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isGym && activeTab === "inventory" && warehouseBreakdown.length > 0 && (
+            <div className="reports-chart-card" style={{ marginBottom: "24px" }}>
+              <div className="chart-card-header">
+                <h3>Warehouse Inventory Breakdown</h3>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>Live warehouse balances</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", padding: "16px" }}>
+                {warehouseBreakdown.map((w) => (
+                  <div
+                    key={w.id}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "10px",
+                      padding: "16px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                      <strong style={{ fontSize: "15px", color: "#0f172a" }}>{w.name}</strong>
+                      <span className="badge-report active">Active</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "#64748b" }}>Stock Units:</span>
+                        <strong>{w.totalStock} units</strong>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "#64748b" }}>Asset Value (Cost):</span>
+                        <strong style={{ color: "#059669" }}>{formatCurrency(w.valuationCost)}</strong>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "#64748b" }}>Low Stock Alerts:</span>
+                        <strong style={{ color: w.lowStockCount > 0 ? "#ef4444" : "#10b981" }}>
+                          {w.lowStockCount} items
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Details Table Card */}
           <div className="reports-table-card">
             <div className="table-card-header">
@@ -863,7 +1147,7 @@ export default function ReportsPage() {
               <div className="empty-state">
                 <FiGrid />
                 <h4>No Records Found</h4>
-                <p>Try modifying your filters or search keywords to display results.</p>
+                <p>Try modifying your date filters, warehouse selection, or search keywords to display results.</p>
               </div>
             ) : (
               <div className="reports-table-container">
@@ -1073,3 +1357,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+

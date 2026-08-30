@@ -4,13 +4,20 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FiRefreshCw } from "react-icons/fi";
 import CustomerCard from "../components/CustomerCard";
-import { getCustomerById, deleteCustomer } from "@/services/customerService";
+import {
+  getCustomerById,
+  deleteCustomer,
+  getTextileCustomerById,
+  deleteTextileCustomer,
+} from "@/services/customerService";
 import { useAlert } from "@/context/AlertContext";
+import { useCompany } from "@/context/CompanyContext";
 import styles from "../customers.module.css";
 
 export default function CustomerDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { isTextile } = useCompany();
   const { showSuccess, showError, showConfirm } = useAlert();
 
   const [loading, setLoading] = useState(true);
@@ -22,17 +29,20 @@ export default function CustomerDetailsPage() {
       if (!id) return;
       try {
         setLoading(true);
-        const data = await getCustomerById(id);
-        setCustomer(data);
+        const data = isTextile
+          ? await getTextileCustomerById(id)
+          : await getCustomerById(id);
+
+        setCustomer(data?.data || data);
       } catch (err) {
         console.error("Failed to fetch customer details:", err);
-        setErrorMsg("Failed to load customer profile.");
+        setErrorMsg(err.response?.data?.message || err.message || "Failed to load customer profile.");
       } finally {
         setLoading(false);
       }
     }
     loadCustomer();
-  }, [id]);
+  }, [id, isTextile]);
 
   const handleDelete = (targetCustomer) => {
     showConfirm({
@@ -42,12 +52,16 @@ export default function CustomerDetailsPage() {
       type: "danger",
       onConfirm: async () => {
         try {
-          await deleteCustomer(targetCustomer.id);
-          showSuccess("Product updated", "Customer deleted successfully.");
+          if (isTextile) {
+            await deleteTextileCustomer(targetCustomer.id);
+          } else {
+            await deleteCustomer(targetCustomer.id);
+          }
+          showSuccess("Customer deleted", "Customer deleted successfully.");
           router.push("/customers");
         } catch (err) {
           console.error("Delete customer error:", err);
-          showError("Product couldn't be deleted", err.response?.data?.message || err.message || "Failed to delete customer.");
+          showError("Customer couldn't be deleted", err.response?.data?.message || err.message || "Failed to delete customer.");
         }
       },
     });
@@ -58,7 +72,7 @@ export default function CustomerDetailsPage() {
       <div className={styles.page}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "350px", gap: "10px", color: "#64748b" }}>
           <FiRefreshCw className="animate-spin" size={20} />
-          <span>Loading customer details...</span>
+          <span>Loading customer profile...</span>
         </div>
       </div>
     );
@@ -67,8 +81,17 @@ export default function CustomerDetailsPage() {
   if (errorMsg || !customer) {
     return (
       <div className={styles.page}>
-        <div style={{ padding: "16px 20px", backgroundColor: "#fef2f2", color: "#dc2626", borderRadius: "8px", border: "1px solid #fecaca", maxWidth: "600px", margin: "20px auto" }}>
-          {errorMsg || "Customer record not found."}
+        <div className={styles.addCard} style={{ maxWidth: "800px", margin: "40px auto", textAlign: "center", padding: "32px" }}>
+          <h2 style={{ color: "#ef4444", marginBottom: "8px" }}>Unable to load customer</h2>
+          <p style={{ color: "#64748b", marginBottom: "20px" }}>{errorMsg || "Customer record not found."}</p>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => router.push("/customers")}
+            style={{ margin: "0 auto" }}
+          >
+            ← Back to Customers
+          </button>
         </div>
       </div>
     );
@@ -76,7 +99,7 @@ export default function CustomerDetailsPage() {
 
   return (
     <div className={styles.page}>
-      <CustomerCard customer={customer} onDelete={handleDelete} />
+      <CustomerCard customer={customer} onDelete={handleDelete} isTextile={isTextile} />
     </div>
   );
 }

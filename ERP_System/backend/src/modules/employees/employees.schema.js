@@ -53,11 +53,13 @@ const addEmployeeSchema = Joi.object({
 
   branchId: Joi.string()
     .trim()
-    .required()
-    .messages({
-      "string.empty": "Branch is required",
-      "any.required": "Branch is required",
-    }),
+    .allow("", null)
+    .optional(),
+
+  manufacturingUnitId: Joi.string()
+    .trim()
+    .allow("", null)
+    .optional(),
 
   password: Joi.string()
     .min(6)

@@ -3,17 +3,23 @@
 import { useEffect, useState } from "react";
 import { createInventory, updateInventory } from "@/services/inventoryService";
 import { useAlert } from "@/context/AlertContext";
+import { useCompany } from "@/context/CompanyContext";
+import apiClient from "@/services/apiClient";
 
 export default function StockModal({
   isOpen,
   onClose,
   onSave,
   item = null,
-  products = [],
-  warehouses = [],
+  products: initialProducts = [],
+  warehouses: initialWarehouses = [],
 }) {
   const { showSuccess, showError } = useAlert();
+  const { isTextile } = useCompany();
   const isEdit = !!item;
+
+  const [products, setProducts] = useState(initialProducts);
+  const [warehouses, setWarehouses] = useState(initialWarehouses);
 
   const [form, setForm] = useState({
     productId: "",
@@ -26,6 +32,52 @@ export default function StockModal({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Sync initial props
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      setProducts(initialProducts);
+    }
+  }, [initialProducts]);
+
+  useEffect(() => {
+    if (initialWarehouses && initialWarehouses.length > 0) {
+      setWarehouses(initialWarehouses);
+    }
+  }, [initialWarehouses]);
+
+  // When modal opens in Textile ERP, fetch fresh active products directly
+  useEffect(() => {
+    if (isOpen) {
+      async function fetchFreshData() {
+        try {
+          if (isTextile) {
+            const [pRes, wRes] = await Promise.allSettled([
+              apiClient.get("/textile/products"),
+              apiClient.get("/warehouses"),
+            ]);
+
+            if (pRes.status === "fulfilled") {
+              const pData = pRes.value.data?.data || pRes.value.data;
+              if (Array.isArray(pData) && pData.length > 0) {
+                setProducts(pData);
+              }
+            }
+
+            if (wRes.status === "fulfilled") {
+              const wData = wRes.value.data?.data || wRes.value.data;
+              if (Array.isArray(wData) && wData.length > 0) {
+                setWarehouses(wData);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Could not refetch textile products on modal open:", e);
+        }
+      }
+      fetchFreshData();
+    }
+  }, [isOpen, isTextile]);
 
   useEffect(() => {
     if (item) {
@@ -127,7 +179,7 @@ export default function StockModal({
     <div className="modal-backdrop-blur">
       <div className="modal-content-card">
         <div className="modal-card-header">
-          <h2>{isEdit ? "Edit Stock Levels" : "Add Product to Warehouse"}</h2>
+          <h2>{isEdit ? "Edit Stock Levels" : isTextile ? "Add Textile Fabric Stock to Warehouse" : "Add Product to Warehouse"}</h2>
           <button className="modal-close-x-btn" onClick={onClose} aria-label="Close">
             <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -141,20 +193,25 @@ export default function StockModal({
           <div className="modal-grid-cols">
             {/* Product Select */}
             <div className="modal-field-group">
-              <label className="form-group-label">Product Item *</label>
+              <label className="form-group-label">{isTextile ? "Textile Fabric Product Item *" : "Product Item *"}</label>
               <select
                 name="productId"
                 value={form.productId}
                 onChange={handleChange}
                 disabled={isEdit}
                 className="form-control-pill"
+                required
               >
-                <option value="">Select a Product</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.sku})
-                  </option>
-                ))}
+                <option value="">{products.length === 0 ? (isTextile ? "No Textile products found. Please create a Textile Product first." : "No products available") : "Select a Product"}</option>
+                {products.map((p) => {
+                  const pName = p.name || p.productName || "Product";
+                  const pSku = p.sku || p.productCode || "No SKU";
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {pName} — {pSku}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -167,11 +224,12 @@ export default function StockModal({
                 onChange={handleChange}
                 disabled={isEdit}
                 className="form-control-pill"
+                required
               >
-                <option value="">Select a Warehouse</option>
+                <option value="">{warehouses.length === 0 ? "No warehouses available" : "Select a Warehouse"}</option>
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>
-                    {w.name}
+                    {w.name} {w.code ? `(${w.code})` : ""}
                   </option>
                 ))}
               </select>
@@ -219,7 +277,7 @@ export default function StockModal({
 
             {/* Maximum Capacity */}
             <div className="modal-field-group">
-              <label className="form-group-label">Maximum Stock Capacity</label>
+              <label className="form-group-label">Maximum Storage Capacity</label>
               <input
                 type="number"
                 name="maximumStock"
@@ -231,30 +289,17 @@ export default function StockModal({
             </div>
           </div>
 
-          <div className="modal-card-footer">
-            <button
-              type="button"
-              className="btn-action-secondary"
-              onClick={onClose}
-              disabled={loading}
-            >
+          <div className="modal-card-actions">
+            <button type="button" className="btn-cancel-pill" onClick={onClose} disabled={loading}>
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-action-primary"
+              className="btn-submit-pill"
               disabled={loading}
+              style={isTextile ? { background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)" } : undefined}
             >
-              {loading ? (
-                <span>Saving...</span>
-              ) : (
-                <>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  <span>{isEdit ? "Update Stock" : "Add to Stock"}</span>
-                </>
-              )}
+              {loading ? "Processing..." : isEdit ? "Update Stock Record" : isTextile ? "Add Fabric Stock Record" : "Save Stock Record"}
             </button>
           </div>
         </form>
