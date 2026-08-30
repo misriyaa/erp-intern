@@ -643,24 +643,44 @@ export default function EmployeePage() {
 
 
     else if (isLaundry) {
-      combined = [
-        {
-          id: "Manager",
-          name: "Manager",
-        },
-        {
-          id: "Cashier",
-          name: "Cashier",
-        },
-        {
-          id: "Processing Staff",
-          name: "Processing Staff",
-        },
-        {
-          id: "Delivery Driver",
-          name: "Delivery Driver",
-        },
-      ];
+      const userRoleUpper = (user?.role || "").toUpperCase();
+      const isLaundryManager = userRoleUpper.includes("MANAGER") && !userRoleUpper.includes("SUPER") && !userRoleUpper.includes("ADMIN");
+
+      if (isLaundryManager) {
+        combined = [
+          {
+            id: "Cashier",
+            name: "Cashier",
+          },
+          {
+            id: "Processing Staff",
+            name: "Processing Staff",
+          },
+          {
+            id: "Delivery Driver",
+            name: "Delivery Driver",
+          },
+        ];
+      } else {
+        combined = [
+          {
+            id: "Manager",
+            name: "Manager",
+          },
+          {
+            id: "Cashier",
+            name: "Cashier",
+          },
+          {
+            id: "Processing Staff",
+            name: "Processing Staff",
+          },
+          {
+            id: "Delivery Driver",
+            name: "Delivery Driver",
+          },
+        ];
+      }
     }
 
 
@@ -886,26 +906,27 @@ export default function EmployeePage() {
       let baseList = rawList;
 
       /* =========================================
-         HIDE ADMIN EMPLOYEES FOR BUSINESS ADMIN (Non-Textile only)
+         HIDE ADMIN EMPLOYEES FOR BUSINESS ADMIN & LAUNDRY
       ========================================= */
 
       if (
-        !isTextile &&
-        user?.role?.toUpperCase() ===
-        "ADMIN"
+        isLaundry ||
+        (!isTextile &&
+          user?.role?.toUpperCase() ===
+          "ADMIN")
       ) {
         baseList =
           rawList.filter(
-            (employee) =>
-              employee.role
-                ?.toUpperCase() !==
-                "ADMIN" &&
-              employee.role
-                ?.toUpperCase() !==
-                "SUPER_ADMIN" &&
-              employee.role
-                ?.toUpperCase() !==
-                "SUPERADMIN"
+            (employee) => {
+              const empRole = (employee.role || employee.roleRef?.name || "").toUpperCase();
+              return (
+                empRole !== "ADMIN" &&
+                empRole !== "SUPER_ADMIN" &&
+                empRole !== "SUPERADMIN" &&
+                !empRole.includes("SUPER") &&
+                !empRole.includes("ADMIN")
+              );
+            }
           );
       }
 

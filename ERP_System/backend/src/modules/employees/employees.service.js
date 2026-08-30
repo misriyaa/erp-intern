@@ -123,6 +123,8 @@ const addEmployee = async (
 
   const reqRoleUpper = (requestedRoleName || "").toUpperCase().replace(/[\s_-]+/g, " ").trim();
 
+  const isLaundry = industryCode.includes("LAUNDRY");
+
   if (isRetail) {
     const isSuperAdmin = callerRole.includes("SUPER");
     const isAdmin = !isSuperAdmin && callerRole.includes("ADMIN");
@@ -150,6 +152,46 @@ const addEmployee = async (
       );
       if (!isAllowed) {
         const error = new Error("403 Forbidden: Store Managers are only permitted to assign subordinate roles (Cashier, Inventory Manager, Purchase Manager, Accountant).");
+        error.status = 403;
+        error.statusCode = 403;
+        throw error;
+      }
+    } else if (isAdmin) {
+      const isAllowed = adminAllowedRoles.some(
+        (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+      );
+      if (!isAllowed) {
+        const error = new Error("403 Forbidden: Admins are not permitted to register or assign Admin/Super Admin roles.");
+        error.status = 403;
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+  } else if (isLaundry) {
+    const isSuperAdmin = callerRole.includes("SUPER");
+    const isAdmin = !isSuperAdmin && callerRole.includes("ADMIN");
+    const isLaundryManager = !isSuperAdmin && !isAdmin && (callerRole.includes("MANAGER") || callerRole.includes("LAUNDRY MANAGER") || callerRole.includes("LAUNDRY_MANAGER"));
+
+    const adminAllowedRoles = [
+      "MANAGER",
+      "LAUNDRY MANAGER",
+      "CASHIER",
+      "PROCESSING STAFF",
+      "DELIVERY DRIVER",
+    ];
+
+    const managerAllowedRoles = [
+      "CASHIER",
+      "PROCESSING STAFF",
+      "DELIVERY DRIVER",
+    ];
+
+    if (isLaundryManager) {
+      const isAllowed = managerAllowedRoles.some(
+        (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+      );
+      if (!isAllowed) {
+        const error = new Error("403 Forbidden: Laundry Managers are only permitted to assign subordinate staff roles (Cashier, Processing Staff, Delivery Driver).");
         error.status = 403;
         error.statusCode = 403;
         throw error;
@@ -460,6 +502,8 @@ const modifyEmployee = async (
     const resolvedRoleName = roleObj?.name || targetRoleVal;
     const reqRoleUpper = (resolvedRoleName || "").toUpperCase().replace(/[\s_-]+/g, " ").trim();
 
+    const isLaundry = industryCode.includes("LAUNDRY");
+
     if (isRetail) {
       const isSuperAdmin = callerRole.includes("SUPER");
       const isAdmin = !isSuperAdmin && callerRole.includes("ADMIN");
@@ -487,6 +531,46 @@ const modifyEmployee = async (
         );
         if (!isAllowed) {
           const error = new Error("403 Forbidden: Store Managers are only permitted to assign subordinate roles (Cashier, Inventory Manager, Purchase Manager, Accountant).");
+          error.status = 403;
+          error.statusCode = 403;
+          throw error;
+        }
+      } else if (isAdmin) {
+        const isAllowed = adminAllowedRoles.some(
+          (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+        );
+        if (!isAllowed) {
+          const error = new Error("403 Forbidden: Admins are not permitted to register or assign Admin/Super Admin roles.");
+          error.status = 403;
+          error.statusCode = 403;
+          throw error;
+        }
+      }
+    } else if (isLaundry) {
+      const isSuperAdmin = callerRole.includes("SUPER");
+      const isAdmin = !isSuperAdmin && callerRole.includes("ADMIN");
+      const isLaundryManager = !isSuperAdmin && !isAdmin && (callerRole.includes("MANAGER") || callerRole.includes("LAUNDRY MANAGER") || callerRole.includes("LAUNDRY_MANAGER"));
+
+      const adminAllowedRoles = [
+        "MANAGER",
+        "LAUNDRY MANAGER",
+        "CASHIER",
+        "PROCESSING STAFF",
+        "DELIVERY DRIVER",
+      ];
+
+      const managerAllowedRoles = [
+        "CASHIER",
+        "PROCESSING STAFF",
+        "DELIVERY DRIVER",
+      ];
+
+      if (isLaundryManager) {
+        const isAllowed = managerAllowedRoles.some(
+          (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+        );
+        if (!isAllowed) {
+          const error = new Error("403 Forbidden: Laundry Managers are only permitted to assign subordinate staff roles (Cashier, Processing Staff, Delivery Driver).");
           error.status = 403;
           error.statusCode = 403;
           throw error;

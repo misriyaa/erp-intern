@@ -380,12 +380,25 @@ export default function AddEmployeePage() {
         { id: "Kitchen Staff", name: "Kitchen Staff" },
       ];
     } else if (isLndMode) {
-      combined = [
-        { id: "Manager", name: "Manager" },
-        { id: "Cashier", name: "Cashier" },
-        { id: "Processing Staff", name: "Processing Staff" },
-        { id: "Delivery Driver", name: "Delivery Driver" },
-      ];
+      const userRoleUpper = (user?.role || "").toUpperCase();
+      const isLaundryManager = userRoleUpper.includes("MANAGER") && !userRoleUpper.includes("SUPER") && !userRoleUpper.includes("ADMIN");
+
+      if (isLaundryManager) {
+        // Laundry Manager can only create subordinate staff
+        combined = [
+          { id: "Cashier", name: "Cashier" },
+          { id: "Processing Staff", name: "Processing Staff" },
+          { id: "Delivery Driver", name: "Delivery Driver" },
+        ];
+      } else {
+        // Admin / Super Admin can create Manager and subordinate staff
+        combined = [
+          { id: "Manager", name: "Manager" },
+          { id: "Cashier", name: "Cashier" },
+          { id: "Processing Staff", name: "Processing Staff" },
+          { id: "Delivery Driver", name: "Delivery Driver" },
+        ];
+      }
     } else {
       // Retail / default
       const userRoleUpper = (user?.role || "").toUpperCase();

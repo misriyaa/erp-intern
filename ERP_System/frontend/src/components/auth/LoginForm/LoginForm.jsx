@@ -88,6 +88,16 @@ export default function LoginForm() {
         } else {
           window.location.href = "/restaurant/dashboard";
         }
+      } else if (userType.includes("LAUNDRY")) {
+        if (userRole.includes("CASHIER") || userRole.includes("BILLING") || userRole.includes("COUNTER") || userRole.includes("POS")) {
+          window.location.href = "/laundry/pos";
+        } else if (userRole.includes("DELIVERY") || userRole.includes("DRIVER") || userRole.includes("RIDER")) {
+          window.location.href = "/laundry/delivery";
+        } else if (userRole.includes("PROCESS") || userRole.includes("WASHER") || userRole.includes("STAFF") || userRole.includes("IRON")) {
+          window.location.href = "/laundry/orders";
+        } else {
+          window.location.href = "/laundry/dashboard";
+        }
       } else if (userRole.includes("CASHIER")) {
         window.location.href = "/pos";
       } else {

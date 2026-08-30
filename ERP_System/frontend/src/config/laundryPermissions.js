@@ -50,21 +50,18 @@ export const LAUNDRY_ROLE_ROUTES = {
     "/laundry/reports",
   ],
   [LAUNDRY_ROLES.CASHIER]: [
-    "/laundry/dashboard",
     "/laundry/pos",
     "/laundry/orders",
     "/customers",
     "/laundry/delivery",
   ],
   [LAUNDRY_ROLES.PROCESSING_STAFF]: [
-    "/laundry/dashboard",
     "/laundry/orders",
     "/laundry/garments",
     "/laundry/processing",
     "/laundry/ready",
   ],
   [LAUNDRY_ROLES.DELIVERY_DRIVER]: [
-    "/laundry/dashboard",
     "/laundry/ready",
     "/laundry/delivery",
   ],

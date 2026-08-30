@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { laundryService } from "@/services/laundryService";
+import { useCompany } from "@/context/CompanyContext";
+import { useRouter } from "next/navigation";
 import {
   FiGrid,
   FiShoppingCart,
@@ -13,6 +15,14 @@ import {
 } from "react-icons/fi";
 
 export default function LaundryDashboard() {
+  const { user, loading: authLoading } = useCompany();
+  const router = useRouter();
+
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.type || "").toUpperCase().replace(/[\s-]+/g, "_");
+  const isAdmin = roleUpper.includes("SUPER") || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
+  const isManager = roleUpper.includes("MANAGER");
+  const isAuthorized = !user || isAdmin || isManager;
+
   const [stats, setStats] = useState({
     totalOrders: 0,
     activeOrders: 0,
@@ -30,9 +40,23 @@ export default function LaundryDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchLaundries();
-    fetchStats("ALL");
-  }, []);
+    if (!authLoading && user && !isAdmin && !isManager) {
+      if (roleUpper.includes("CASHIER") || roleUpper.includes("BILLING") || roleUpper.includes("COUNTER") || roleUpper.includes("POS")) {
+        router.replace("/laundry/pos");
+      } else if (roleUpper.includes("DELIVERY") || roleUpper.includes("DRIVER") || roleUpper.includes("RIDER")) {
+        router.replace("/laundry/delivery");
+      } else {
+        router.replace("/laundry/orders");
+      }
+    }
+  }, [user, authLoading, isAdmin, isManager, roleUpper, router]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthorized) {
+      fetchLaundries();
+      fetchStats("ALL");
+    }
+  }, [authLoading, isAuthorized]);
 
   const fetchLaundries = async () => {
     try {

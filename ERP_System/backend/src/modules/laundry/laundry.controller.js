@@ -252,6 +252,16 @@ export const createGarmentController = async (req, res) => {
 // LAUNDRY DELIVERIES CONTROLLER
 // ==========================================
 
+export const getDeliveriesController = async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    const result = await laundryService.getDeliveriesService(companyId, req.query);
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
 export const updateDeliveryStatusController = async (req, res) => {
   try {
     const delivery = await laundryService.updateDeliveryStatusService(req.params.orderId, req.body);

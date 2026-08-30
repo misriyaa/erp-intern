@@ -547,6 +547,97 @@ export const createGarmentRepo = async (companyId, garmentData) => {
 // LAUNDRY DELIVERIES REPOSITORY
 // ==========================================
 
+export const getDeliveriesRepo = async (companyId, { status, search, startDate, endDate, page = 1, limit = 50 } = {}) => {
+  const where = {
+    order: {
+      companyId,
+    },
+  };
+
+  if (status && status !== "ALL") {
+    where.deliveryStatus = status;
+  }
+
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) {
+      where.createdAt.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.createdAt.lte = end;
+    }
+  }
+
+  if (search && search.trim() !== "") {
+    const s = search.trim();
+    where.OR = [
+      { deliveryAddress: { contains: s, mode: "insensitive" } },
+      { phone: { contains: s, mode: "insensitive" } },
+      {
+        order: {
+          orderNumber: { contains: s, mode: "insensitive" },
+        },
+      },
+      {
+        order: {
+          customer: {
+            name: { contains: s, mode: "insensitive" },
+          },
+        },
+      },
+    ];
+  }
+
+  const [totalCount, deliveries] = await Promise.all([
+    prisma.laundryDelivery.count({ where }),
+    prisma.laundryDelivery.findMany({
+      where,
+      include: {
+        order: {
+          include: {
+            customer: true,
+            branch: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (Number(page) - 1) * Number(limit),
+      take: Number(limit),
+    }),
+  ]);
+
+  return {
+    totalCount,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages: Math.ceil(totalCount / Number(limit)) || 1,
+    data: deliveries.map((d) => ({
+      id: d.id,
+      companyId,
+      orderId: d.orderId,
+      orderNumber: d.order?.orderNumber || "N/A",
+      customerId: d.order?.customerId,
+      customerName: d.order?.customer?.name || "Walk-in Customer",
+      deliveryAddress: d.deliveryAddress,
+      contactNumber: d.phone,
+      scheduledDate: d.deliveryDate,
+      dispatchedAt: d.deliveryStatus === "OUT_FOR_DELIVERY" || d.deliveryStatus === "DELIVERED" ? d.updatedAt : null,
+      deliveredAt: d.deliveryStatus === "DELIVERED" ? d.deliveryDate || d.updatedAt : null,
+      deliveryStatus: d.deliveryStatus,
+      assignedDeliveryStaff: d.deliveryNotes?.includes("Assigned to") ? d.deliveryNotes : null,
+      totalAmount: d.order?.totalAmount,
+      paidAmount: d.order?.paidAmount,
+      balanceAmount: d.order?.balanceAmount,
+      orderStatus: d.order?.status,
+      deliveryNotes: d.deliveryNotes,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+    })),
+  };
+};
+
 export const updateDeliveryStatusRepo = async (orderId, { deliveryStatus, deliveryNotes }) => {
   const data = { deliveryStatus };
   if (deliveryStatus === "DELIVERED") {

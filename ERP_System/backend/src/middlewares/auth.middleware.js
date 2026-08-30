@@ -243,7 +243,7 @@ export const requireRoles = (allowedRoles = []) => {
       });
     }
 
-    const rawRole = (req.user.role || "").trim();
+    const rawRole = (req.user.role || req.user.roleRef?.name || req.user.type || "").trim();
     const roleUpper = rawRole.toUpperCase().replace(/[\s_-]+/g, "_");
 
     // Super Admin, Admin, and Owner always have full unrestricted access across all modules
@@ -268,7 +268,17 @@ export const requireRoles = (allowedRoles = []) => {
       return (
         roleUpper === allowed ||
         roleUpper.includes(allowed) ||
-        allowed.includes(roleUpper)
+        allowed.includes(roleUpper) ||
+        (allowed.includes("STAFF") &&
+          (roleUpper.includes("STAFF") ||
+            roleUpper.includes("PROCESS") ||
+            roleUpper.includes("WASHER") ||
+            roleUpper.includes("IRON") ||
+            roleUpper.includes("OPERATOR"))) ||
+        (allowed.includes("MANAGER") && roleUpper.includes("MANAGER")) ||
+        (allowed.includes("CASHIER") && roleUpper.includes("CASHIER")) ||
+        (allowed.includes("DRIVER") &&
+          (roleUpper.includes("DRIVER") || roleUpper.includes("DELIVERY")))
       );
     });
 

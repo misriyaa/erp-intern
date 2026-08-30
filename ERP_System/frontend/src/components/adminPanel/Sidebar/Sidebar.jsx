@@ -155,7 +155,7 @@ export default function Sidebar({ isOpen, onClose }) {
       if (item.href === "/dashboard") {
         return false;
       }
-      if (item.industry && item.industry !== "LAUNDRY" && !item.industry.includes("LAUNDRY")) {
+      if (!item.industry || (!item.industry.includes("LAUNDRY") && item.industry !== "LAUNDRY")) {
         return false;
       }
       return canAccessLaundryRoute(user, item.href);
