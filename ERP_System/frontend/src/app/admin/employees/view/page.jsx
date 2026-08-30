@@ -15,6 +15,7 @@ import {
   Mail,
   Phone,
   Building2,
+  Eye,
 } from "lucide-react";
 
 import styles from "./viewEmployees.module.css";
@@ -25,6 +26,7 @@ import { getRoles } from "@/services/roleService";
 import { getBranches } from "@/services/branchService";
 import { restaurantService } from "@/services/restaurantService";
 import apiClient from "@/services/apiClient";
+import { getTextileEmployees } from "@/services/textileEmployeeService";
 
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
@@ -571,7 +573,7 @@ export default function EmployeePage() {
     fetchEmployees();
     fetchRoles();
     fetchBranches();
-  }, []);
+  }, [company?.id, industryCode, isTextile]);
 
 
   /* =====================================================
@@ -838,29 +840,34 @@ export default function EmployeePage() {
     try {
       setLoading(true);
 
+      let rawList = [];
 
-      const response =
-        await apiClient.get(
-          `/employees?companyId=${
-            company?.id || ""
-          }&type=${
-            industryCode || ""
-          }`
+      if (isTextile) {
+        try {
+          const res = await getTextileEmployees();
+          rawList = res.data?.data || res.data || [];
+        } catch (tErr) {
+          console.warn("Failed to fetch via /textile/employees, falling back:", tErr);
+          const response = await apiClient.get(
+            `/employees?companyId=${company?.id || ""}&type=TEXTILE`
+          );
+          rawList = response.data?.data || [];
+        }
+      } else {
+        const response = await apiClient.get(
+          `/employees?companyId=${company?.id || ""}&type=${industryCode || ""}`
         );
-
-
-      const rawList =
-        response.data?.data || [];
-
+        rawList = response.data?.data || [];
+      }
 
       let baseList = rawList;
 
-
       /* =========================================
-         HIDE ADMIN EMPLOYEES FOR BUSINESS ADMIN
+         HIDE ADMIN EMPLOYEES FOR BUSINESS ADMIN (Non-Textile only)
       ========================================= */
 
       if (
+        !isTextile &&
         user?.role?.toUpperCase() ===
         "ADMIN"
       ) {
@@ -879,13 +886,24 @@ export default function EmployeePage() {
           );
       }
 
-
       /* =========================================
          INDUSTRY FILTER
       ========================================= */
 
       const filteredList =
         baseList.filter((employee) => {
+          if (isTextile) {
+            return (
+              employee.type === "TEXTILE" ||
+              employee.erpType === "TEXTILE" ||
+              employee.isTextile ||
+              !employee.type ||
+              employee.employeeId?.startsWith("EMP-TEX") ||
+              ["weaver", "dyer", "quality inspector", "manager", "admin", "operator", "mill", "loom", "supervisor"].some((r) =>
+                (employee.role || employee.roleRef?.name || "").toLowerCase().includes(r)
+              )
+            );
+          }
 
           if (
             employee.type &&
@@ -895,33 +913,6 @@ export default function EmployeePage() {
           ) {
             return true;
           }
-
-
-          const isTex =
-            employee.type ===
-              "TEXTILE" ||
-            employee.employeeId?.startsWith(
-              "EMP-TEX"
-            ) ||
-            employee.role
-              ?.toLowerCase()
-              .includes("loom") ||
-            employee.role
-              ?.toLowerCase()
-              .includes("weaving") ||
-            employee.role
-              ?.toLowerCase()
-              .includes("spinning") ||
-            employee.role
-              ?.toLowerCase()
-              .includes("dyeing") ||
-            employee.role
-              ?.toLowerCase()
-              .includes("textile") ||
-            employee.role
-              ?.toLowerCase()
-              .includes("mill");
-
 
           const isGymEmp =
             employee.type ===
@@ -948,15 +939,6 @@ export default function EmployeePage() {
               ?.toLowerCase()
               .includes("receptionist");
 
-
-          if (isTextile) {
-            return (
-              isTex ||
-              !employee.type
-            );
-          }
-
-
           if (isGym) {
             return (
               isGymEmp ||
@@ -964,10 +946,8 @@ export default function EmployeePage() {
             );
           }
 
-
           return true;
         });
-
 
       setEmployees(filteredList);
 
@@ -2313,6 +2293,25 @@ export default function EmployeePage() {
                                 styles.cardActions
                               }
                             >
+
+                                {/* VIEW DETAILS */}
+                                <button
+                                  type="button"
+                                  className={styles.editButton}
+                                  style={{ background: "#f0fdf4", borderColor: "#bbf7d0", color: "#16a34a" }}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    if (isTextile) {
+                                      router.push(`/textile/employees/${employee.id}`);
+                                    } else {
+                                      handleEditEmployee(employee);
+                                    }
+                                  }}
+                                  title="View Full Profile"
+                                  aria-label="View Full Profile"
+                                >
+                                  <Eye size={14} />
+                                </button>
 
                               {/* EDIT */}
 

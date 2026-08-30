@@ -192,3 +192,33 @@ export const deleteTextileCustomer = async (companyId, id) => {
   return result;
 };
 
+// ==========================================
+// Textile Employees & Staff Service
+// ==========================================
+export const getTextileEmployees = async (companyId, query) => {
+  return await textileRepo.getTextileEmployeesRepo(companyId, query);
+};
+
+export const getTextileEmployeeById = async (companyId, id) => {
+  return await textileRepo.getTextileEmployeeByIdRepo(companyId, id);
+};
+
+export const createTextileEmployee = async (companyId, data) => {
+  const result = await textileRepo.createTextileEmployeeRepo(companyId, data);
+  emitDashboardUpdate(companyId, "textile.dashboard.updated", { action: "employee_created", id: result.id });
+  return result;
+};
+
+export const updateTextileEmployee = async (companyId, id, data) => {
+  const result = await textileRepo.updateTextileEmployeeRepo(companyId, id, data);
+  emitDashboardUpdate(companyId, "textile.dashboard.updated", { action: "employee_updated", id });
+  return result;
+};
+
+export const deleteTextileEmployee = async (companyId, id) => {
+  const result = await textileRepo.deleteTextileEmployeeRepo(companyId, id);
+  emitDashboardUpdate(companyId, "textile.dashboard.updated", { action: "employee_deleted", id });
+  return result;
+};
+
+

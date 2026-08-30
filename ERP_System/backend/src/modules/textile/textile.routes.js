@@ -62,6 +62,13 @@ router.post("/customers", requireTextileModule("CUSTOMERS"), textileController.c
 router.put("/customers/:id", requireTextileModule("CUSTOMERS"), textileController.updateTextileCustomer);
 router.delete("/customers/:id", requireTextileModule("CUSTOMERS"), textileController.deleteTextileCustomer);
 
+// Textile Employees & Staff Endpoints (100% Isolated)
+router.get("/employees", requireTextileModule("EMPLOYEES"), textileController.getTextileEmployees);
+router.get("/employees/:id", requireTextileModule("EMPLOYEES"), textileController.getTextileEmployeeById);
+router.post("/employees", requireTextileModule("EMPLOYEES"), textileController.createTextileEmployee);
+router.put("/employees/:id", requireTextileModule("EMPLOYEES"), textileController.updateTextileEmployee);
+router.delete("/employees/:id", requireTextileModule("EMPLOYEES"), textileController.deleteTextileEmployee);
+
 // Textile Products Endpoints
 router.get("/products", requireTextileModule("PRODUCTS"), textileController.getTextileProducts);
 router.get("/products/:id", requireTextileModule("PRODUCTS"), textileController.getTextileProductById);

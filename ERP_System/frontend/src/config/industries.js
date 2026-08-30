@@ -113,6 +113,7 @@ export const ROUTE_MODULE_MAP = {
   "/textile/stock-movements": "STOCK_MOVEMENTS",
   "/textile/exports": "EXPORT_MANAGEMENT",
   "/textile/export-management": "EXPORT_MANAGEMENT",
+  "/textile/employees": "EMPLOYEES",
 
   // Restaurant Modules
   "/restaurant/dashboard": "RESTAURANT",

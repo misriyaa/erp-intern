@@ -395,3 +395,78 @@ export const deleteTextileCustomer = async (req, res) => {
   }
 };
 
+// ==========================================
+// Textile Employees & Staff Controller
+// ==========================================
+export const getTextileEmployees = async (req, res) => {
+  try {
+    const companyId = getEffectiveCompanyId(req);
+    const employees = await textileService.getTextileEmployees(companyId, req.query);
+    return res.status(200).json({
+      success: true,
+      message: "Textile employees retrieved successfully",
+      count: employees.length,
+      data: employees,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const getTextileEmployeeById = async (req, res) => {
+  try {
+    const companyId = getEffectiveCompanyId(req);
+    const employee = await textileService.getTextileEmployeeById(companyId, req.params.id);
+    return res.status(200).json({
+      success: true,
+      message: "Textile employee retrieved successfully",
+      data: employee,
+    });
+  } catch (err) {
+    return res.status(404).json({ success: false, message: err.message });
+  }
+};
+
+export const createTextileEmployee = async (req, res) => {
+  try {
+    const companyId = getEffectiveCompanyId(req);
+    const employee = await textileService.createTextileEmployee(companyId, req.body);
+    return res.status(201).json({
+      success: true,
+      message: "Textile employee created successfully",
+      data: employee,
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const updateTextileEmployee = async (req, res) => {
+  try {
+    const companyId = getEffectiveCompanyId(req);
+    const employee = await textileService.updateTextileEmployee(companyId, req.params.id, req.body);
+    return res.status(200).json({
+      success: true,
+      message: "Textile employee updated successfully",
+      data: employee,
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const deleteTextileEmployee = async (req, res) => {
+  try {
+    const companyId = getEffectiveCompanyId(req);
+    const result = await textileService.deleteTextileEmployee(companyId, req.params.id);
+    return res.status(200).json({
+      success: true,
+      message: "Textile employee deleted successfully",
+      data: result,
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+

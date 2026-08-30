@@ -11,6 +11,7 @@ import styles from "./addEmployees.module.css";
 import { getRoles } from "@/services/roleService";
 import { getBranches } from "@/services/branchService";
 import { restaurantService } from "@/services/restaurantService";
+import { createTextileEmployee } from "@/services/textileEmployeeService";
 import { useCompany } from "@/context/CompanyContext";
 import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
 import { TEXTILE_ROLE_ACCESS, normalizeTextileRole } from "@/config/textileRoles";
@@ -492,26 +493,36 @@ export default function AddEmployeePage() {
     setSubmitting(true);
 
     try {
-      const response = await apiClient.post(
-        "/employees",
-        {
+      let response;
+      if (isTextile) {
+        response = await createTextileEmployee({
           ...formData,
           companyId: company?.id,
-          type: industryCode,
+          manufacturingUnitId: formData.branchId,
           permissions: selectedModules.length > 0 ? selectedModules : undefined,
-        }
-      );
+        });
+      } else {
+        response = await apiClient.post(
+          "/employees",
+          {
+            ...formData,
+            companyId: company?.id,
+            type: industryCode,
+            permissions: selectedModules.length > 0 ? selectedModules : undefined,
+          }
+        );
+      }
 
-      console.log("Employee created:", response.data);
+      console.log("Employee created:", response);
 
       toast.success("Employee added successfully");
 
       setTimeout(() => {
         router.push("/admin/employees/view");
-      }, 800);
+      }, 600);
     } catch (error) {
       console.error("Add employee error:", error);
-      const serverMsg = error.response?.data?.message || "";
+      const serverMsg = error.response?.data?.message || error.message || "";
       const lower = serverMsg.toLowerCase();
 
       if (lower.includes("email")) {
@@ -527,6 +538,7 @@ export default function AddEmployeePage() {
       setSubmitting(false);
     }
   };
+
 
   const initials = formData.fullName.trim()
     ? formData.fullName

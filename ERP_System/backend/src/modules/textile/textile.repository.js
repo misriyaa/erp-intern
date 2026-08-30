@@ -2,7 +2,8 @@ import prisma from "../../config/prisma.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { normalizeTextileRole } from "../../config/textileRoles.js";
+import bcrypt from "bcrypt";
+import { normalizeTextileRole, TEXTILE_ROLE_ACCESS } from "../../config/textileRoles.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1558,3 +1559,366 @@ export const deleteTextileCustomerRepo = async (companyId, id) => {
   writeTenantData(companyId, "customers", customers);
   return { success: true, deletedId: id };
 };
+
+// ==========================================
+// 11. TEXTILE EMPLOYEES & STAFF REPOSITORY
+// ==========================================
+
+const sanitizeEmployee = (user) => {
+  if (!user) return null;
+  const { passwordHash, plainPassword, verificationToken, verificationExpires, ...safe } = user;
+  
+  let parsedPerms = [];
+  if (safe.permissions) {
+    try {
+      parsedPerms = typeof safe.permissions === "string" ? JSON.parse(safe.permissions) : safe.permissions;
+    } catch {
+      if (typeof safe.permissions === "string") {
+        parsedPerms = safe.permissions.split(",").map((s) => s.trim().toUpperCase());
+      }
+    }
+  }
+
+  const normalized = normalizeTextileRole(safe.role || safe.roleRef?.name || "WEAVER");
+  if ((!parsedPerms || parsedPerms.length === 0) && normalized && TEXTILE_ROLE_ACCESS[normalized]) {
+    parsedPerms = TEXTILE_ROLE_ACCESS[normalized];
+  }
+
+  return {
+    ...safe,
+    permissions: parsedPerms,
+    erpType: "TEXTILE",
+    isTextile: true,
+  };
+};
+
+export const getTextileEmployeesRepo = async (companyId, query = {}) => {
+  let dbUsers = [];
+  try {
+    const whereConditions = [];
+
+    if (companyId) {
+      whereConditions.push({
+        companyId,
+        OR: [
+          { type: "TEXTILE" },
+          { type: null },
+          { employeeId: { startsWith: "EMP" } },
+        ],
+      });
+    } else {
+      whereConditions.push({ type: "TEXTILE" });
+    }
+
+    dbUsers = await prisma.user.findMany({
+      where: whereConditions.length > 0 ? { AND: whereConditions } : {},
+      include: {
+        branch: true,
+        roleRef: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (err) {
+    console.error("Database fetch error for textile employees:", err.message);
+  }
+
+  // Filter db users strictly for textile context
+  const filteredDb = dbUsers.filter((u) => {
+    if (companyId && u.companyId && u.companyId !== companyId) return false;
+    if (u.type === "TEXTILE") return true;
+    const roleStr = (u.role || u.roleRef?.name || "").toLowerCase();
+    return (
+      roleStr.includes("loom") ||
+      roleStr.includes("weaver") ||
+      roleStr.includes("spinning") ||
+      roleStr.includes("dyeing") ||
+      roleStr.includes("textile") ||
+      roleStr.includes("mill") ||
+      roleStr.includes("quality inspector") ||
+      roleStr.includes("operator") ||
+      u.employeeId?.startsWith("EMP-TEX")
+    );
+  });
+
+  const jsonEmployees = readTenantData(companyId, "employees", []);
+
+  // Merge database records with tenant json fallback to guarantee zero loss
+  const mergedMap = new Map();
+
+  filteredDb.forEach((u) => {
+    const sanitized = sanitizeEmployee(u);
+    if (sanitized?.id) mergedMap.set(sanitized.id, sanitized);
+  });
+
+  jsonEmployees.forEach((ju) => {
+    if (ju?.id && !mergedMap.has(ju.id)) {
+      mergedMap.set(ju.id, {
+        ...ju,
+        erpType: "TEXTILE",
+        isTextile: true,
+      });
+    }
+  });
+
+  let allEmployees = Array.from(mergedMap.values());
+
+  if (query.search) {
+    const s = String(query.search).toLowerCase();
+    allEmployees = allEmployees.filter(
+      (e) =>
+        e.fullName?.toLowerCase().includes(s) ||
+        e.employeeId?.toLowerCase().includes(s) ||
+        e.email?.toLowerCase().includes(s) ||
+        e.phone?.toLowerCase().includes(s) ||
+        e.role?.toLowerCase().includes(s)
+    );
+  }
+
+  return allEmployees;
+};
+
+export const getTextileEmployeeByIdRepo = async (companyId, id) => {
+  if (!id) {
+    throw new Error("Employee ID is required.");
+  }
+
+  let dbUser = null;
+  try {
+    // Attempt lookup by uuid ID
+    dbUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id },
+          { employeeId: id },
+        ],
+      },
+      include: {
+        branch: true,
+        roleRef: true,
+      },
+    });
+  } catch (err) {
+    console.error("Database lookup error for textile employee by id:", err.message);
+  }
+
+  if (dbUser) {
+    // If companyId is passed, verify ownership
+    if (companyId && dbUser.companyId && dbUser.companyId !== companyId) {
+      throw new Error("Employee not found or does not belong to your company.");
+    }
+    return sanitizeEmployee(dbUser);
+  }
+
+  // Fallback to tenant json store
+  const jsonEmployees = readTenantData(companyId, "employees", []);
+  const jsonUser = jsonEmployees.find(
+    (e) => (e.id === id || e.employeeId === id) && (!companyId || !e.companyId || e.companyId === companyId)
+  );
+
+  if (jsonUser) {
+    return {
+      ...jsonUser,
+      erpType: "TEXTILE",
+      isTextile: true,
+    };
+  }
+
+  throw new Error("Textile employee not found.");
+};
+
+export const createTextileEmployeeRepo = async (companyId, data) => {
+  const fullName = String(data.fullName || "").trim();
+  const employeeId = String(data.employeeId || "").trim();
+  const email = String(data.email || "").trim().toLowerCase();
+  const phone = String(data.phone || "").trim();
+  const role = String(data.role || "Weaver").trim();
+  const password = String(data.password || "123456").trim();
+  const branchId = data.manufacturingUnitId || data.branchId || null;
+
+  if (!fullName) throw new Error("Full name is required.");
+  if (!employeeId) throw new Error("Employee ID is required.");
+  if (!email) throw new Error("Email address is required.");
+  if (!phone) throw new Error("Phone number is required.");
+  if (!role) throw new Error("Role / Designation is required.");
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  // Check for uniqueness in prisma
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ email }, { employeeId }, { phone }],
+    },
+  });
+
+  if (existingUser) {
+    if (existingUser.email === email) throw new Error("Email already registered.");
+    if (existingUser.employeeId === employeeId) throw new Error("Employee ID already exists.");
+    if (existingUser.phone === phone) throw new Error("Phone number already registered.");
+  }
+
+  // Resolve or create role in Role table if present
+  let roleId = null;
+  try {
+    let dbRole = await prisma.role.findFirst({
+      where: { name: { equals: role, mode: "insensitive" } },
+    });
+    if (!dbRole) {
+      dbRole = await prisma.role.create({ data: { name: role } });
+    }
+    roleId = dbRole?.id || null;
+  } catch (rErr) {
+    console.error("Role resolution error:", rErr.message);
+  }
+
+  // Resolve branch / manufacturing unit
+  let resolvedBranchId = null;
+  if (branchId) {
+    try {
+      const dbBranch = await prisma.branch.findFirst({
+        where: {
+          OR: [
+            { id: branchId },
+            { code: branchId },
+            { name: { equals: branchId, mode: "insensitive" } },
+          ],
+        },
+      });
+      if (dbBranch) {
+        resolvedBranchId = dbBranch.id;
+      } else {
+        const newBranch = await prisma.branch.create({
+          data: {
+            name: branchId.startsWith("mu-") ? "Main Textile Manufacturing Mill" : branchId,
+            code: `MU-${Date.now().toString().slice(-4)}`,
+            isActive: true,
+          },
+        });
+        resolvedBranchId = newBranch.id;
+      }
+    } catch (bErr) {
+      console.error("Branch resolution error:", bErr.message);
+    }
+  }
+
+  let createdUser = null;
+  try {
+    createdUser = await prisma.user.create({
+      data: {
+        fullName,
+        employeeId,
+        email,
+        phone,
+        passwordHash,
+        plainPassword: password,
+        isVerified: true,
+        firstLogin: false,
+        role,
+        roleId,
+        branchId: resolvedBranchId,
+        companyId: companyId || null,
+        type: "TEXTILE",
+        permissions: data.permissions ? (typeof data.permissions === "string" ? data.permissions : JSON.stringify(data.permissions)) : null,
+      },
+      include: {
+        branch: true,
+        roleRef: true,
+      },
+    });
+  } catch (createErr) {
+    console.error("Prisma user create error:", createErr.message);
+    throw new Error(createErr.message || "Failed to create employee in database.");
+  }
+
+  const safe = sanitizeEmployee(createdUser);
+
+  // Sync to tenant json store for backup persistence
+  try {
+    const jsonEmployees = readTenantData(companyId, "employees", []);
+    jsonEmployees.unshift(safe);
+    writeTenantData(companyId, "employees", jsonEmployees);
+  } catch (jErr) {
+    console.error("Failed to sync employee to tenant json:", jErr.message);
+  }
+
+  return safe;
+};
+
+export const updateTextileEmployeeRepo = async (companyId, id, data) => {
+  if (!id) throw new Error("Employee ID is required.");
+
+  const existing = await getTextileEmployeeByIdRepo(companyId, id);
+  if (!existing) throw new Error("Textile employee not found.");
+
+  const updatePayload = {};
+  if (data.fullName !== undefined) updatePayload.fullName = String(data.fullName).trim();
+  if (data.phone !== undefined) updatePayload.phone = String(data.phone).trim();
+  if (data.email !== undefined) updatePayload.email = String(data.email).trim().toLowerCase();
+  if (data.role !== undefined) updatePayload.role = String(data.role).trim();
+  if (data.employeeId !== undefined) updatePayload.employeeId = String(data.employeeId).trim();
+  if (data.manufacturingUnitId !== undefined || data.branchId !== undefined) {
+    updatePayload.branchId = data.manufacturingUnitId || data.branchId || null;
+  }
+  if (data.permissions !== undefined) {
+    updatePayload.permissions = typeof data.permissions === "string" ? data.permissions : JSON.stringify(data.permissions);
+  }
+  if (data.password && String(data.password).trim()) {
+    updatePayload.passwordHash = await bcrypt.hash(String(data.password).trim(), 12);
+    updatePayload.plainPassword = String(data.password).trim();
+  }
+
+  let updatedUser = null;
+  try {
+    updatedUser = await prisma.user.update({
+      where: { id: existing.id },
+      data: updatePayload,
+      include: { branch: true, roleRef: true },
+    });
+  } catch (err) {
+    console.error("Prisma employee update error:", err.message);
+  }
+
+  const safe = updatedUser ? sanitizeEmployee(updatedUser) : { ...existing, ...updatePayload };
+
+  // Sync tenant json
+  try {
+    const jsonEmployees = readTenantData(companyId, "employees", []);
+    const idx = jsonEmployees.findIndex((e) => e.id === existing.id || e.employeeId === existing.employeeId);
+    if (idx !== -1) {
+      jsonEmployees[idx] = { ...jsonEmployees[idx], ...safe };
+    } else {
+      jsonEmployees.unshift(safe);
+    }
+    writeTenantData(companyId, "employees", jsonEmployees);
+  } catch (jErr) {
+    console.error("Tenant json sync error on update:", jErr.message);
+  }
+
+  return safe;
+};
+
+export const deleteTextileEmployeeRepo = async (companyId, id) => {
+  if (!id) throw new Error("Employee ID is required.");
+
+  const existing = await getTextileEmployeeByIdRepo(companyId, id);
+  if (!existing) throw new Error("Textile employee not found.");
+
+  try {
+    await prisma.user.delete({
+      where: { id: existing.id },
+    });
+  } catch (err) {
+    console.error("Prisma employee delete error:", err.message);
+  }
+
+  // Remove from tenant json
+  try {
+    const jsonEmployees = readTenantData(companyId, "employees", []);
+    const filtered = jsonEmployees.filter((e) => e.id !== existing.id && e.employeeId !== existing.employeeId);
+    writeTenantData(companyId, "employees", filtered);
+  } catch (jErr) {
+    console.error("Tenant json delete sync error:", jErr.message);
+  }
+
+  return { success: true, deletedId: existing.id };
+};
+
