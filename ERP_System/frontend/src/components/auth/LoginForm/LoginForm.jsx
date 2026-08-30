@@ -88,6 +88,8 @@ export default function LoginForm() {
         } else {
           window.location.href = "/restaurant/dashboard";
         }
+      } else if (userRole.includes("CASHIER")) {
+        window.location.href = "/pos";
       } else {
         window.location.href = "/dashboard";
       }

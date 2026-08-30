@@ -20,6 +20,8 @@ export default function POSPage() {
   const [taxes, setTaxes] = useState([]);
   const [discounts, setDiscounts] = useState([]);
 
+  const activeTaxRate = taxes[0]?.rate ? Number(taxes[0].rate) : 10;
+
   const [activeTab, setActiveTab] = useState("Products");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedBrand, setSelectedBrand] = useState("All");
@@ -499,8 +501,6 @@ export default function POSPage() {
     }
   };
 
-  const activeTaxRate = taxes[0]?.rate ? Number(taxes[0].rate) : 10;
-
   const saveCartLocally = (type) => {
     if (cart.length === 0) {
       Swal.fire({
@@ -638,7 +638,7 @@ export default function POSPage() {
   return (
     <>
       <div className="pos-app-container no-print">
-      <div className="pos-left-section">
+      <div className="pos-left-column pos-left-section">
         <PosToolbar
           query={query}
           onQueryChange={setQuery}
@@ -763,7 +763,7 @@ export default function POSPage() {
         )}
       </div>
 
-      <div className="pos-right-section">
+      <div className="pos-right-column pos-right-section">
         <OrderPanel
           cart={cart}
           customers={customers}

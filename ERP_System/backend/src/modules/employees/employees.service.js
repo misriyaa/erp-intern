@@ -107,27 +107,72 @@ const addEmployee = async (
   const cleanPhone = phone.trim();
   const cleanRole = role.trim();
 
-  // If creating user is a business-type admin/manager, block assigning Admin/Super Admin roles
-  if (req.user?.role?.toUpperCase() === "ADMIN" || req.user?.role?.toUpperCase() === "MANAGER") {
-    let requestedRoleName = "";
-    let roleById = null;
-    if (isUuid(cleanRole)) {
-      roleById = await findRoleById(cleanRole);
-    }
-    if (roleById) {
-      requestedRoleName = roleById.name || "";
-    } else {
-      const roleByName = await findRoleByName(cleanRole);
-      if (roleByName) {
-        requestedRoleName = roleByName.name || "";
-      } else {
-        requestedRoleName = cleanRole;
+  // Role Hierarchy & Security Validation
+  const callerRole = (req?.user?.role || req?.user?.roleRef?.name || "").trim().toUpperCase();
+  const industryCode = (req?.user?.company?.industry?.code || req?.user?.type || req?.body?.type || "RETAIL").trim().toUpperCase();
+  const isRetail = !industryCode.includes("RESTAURANT") && !industryCode.includes("TEXTILE") && !industryCode.includes("GYM") && !industryCode.includes("LAUNDRY") && !industryCode.includes("SALON") && !industryCode.includes("MEDICAL");
+
+  let requestedRoleName = cleanRole;
+  if (isUuid(cleanRole)) {
+    const rById = await findRoleById(cleanRole);
+    if (rById) requestedRoleName = rById.name;
+  } else {
+    const rByName = await findRoleByName(cleanRole);
+    if (rByName) requestedRoleName = rByName.name;
+  }
+
+  const reqRoleUpper = (requestedRoleName || "").toUpperCase().replace(/[\s_-]+/g, " ").trim();
+
+  if (isRetail) {
+    const isSuperAdmin = callerRole.includes("SUPER");
+    const isAdmin = !isSuperAdmin && callerRole.includes("ADMIN");
+    const isStoreManager = !isSuperAdmin && !isAdmin && (callerRole.includes("MANAGER") || callerRole.includes("STORE MANAGER") || callerRole.includes("STORE_MANAGER"));
+
+    const adminAllowedRoles = [
+      "STORE MANAGER",
+      "MANAGER",
+      "CASHIER",
+      "INVENTORY MANAGER",
+      "PURCHASE MANAGER",
+      "ACCOUNTANT",
+    ];
+
+    const managerAllowedRoles = [
+      "CASHIER",
+      "INVENTORY MANAGER",
+      "PURCHASE MANAGER",
+      "ACCOUNTANT",
+    ];
+
+    if (isStoreManager) {
+      const isAllowed = managerAllowedRoles.some(
+        (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+      );
+      if (!isAllowed) {
+        const error = new Error("403 Forbidden: Store Managers are only permitted to assign subordinate roles (Cashier, Inventory Manager, Purchase Manager, Accountant).");
+        error.status = 403;
+        error.statusCode = 403;
+        throw error;
+      }
+    } else if (isAdmin) {
+      const isAllowed = adminAllowedRoles.some(
+        (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+      );
+      if (!isAllowed) {
+        const error = new Error("403 Forbidden: Admins are not permitted to register or assign Admin/Super Admin roles.");
+        error.status = 403;
+        error.statusCode = 403;
+        throw error;
       }
     }
-
-    const reqRoleUpper = (requestedRoleName || "").toUpperCase();
-    if (reqRoleUpper === "ADMIN" || reqRoleUpper === "SUPER_ADMIN" || reqRoleUpper === "SUPERADMIN") {
-      throw new Error("Admins/Managers are not permitted to register or assign Admin/Super Admin roles");
+  } else {
+    if (callerRole.includes("ADMIN") || callerRole.includes("MANAGER")) {
+      if (reqRoleUpper.includes("ADMIN") || reqRoleUpper.includes("SUPER")) {
+        const error = new Error("403 Forbidden: Admins/Managers are not permitted to register or assign Admin/Super Admin roles.");
+        error.status = 403;
+        error.statusCode = 403;
+        throw error;
+      }
     }
   }
 
@@ -398,29 +443,78 @@ const modifyEmployee = async (
 
 
   // Role handling (by roleId or role name string)
-  if (updateData.roleId) {
+  if (updateData.roleId || updateData.role) {
+    const targetRoleVal = (updateData.roleId || updateData.role).trim();
     let roleObj = null;
-    if (isUuid(updateData.roleId)) {
-      roleObj = await findRoleById(updateData.roleId);
+    if (isUuid(targetRoleVal)) {
+      roleObj = await findRoleById(targetRoleVal);
     }
     if (!roleObj) {
-      roleObj = await findRoleByName(updateData.roleId);
+      roleObj = await findRoleByName(targetRoleVal);
     }
+
+    const callerRole = (req?.user?.role || req?.user?.roleRef?.name || "").trim().toUpperCase();
+    const industryCode = (req?.user?.company?.industry?.code || req?.user?.type || existingEmployee.type || "RETAIL").trim().toUpperCase();
+    const isRetail = !industryCode.includes("RESTAURANT") && !industryCode.includes("TEXTILE") && !industryCode.includes("GYM") && !industryCode.includes("LAUNDRY") && !industryCode.includes("SALON") && !industryCode.includes("MEDICAL");
+
+    const resolvedRoleName = roleObj?.name || targetRoleVal;
+    const reqRoleUpper = (resolvedRoleName || "").toUpperCase().replace(/[\s_-]+/g, " ").trim();
+
+    if (isRetail) {
+      const isSuperAdmin = callerRole.includes("SUPER");
+      const isAdmin = !isSuperAdmin && callerRole.includes("ADMIN");
+      const isStoreManager = !isSuperAdmin && !isAdmin && (callerRole.includes("MANAGER") || callerRole.includes("STORE MANAGER") || callerRole.includes("STORE_MANAGER"));
+
+      const adminAllowedRoles = [
+        "STORE MANAGER",
+        "MANAGER",
+        "CASHIER",
+        "INVENTORY MANAGER",
+        "PURCHASE MANAGER",
+        "ACCOUNTANT",
+      ];
+
+      const managerAllowedRoles = [
+        "CASHIER",
+        "INVENTORY MANAGER",
+        "PURCHASE MANAGER",
+        "ACCOUNTANT",
+      ];
+
+      if (isStoreManager) {
+        const isAllowed = managerAllowedRoles.some(
+          (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+        );
+        if (!isAllowed) {
+          const error = new Error("403 Forbidden: Store Managers are only permitted to assign subordinate roles (Cashier, Inventory Manager, Purchase Manager, Accountant).");
+          error.status = 403;
+          error.statusCode = 403;
+          throw error;
+        }
+      } else if (isAdmin) {
+        const isAllowed = adminAllowedRoles.some(
+          (allowed) => reqRoleUpper === allowed || reqRoleUpper === allowed.replace(" ", "_")
+        );
+        if (!isAllowed) {
+          const error = new Error("403 Forbidden: Admins are not permitted to register or assign Admin/Super Admin roles.");
+          error.status = 403;
+          error.statusCode = 403;
+          throw error;
+        }
+      }
+    } else {
+      if (callerRole.includes("ADMIN") || callerRole.includes("MANAGER")) {
+        if (reqRoleUpper.includes("ADMIN") || reqRoleUpper.includes("SUPER")) {
+          const error = new Error("403 Forbidden: Admins/Managers are not permitted to register or assign Admin/Super Admin roles.");
+          error.status = 403;
+          error.statusCode = 403;
+          throw error;
+        }
+      }
+    }
+
     if (!roleObj) {
-      roleObj = await createRoleInRepo(updateData.roleId);
-    }
-    safeUpdateData.roleId = roleObj.id;
-    safeUpdateData.role = roleObj.name;
-  } else if (updateData.role) {
-    let roleObj = null;
-    if (isUuid(updateData.role)) {
-      roleObj = await findRoleById(updateData.role);
-    }
-    if (!roleObj) {
-      roleObj = await findRoleByName(updateData.role);
-    }
-    if (!roleObj) {
-      roleObj = await createRoleInRepo(updateData.role);
+      roleObj = await createRoleInRepo(targetRoleVal);
     }
     safeUpdateData.roleId = roleObj.id;
     safeUpdateData.role = roleObj.name;

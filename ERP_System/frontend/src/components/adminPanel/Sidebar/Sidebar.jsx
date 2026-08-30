@@ -161,10 +161,17 @@ export default function Sidebar({ isOpen, onClose }) {
       return canAccessLaundryRoute(user, item.href);
     }
 
-    if (isCashier && !isAdmin && !isManager && isRestaurant) {
-      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders"];
-      if (!cashierHrefs.includes(item.href)) {
-        return false;
+    if (isCashier && !isAdmin && !isManager) {
+      if (isRestaurant) {
+        const cashierHrefs = ["/restaurant/pos", "/restaurant/orders"];
+        if (!cashierHrefs.includes(item.href)) {
+          return false;
+        }
+      } else if (isRetail || (!isLaundry && !isGym && !isTextile && !isMedical)) {
+        const cashierHrefs = ["/pos", "/pos/history"];
+        if (!cashierHrefs.includes(item.href)) {
+          return false;
+        }
       }
     }
     if (isWaiter && !isAdmin && !isManager) {

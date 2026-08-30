@@ -573,7 +573,7 @@ export default function EmployeePage() {
     fetchEmployees();
     fetchRoles();
     fetchBranches();
-  }, [company?.id, industryCode, isTextile]);
+  }, [company?.id, industryCode, isTextile, user?.role]);
 
 
   /* =====================================================
@@ -665,32 +665,55 @@ export default function EmployeePage() {
 
 
     else {
-      combined = [
-        {
-          id: "Store Manager",
-          name: "Store Manager",
-        },
-        {
-          id: "Cashier",
-          name: "Cashier",
-        },
-        {
-          id: "Inventory Manager",
-          name: "Inventory Manager",
-        },
-        {
-          id: "Purchase Manager",
-          name: "Purchase Manager",
-        },
-        {
-          id: "Accountant",
-          name: "Accountant",
-        },
-        {
-          id: "Manager",
-          name: "Manager",
-        },
-      ];
+      // Retail / default
+      const userRoleUpper = (user?.role || "").toUpperCase();
+      const isStoreManager = userRoleUpper.includes("MANAGER") && !userRoleUpper.includes("SUPER") && !userRoleUpper.includes("ADMIN");
+
+      if (isStoreManager) {
+        // Store Manager can only assign subordinate roles
+        combined = [
+          {
+            id: "Cashier",
+            name: "Cashier",
+          },
+          {
+            id: "Inventory Manager",
+            name: "Inventory Manager",
+          },
+          {
+            id: "Purchase Manager",
+            name: "Purchase Manager",
+          },
+          {
+            id: "Accountant",
+            name: "Accountant",
+          },
+        ];
+      } else {
+        // Admin / Super Admin can assign Store Manager and subordinate staff
+        combined = [
+          {
+            id: "Store Manager",
+            name: "Store Manager",
+          },
+          {
+            id: "Cashier",
+            name: "Cashier",
+          },
+          {
+            id: "Inventory Manager",
+            name: "Inventory Manager",
+          },
+          {
+            id: "Purchase Manager",
+            name: "Purchase Manager",
+          },
+          {
+            id: "Accountant",
+            name: "Accountant",
+          },
+        ];
+      }
     }
 
 

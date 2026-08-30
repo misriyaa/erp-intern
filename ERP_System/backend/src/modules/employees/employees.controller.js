@@ -65,9 +65,7 @@ const createEmployee = async (
   res,
   next
 ) => {
-
   try {
-
     const result =
       await addEmployee(
         req.body,
@@ -75,10 +73,12 @@ const createEmployee = async (
       );
 
     return res.status(201).json(result);
-
   } catch (error) {
-
-    next(error);
+    const status = error.status || error.statusCode || (error.message?.includes("403") ? 403 : 400);
+    return res.status(status).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -89,9 +89,7 @@ const updateEmployee = async (
   res,
   next
 ) => {
-
   try {
-
     const { id } =
       req.params;
 
@@ -103,10 +101,12 @@ const updateEmployee = async (
       );
 
     return res.status(200).json(result);
-
   } catch (error) {
-
-    next(error);
+    const status = error.status || error.statusCode || (error.message?.includes("403") ? 403 : 400);
+    return res.status(status).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
