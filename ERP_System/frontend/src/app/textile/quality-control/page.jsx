@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   FiCheckCircle,
   FiPlus,
@@ -12,11 +13,22 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
+import apiClient from "@/services/apiClient";
+import { useCompany } from "@/context/CompanyContext";
 
 export default function QualityControlPage() {
+  const router = useRouter();
+  const { user, isModuleEnabled, loading: companyLoading } = useCompany();
+
   const [inspections, setInspections] = useState([]);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    if (!companyLoading && user && !isModuleEnabled("QUALITY_CONTROL")) {
+      router.replace("/unauthorized");
+    }
+  }, [user, companyLoading, isModuleEnabled, router]);
   const [formData, setFormData] = useState({
     batchId: "",
     fabricName: "",
@@ -29,22 +41,28 @@ export default function QualityControlPage() {
   });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("textile_qc_inspections");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const userOnly = parsed.filter(
-          (q) => !["QC-901", "QC-902", "QC-903"].includes(q.id)
-        );
-        setInspections(userOnly);
-        localStorage.setItem("textile_qc_inspections", JSON.stringify(userOnly));
-      } else {
-        setInspections([]);
+    async function loadInspections() {
+      try {
+        const res = await apiClient.get("/textile/quality-control");
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setInspections(res.data.data);
+          localStorage.setItem("textile_qc_inspections", JSON.stringify(res.data.data));
+          return;
+        }
+      } catch (err) {
+        console.warn("Backend QC fetch fallback to localStorage:", err);
+      }
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("textile_qc_inspections");
+        if (stored) {
+          setInspections(JSON.parse(stored));
+        }
       }
     }
+    loadInspections();
   }, []);
 
-  const saveInspections = (newInspections) => {
+  const saveInspections = async (newInspections) => {
     setInspections(newInspections);
     if (typeof window !== "undefined") {
       localStorage.setItem("textile_qc_inspections", JSON.stringify(newInspections));
@@ -56,15 +74,14 @@ export default function QualityControlPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddInspection = (e) => {
+  const handleAddInspection = async (e) => {
     e.preventDefault();
     if (!formData.batchId || !formData.inspectedMeters) {
       toast.error("Please enter batch ID and inspected quantity");
       return;
     }
 
-    const newQc = {
-      id: `QC-${Math.floor(904 + Math.random() * 100)}`,
+    const payload = {
       batchId: formData.batchId,
       fabricName: formData.fabricName || "Textile Fabric Roll",
       inspectedMeters: Number(formData.inspectedMeters),
@@ -75,9 +92,28 @@ export default function QualityControlPage() {
       inspector: formData.inspector || "Quality Inspector",
       date: new Date().toISOString().split("T")[0],
       status: formData.grade === "Reject" ? "REJECTED" : formData.grade === "Grade B" ? "PASSED_WITH_DEFECTS" : "PASSED",
+      result: formData.grade === "Reject" ? "FAIL" : "PASS",
     };
 
-    saveInspections([newQc, ...inspections]);
+    try {
+      const res = await apiClient.post("/textile/quality-control", payload);
+      if (res.data?.success && res.data?.data) {
+        saveInspections([res.data.data, ...inspections]);
+      } else {
+        const newQc = {
+          id: `QC-${Math.floor(904 + Math.random() * 100)}`,
+          ...payload,
+        };
+        saveInspections([newQc, ...inspections]);
+      }
+    } catch (err) {
+      const newQc = {
+        id: `QC-${Math.floor(904 + Math.random() * 100)}`,
+        ...payload,
+      };
+      saveInspections([newQc, ...inspections]);
+    }
+
     toast.success(`QC Inspection logged for batch ${formData.batchId}!`);
     setShowAddModal(false);
     setFormData({
@@ -92,7 +128,12 @@ export default function QualityControlPage() {
     });
   };
 
-  const handleDeleteInspection = (id) => {
+  const handleDeleteInspection = async (id) => {
+    try {
+      await apiClient.delete(`/textile/quality-control/${id}`);
+    } catch (err) {
+      console.warn("Delete QC record API fallback:", err);
+    }
     const updated = inspections.filter((i) => i.id !== id);
     saveInspections(updated);
     toast.success("QC Inspection record deleted.");

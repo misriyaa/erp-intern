@@ -1,0 +1,32 @@
+[
+  {
+    "id": "RM-107",
+    "companyId": "80779434-4c33-4ea6-be14-a55afde5fd6c",
+    "name": "dfghjkl;,mn ",
+    "category": "Yarn",
+    "stock": 700,
+    "quantity": 700,
+    "unit": "KG",
+    "reorderLevel": 500,
+    "costPerUnit": 7890,
+    "supplier": "ghjk,",
+    "status": "IN_STOCK",
+    "createdAt": "2026-08-30T08:28:58.545Z",
+    "updatedAt": "2026-08-30T08:28:58.545Z"
+  },
+  {
+    "id": "RM-640",
+    "companyId": "80779434-4c33-4ea6-be14-a55afde5fd6c",
+    "name": "cotton",
+    "category": "Raw Fiber",
+    "stock": 80,
+    "quantity": 80,
+    "unit": "KG",
+    "reorderLevel": 500,
+    "costPerUnit": 7890,
+    "supplier": "efghjkl",
+    "status": "LOW_STOCK",
+    "createdAt": "2026-08-30T08:28:17.951Z",
+    "updatedAt": "2026-08-30T08:28:17.951Z"
+  }
+]

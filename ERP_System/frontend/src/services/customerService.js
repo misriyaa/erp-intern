@@ -1,29 +1,55 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const API_URL = `${API_BASE}/api/customers`;
+const API_URL = "/customers";
 
-export const getCustomers = async () => {
-  const response = await axios.get(API_URL);
+// Generic / Shared Customer Endpoints
+export const getCustomers = async (params = {}) => {
+  const response = await apiClient.get(API_URL, { params });
   return response.data;
 };
 
 export const getCustomerById = async (id) => {
-  const response = await axios.get(`${API_URL}/${id}`);
+  const response = await apiClient.get(`${API_URL}/${id}`);
   return response.data;
 };
 
 export const createCustomer = async (data) => {
-  const response = await axios.post(API_URL, data);
+  const response = await apiClient.post(API_URL, data);
   return response.data;
 };
 
 export const updateCustomer = async (id, data) => {
-  const response = await axios.put(`${API_URL}/${id}`, data);
+  const response = await apiClient.put(`${API_URL}/${id}`, data);
   return response.data;
 };
 
 export const deleteCustomer = async (id) => {
-  const response = await axios.delete(`${API_URL}/${id}`);
+  const response = await apiClient.delete(`${API_URL}/${id}`);
+  return response.data;
+};
+
+// Dedicated Textile ERP Customer Endpoints (100% Isolated)
+export const getTextileCustomers = async (params = {}) => {
+  const response = await apiClient.get("/textile/customers", { params });
+  return response.data;
+};
+
+export const getTextileCustomerById = async (id) => {
+  const response = await apiClient.get(`/textile/customers/${id}`);
+  return response.data;
+};
+
+export const createTextileCustomer = async (data) => {
+  const response = await apiClient.post("/textile/customers", data);
+  return response.data;
+};
+
+export const updateTextileCustomer = async (id, data) => {
+  const response = await apiClient.put(`/textile/customers/${id}`, data);
+  return response.data;
+};
+
+export const deleteTextileCustomer = async (id) => {
+  const response = await apiClient.delete(`/textile/customers/${id}`);
   return response.data;
 };

@@ -4,18 +4,22 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FiArrowLeft, FiX } from "react-icons/fi";
 import CustomerForm from "../components/CustomerForm";
-import { createCustomer } from "@/services/customerService";
+import { createCustomer, createTextileCustomer } from "@/services/customerService";
 import { useAlert } from "@/context/AlertContext";
+import { useCompany } from "@/context/CompanyContext";
 import styles from "../customers.module.css";
 
 export default function AddCustomerPage() {
   const router = useRouter();
+  const { isTextile } = useCompany();
   const { showSuccess, showError } = useAlert();
 
   const handleSaveCustomer = async (customerData) => {
     try {
-      const res = await createCustomer(customerData);
-      showSuccess("Employee added", res.message || "Customer record added successfully.");
+      const res = isTextile
+        ? await createTextileCustomer(customerData)
+        : await createCustomer(customerData);
+      showSuccess("Customer created", res.message || "Customer record added successfully.");
       router.push("/customers");
     } catch (err) {
       console.error("Add customer error:", err);
@@ -32,8 +36,8 @@ export default function AddCustomerPage() {
               <FiArrowLeft size={16} />
             </Link>
             <div>
-              <h2>Add Customer</h2>
-              <p>Create a new customer profile</p>
+              <h2>{isTextile ? "Add Textile Buyer / Customer" : "Add Customer"}</h2>
+              <p>{isTextile ? "Create a new wholesale fabric buyer profile" : "Create a new customer profile"}</p>
             </div>
           </div>
 
@@ -47,7 +51,11 @@ export default function AddCustomerPage() {
           </button>
         </div>
 
-        <CustomerForm onSubmit={handleSaveCustomer} onCancel={() => router.push("/customers")} />
+        <CustomerForm
+          onSubmit={handleSaveCustomer}
+          onCancel={() => router.push("/customers")}
+          isTextile={isTextile}
+        />
       </div>
     </div>
   );

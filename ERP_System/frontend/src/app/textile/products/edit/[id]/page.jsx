@@ -16,7 +16,6 @@ import {
   FiPlus,
   FiTrash2,
   FiZap,
-  FiShoppingBag,
   FiCheckCircle,
   FiArrowLeft,
 } from "react-icons/fi";
@@ -27,16 +26,10 @@ import { useAlert } from "@/context/AlertContext";
 import apiClient from "@/services/apiClient";
 import { useCompany } from "@/context/CompanyContext";
 
-const DEFAULT_UNITS = [
-  { id: "meter", name: "Meter", code: "m" },
-  { id: "yard", name: "Yard", code: "yd" },
-  { id: "pcs", name: "Pieces", code: "pcs" },
-  { id: "roll", name: "Roll", code: "roll" },
-  { id: "kg", name: "Kilogram", code: "kg" },
-];
+const STOCK_UNITS = ["Meter", "Yard", "Piece", "Roll", "KG"];
 
 const WEAVE_TYPES = [
-  "Plain weave",
+  "Plain Weave",
   "Twill",
   "Satin",
   "Jacquard",
@@ -66,28 +59,49 @@ const TEXTURE_FINISHES = [
   "Crinkle",
 ];
 
+const PRESET_COLOR_MAP = {
+  "royal blue": "#1e40af",
+  "navy blue": "#1e3a8a",
+  "sky blue": "#38bdf8",
+  "crimson red": "#dc2626",
+  "ruby red": "#b91c1c",
+  "emerald green": "#059669",
+  "olive green": "#65a30d",
+  "charcoal black": "#1f2937",
+  "black": "#000000",
+  "pearl white": "#f8fafc",
+  "white": "#ffffff",
+  "golden yellow": "#eab308",
+  "mustard": "#ca8a04",
+  "maroon": "#881337",
+  "purple": "#9333ea",
+  "lavender": "#c084fc",
+  "peach": "#fb923c",
+  "beige": "#f5f5dc",
+  "grey": "#6b7280",
+  "silver": "#9ca3af",
+};
+
 export default function EditTextileProductPage({ params }) {
   const unwrappedParams = use(params);
   const id = unwrappedParams.id;
 
   const router = useRouter();
   const fileInputRef = useRef(null);
-  const { showSuccess, showError } = useAlert();
-  const { isTextile, isRetail } = useCompany();
+  const { showSuccess, showError, showWarning } = useAlert();
+  const { isTextile } = useCompany();
 
   useEffect(() => {
-    console.log("WARNING: TextileFabricProductForm (Edit) rendered. isTextile:", isTextile, "isRetail:", isRetail);
     if (!isTextile) {
-      console.log("Redirecting non-textile user away from Textile Product Edit...");
       router.replace(`/admin/products/edit/${id}`);
     }
-  }, [isTextile, isRetail, id, router]);
+  }, [isTextile, id, router]);
 
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [units, setUnits] = useState(DEFAULT_UNITS);
   const [suppliers, setSuppliers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -95,266 +109,292 @@ export default function EditTextileProductPage({ params }) {
   const [activeStep, setActiveStep] = useState(1);
 
   const [product, setProduct] = useState({
+    // Step 1: Basic Info
     name: "",
     sku: "",
     barcode: "",
     categoryId: "",
-    subcategoryId: "",
+    subcategory: "",
     brandId: "",
-    baseUnitId: "",
-    costPrice: "",
-    sellingPrice: "",
-    wholesalePrice: "",
-    retailPrice: "",
-    taxRate: "5",
-    discountType: "PERCENTAGE",
-    discountValue: "",
-    description: "",
     status: "ACTIVE",
+    description: "",
 
-    // Textile Fabric Specs
-    fabricComposition: "",
-    gsm: "",
-    rollWidth: "",
+    // Step 2: Fabric Specs
+    fabricComposition: "100% Cotton",
+    gsm: "180",
+    rollWidth: "58",
     widthUnit: "Inches",
-    color: "",
-    colorCode: "#1e40af",
     pattern: "Plain / Solid",
-    weaveType: "Plain weave",
+    weaveType: "Plain Weave",
     textureFinish: "Soft",
 
-    // Inventory
-    stockUnit: "meter",
+    // Step 3: Inventory & Stock
+    stockUnit: "Meter",
     initialStock: "0",
+    numberOfRolls: "0",
     openingStockDate: "",
     reorderLevel: "50",
-    minimumStock: "20",
-    maximumStock: "5000",
-    warehouseLocation: "",
+    warehouseId: "",
     rackLocation: "",
-    numberOfRolls: "0",
 
-    // Supplier
+    // Step 4: Pricing & GST
+    costPrice: "",
+    wholesalePrice: "",
+    sellingPrice: "",
+    retailPrice: "",
+    taxRate: "12",
+    discountType: "PERCENT",
+    discountValue: "",
+
+    // Step 5: Supplier / Manufacturing
     supplierId: "",
     supplierProductCode: "",
+    branchId: "",
     leadTime: "7",
+
+    // Step 6: Variants
+    hasVariants: false,
   });
 
-  const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState([]);
-  const [newVariant, setNewVariant] = useState({
-    color: "",
-    colorCode: "#1e40af",
-    rollWidth: "",
-    widthUnit: "Inches",
-    gsm: "",
-    pattern: "Plain / Solid",
-    weaveType: "Plain weave",
-    textureFinish: "Soft",
-    stock: "",
-    numberOfRolls: "",
-    costPrice: "",
-    sellingPrice: "",
-    wholesalePrice: "",
-    retailPrice: "",
-    sku: "",
-    barcode: "",
-  });
+  const [quickColors, setQuickColors] = useState("Royal Blue, Emerald Green, Crimson Red, Charcoal Black, Pearl White");
+
+  const generateSkuCode = (fabricName = "") => {
+    let prefix = "FAB-TEX";
+    if (fabricName && fabricName.trim().length >= 3) {
+      const clean = fabricName.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (clean.length >= 3) {
+        prefix = `FAB-${clean.slice(0, 4)}`;
+      }
+    }
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+    return `${prefix}-${randomSuffix}`;
+  };
 
   useEffect(() => {
-    async function loadInitialData() {
-      try {
-        setLoading(true);
-        const [catRes, brandRes, unitRes, suppRes, whRes, prodRes] = await Promise.allSettled([
-          apiClient.get("/categories"),
-          apiClient.get("/brands"),
-          apiClient.get("/units"),
-          apiClient.get("/suppliers"),
-          apiClient.get("/warehouse"),
-          apiClient.get(`/products/${id}`),
-        ]);
+    fetchInitialData();
+  }, [id]);
 
-        if (catRes.status === "fulfilled" && catRes.value.data?.data) {
-          setCategories(catRes.value.data.data);
-        }
-        if (brandRes.status === "fulfilled" && brandRes.value.data?.data) {
-          setBrands(brandRes.value.data.data);
-        }
-        if (unitRes.status === "fulfilled" && unitRes.value.data?.data?.length > 0) {
-          setUnits(unitRes.value.data.data);
-        }
-        if (suppRes.status === "fulfilled" && suppRes.value.data?.data) {
-          setSuppliers(suppRes.value.data.data);
-        }
-        if (whRes.status === "fulfilled" && whRes.value.data?.data) {
-          setWarehouses(whRes.value.data.data);
-        }
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true);
+      const [catRes, brandRes, suppRes, whRes, branchRes, prodRes] = await Promise.allSettled([
+        apiClient.get("/categories"),
+        apiClient.get("/brands"),
+        apiClient.get("/suppliers"),
+        apiClient.get("/warehouses"),
+        apiClient.get("/branches"),
+        apiClient.get(`/products/${id}`),
+      ]);
 
-        if (prodRes.status === "fulfilled" && prodRes.value.data) {
-          const p = prodRes.value.data.data || prodRes.value.data;
+      if (catRes.status === "fulfilled") {
+        const catList = catRes.value.data?.data || catRes.value.data || [];
+        setCategories(Array.isArray(catList) ? catList : []);
+      }
+      if (brandRes.status === "fulfilled") {
+        const brandList = brandRes.value.data?.data || brandRes.value.data || [];
+        setBrands(Array.isArray(brandList) ? brandList : []);
+      }
+      if (suppRes.status === "fulfilled") {
+        const suppList = suppRes.value.data?.data || suppRes.value.data || [];
+        setSuppliers(Array.isArray(suppList) ? suppList : []);
+      }
+      if (whRes.status === "fulfilled") {
+        const whList = whRes.value.data?.data || whRes.value.data || [];
+        setWarehouses(Array.isArray(whList) ? whList : []);
+      }
+      if (branchRes.status === "fulfilled") {
+        const bList = branchRes.value.data?.data || branchRes.value.data || [];
+        setBranches(Array.isArray(bList) ? bList : []);
+      }
+
+      if (prodRes.status === "fulfilled") {
+        const p = prodRes.value.data?.data || prodRes.value.data;
+        if (p) {
           setProduct({
             name: p.name || "",
             sku: p.sku || "",
             barcode: p.barcode || "",
             categoryId: p.categoryId || "",
-            subcategoryId: p.subcategoryId || "",
+            subcategory: p.subcategory || "",
             brandId: p.brandId || "",
-            baseUnitId: p.unitId || p.baseUnitId || "",
-            costPrice: p.costPrice ? String(p.costPrice) : "",
-            sellingPrice: p.sellingPrice ? String(p.sellingPrice) : "",
-            wholesalePrice: p.wholesalePrice ? String(p.wholesalePrice) : "",
-            retailPrice: p.retailPrice ? String(p.retailPrice) : "",
-            taxRate: p.taxRate ? String(p.taxRate) : "5",
-            discountType: p.discountType || "PERCENTAGE",
-            discountValue: p.discountValue ? String(p.discountValue) : "",
-            description: p.description || "",
             status: p.status || "ACTIVE",
+            description: p.description || "",
 
-            fabricComposition: p.fabricComposition || "",
-            gsm: p.gsm ? String(p.gsm) : "",
-            rollWidth: p.rollWidth ? String(p.rollWidth) : "",
+            fabricComposition: p.fabricComposition || "100% Cotton",
+            gsm: p.gsm ? String(p.gsm) : "180",
+            rollWidth: p.rollWidth ? String(p.rollWidth) : "58",
             widthUnit: p.widthUnit || "Inches",
-            color: p.color || "",
-            colorCode: p.colorCode || "#1e40af",
             pattern: p.pattern || "Plain / Solid",
-            weaveType: p.weaveType || "Plain weave",
+            weaveType: p.weaveType || "Plain Weave",
             textureFinish: p.textureFinish || "Soft",
 
-            stockUnit: p.stockUnit || "meter",
+            stockUnit: p.stockUnit || (p.unit?.name || "Meter"),
             initialStock: p.initialStock ? String(p.initialStock) : "0",
+            numberOfRolls: p.numberOfRolls ? String(p.numberOfRolls) : "0",
             openingStockDate: p.openingStockDate ? p.openingStockDate.split("T")[0] : "",
             reorderLevel: p.reorderLevel ? String(p.reorderLevel) : "50",
-            minimumStock: p.minimumStock ? String(p.minimumStock) : "20",
-            maximumStock: p.maximumStock ? String(p.maximumStock) : "5000",
-            warehouseLocation: p.warehouseLocation || "",
+            warehouseId: p.inventories?.[0]?.warehouseId || "",
             rackLocation: p.rackLocation || "",
-            numberOfRolls: p.numberOfRolls ? String(p.numberOfRolls) : "0",
+
+            costPrice: p.costPrice ? String(p.costPrice) : "",
+            wholesalePrice: p.wholesalePrice ? String(p.wholesalePrice) : "",
+            sellingPrice: p.sellingPrice ? String(p.sellingPrice) : "",
+            retailPrice: p.retailPrice ? String(p.retailPrice) : "",
+            taxRate: p.taxRate ? String(p.taxRate) : "12",
+            discountType: p.discountType || "PERCENT",
+            discountValue: p.discountValue ? String(p.discountValue) : "",
 
             supplierId: p.supplierId || "",
             supplierProductCode: p.supplierProductCode || "",
+            branchId: p.branchId || "",
             leadTime: p.leadTime ? String(p.leadTime) : "7",
+
+            hasVariants: Boolean(p.hasVariants || (p.variants && p.variants.length > 0)),
           });
 
           if (p.image) {
-            setImagePreview(
-              p.image.startsWith("http")
-                ? p.image
-                : `http://localhost:5000${p.image.startsWith("/") ? "" : "/"}${p.image}`
+            setImagePreview(p.image);
+          }
+
+          if (p.variants && Array.isArray(p.variants)) {
+            setVariants(
+              p.variants.map((v, idx) => ({
+                id: v.id || `${Date.now()}-${idx}`,
+                color: v.color || "",
+                colorCode: v.colorCode || "#1e40af",
+                sku: v.sku || "",
+                barcode: v.barcode || "",
+                stock: v.stock !== undefined ? String(v.stock) : "0",
+                sellingPrice: v.sellingPrice !== undefined ? String(v.sellingPrice) : "",
+                status: v.status || "ACTIVE",
+              }))
             );
           }
-
-          if (p.variants && p.variants.length > 0) {
-            setHasVariants(true);
-            setVariants(p.variants);
-          }
         }
-      } catch (err) {
-        console.error("Error loading textile product data:", err);
-        showError("Failed to Load", "Could not load the specified textile product.");
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error("Error fetching textile product for edit:", err);
+      showError("Load Error", "Failed to load product details.");
+    } finally {
+      setLoading(false);
     }
-
-    loadInitialData();
-  }, [id]);
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setProduct((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setProduct((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleAddVariant = () => {
+    const variantIndex = variants.length + 1;
+    const baseSku = product.sku.trim() || "FAB-TEX";
+    const newVariant = {
+      id: Date.now().toString(),
+      color: "",
+      colorCode: "#3b82f6",
+      sku: `${baseSku}-VAR-${variantIndex}`,
+      barcode: "",
+      stock: "150",
+      sellingPrice: product.sellingPrice || "350",
+      status: "ACTIVE",
+    };
+    setVariants((prev) => [...prev, newVariant]);
+  };
+
+  const handleRemoveVariant = (varId) => {
+    setVariants((prev) => prev.filter((v) => v.id !== varId));
+  };
+
+  const handleVariantChange = (varId, field, value) => {
+    setVariants((prev) =>
+      prev.map((v) => {
+        if (v.id === varId) {
+          const updated = { ...v, [field]: value };
+          if (field === "color") {
+            const matchHex = PRESET_COLOR_MAP[value.toLowerCase().trim()];
+            if (matchHex) {
+              updated.colorCode = matchHex;
+            }
+          }
+          return updated;
+        }
+        return v;
+      })
+    );
+  };
+
+  const handleGenerateQuickColorVariants = () => {
+    if (!quickColors.trim()) {
+      toast.error("Please enter color names separated by commas");
+      return;
+    }
+    const colorList = quickColors.split(",").map((c) => c.trim()).filter(Boolean);
+    const baseSku = product.sku.trim() || "FAB-TEX";
+
+    const generated = colorList.map((colName, idx) => {
+      const cleanCol = colName.toLowerCase();
+      const hexCode = PRESET_COLOR_MAP[cleanCol] || `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`;
+      const skuSuffix = colName.toUpperCase().replace(/[^A-Z0-9]/g, "_").slice(0, 8);
+
+      return {
+        id: `${Date.now()}-${idx}`,
+        color: colName,
+        colorCode: hexCode,
+        sku: `${baseSku}-${skuSuffix}`,
+        barcode: "",
+        stock: "200",
+        sellingPrice: product.sellingPrice || "350",
+        status: "ACTIVE",
+      };
+    });
+
+    setVariants(generated);
+    setProduct((prev) => ({ ...prev, hasVariants: true }));
+    toast.success(`Generated ${generated.length} color variants!`);
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files[0];
     if (file) {
       setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleAddVariant = () => {
-    if (!newVariant.color && !newVariant.sku) {
-      toast.error("Please provide at least a Color Name or SKU for the variant.");
-      return;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
-
-    const createdVariant = {
-      ...newVariant,
-      id: `temp-${Date.now()}`,
-      sku: newVariant.sku || `${product.sku}-${(newVariant.color || "VAR").toUpperCase().slice(0, 4)}`,
-      costPrice: newVariant.costPrice || product.costPrice,
-      sellingPrice: newVariant.sellingPrice || product.sellingPrice,
-      wholesalePrice: newVariant.wholesalePrice || product.wholesalePrice,
-      retailPrice: newVariant.retailPrice || product.retailPrice,
-      rollWidth: newVariant.rollWidth || product.rollWidth,
-      widthUnit: newVariant.widthUnit || product.widthUnit,
-      gsm: newVariant.gsm || product.gsm,
-      pattern: newVariant.pattern || product.pattern,
-      weaveType: newVariant.weaveType || product.weaveType,
-      textureFinish: newVariant.textureFinish || product.textureFinish,
-    };
-
-    setVariants((prev) => [...prev, createdVariant]);
-    setNewVariant({
-      color: "",
-      colorCode: "#1e40af",
-      rollWidth: "",
-      widthUnit: "Inches",
-      gsm: "",
-      pattern: "Plain / Solid",
-      weaveType: "Plain weave",
-      textureFinish: "Soft",
-      stock: "",
-      numberOfRolls: "",
-      costPrice: "",
-      sellingPrice: "",
-      wholesalePrice: "",
-      retailPrice: "",
-      sku: "",
-      barcode: "",
-    });
-    toast.success("Color variant added to list!");
   };
 
-  const handleRemoveVariant = (index) => {
-    setVariants((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const scrollToSection = (stepNumber, sectionId) => {
-    setActiveStep(stepNumber);
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+  const scrollToSection = (stepNum, sectionId) => {
+    setActiveStep(stepNum);
+    const elem = document.getElementById(sectionId);
+    if (elem) {
+      elem.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-
+    e.preventDefault();
     if (!product.name.trim()) {
-      toast.error("Please enter the Product Name.");
+      showWarning("Validation Required", "Please enter a Fabric / Product Name.");
       scrollToSection(1, "tex-basic-info");
       return;
     }
-
     if (!product.categoryId) {
-      toast.error("Please select a Category.");
+      showWarning("Validation Required", "Please select a Category.");
       scrollToSection(1, "tex-basic-info");
       return;
     }
-
-    if (!product.sellingPrice) {
-      toast.error("Please specify the Selling Price.");
+    if (!product.sellingPrice || Number(product.sellingPrice) <= 0) {
+      showWarning("Validation Required", `Please specify a valid Selling Price per ${product.stockUnit}.`);
       scrollToSection(4, "tex-pricing");
       return;
     }
@@ -364,76 +404,67 @@ export default function EditTextileProductPage({ params }) {
       const formData = new FormData();
       formData.append("name", product.name.trim());
       formData.append("sku", product.sku.trim());
-      formData.append("barcode", product.barcode ? product.barcode.trim() : "");
-      formData.append("categoryId", product.categoryId);
-      if (product.subcategoryId) formData.append("subcategoryId", product.subcategoryId);
-      if (product.brandId) formData.append("brandId", product.brandId);
-      if (product.baseUnitId) formData.append("unitId", product.baseUnitId);
-      formData.append("costPrice", product.costPrice || "0");
-      formData.append("sellingPrice", product.sellingPrice || "0");
-      formData.append("wholesalePrice", product.wholesalePrice || "0");
-      formData.append("retailPrice", product.retailPrice || "0");
-      formData.append("taxRate", product.taxRate || "0");
-      formData.append("discountType", product.discountType);
-      formData.append("discountValue", product.discountValue || "0");
-      formData.append("description", product.description || "");
+      formData.append("barcode", product.barcode.trim());
+      formData.append("description", product.description.trim());
+      formData.append("isTextile", "true");
       formData.append("status", product.status);
 
-      // Textile Specs
-      formData.append("isTextile", "true");
-      formData.append("fabricComposition", product.fabricComposition || "");
-      formData.append("gsm", product.gsm || "0");
-      formData.append("rollWidth", product.rollWidth || "0");
+      if (product.categoryId) formData.append("categoryId", product.categoryId);
+      if (product.subcategory) formData.append("subcategory", product.subcategory.trim());
+      if (product.brandId) formData.append("brandId", product.brandId);
+
+      formData.append("fabricComposition", product.fabricComposition);
+      formData.append("gsm", product.gsm);
+      formData.append("rollWidth", product.rollWidth);
       formData.append("widthUnit", product.widthUnit);
-      formData.append("color", product.color || "");
-      formData.append("colorCode", product.colorCode || "");
       formData.append("pattern", product.pattern);
       formData.append("weaveType", product.weaveType);
       formData.append("textureFinish", product.textureFinish);
 
-      // Inventory
       formData.append("stockUnit", product.stockUnit);
       formData.append("initialStock", product.initialStock || "0");
-      formData.append("reorderLevel", product.reorderLevel || "0");
-      formData.append("minimumStock", product.minimumStock || "0");
-      formData.append("maximumStock", product.maximumStock || "0");
-      formData.append("warehouseLocation", product.warehouseLocation || "");
-      formData.append("rackLocation", product.rackLocation || "");
       formData.append("numberOfRolls", product.numberOfRolls || "0");
+      formData.append("openingStockDate", product.openingStockDate);
+      formData.append("reorderLevel", product.reorderLevel || "0");
+      if (product.warehouseId) formData.append("warehouseId", product.warehouseId);
+      formData.append("rackLocation", product.rackLocation);
 
-      // Supplier
+      formData.append("costPrice", product.costPrice || "0");
+      formData.append("sellingPrice", product.sellingPrice || "0");
+      formData.append("wholesalePrice", product.wholesalePrice || "0");
+      formData.append("retailPrice", product.retailPrice || "0");
+      formData.append("discountValue", product.discountValue || "0");
+      formData.append("discountType", product.discountType);
+      formData.append("taxRate", product.taxRate || "0");
+
       if (product.supplierId) formData.append("supplierId", product.supplierId);
-      formData.append("supplierProductCode", product.supplierProductCode || "");
+      formData.append("supplierProductCode", product.supplierProductCode);
+      if (product.branchId) formData.append("branchId", product.branchId);
       formData.append("leadTime", product.leadTime || "0");
+
+      if (product.hasVariants && variants.length > 0) {
+        formData.append("hasVariants", "true");
+        formData.append("variants", JSON.stringify(variants));
+      } else {
+        formData.append("hasVariants", "false");
+      }
 
       if (imageFile) {
         formData.append("image", imageFile);
       }
 
-      if (hasVariants && variants.length > 0) {
-        formData.append("hasVariants", "true");
-        formData.append("variants", JSON.stringify(variants));
-      } else {
-        formData.append("hasVariants", "false");
-        formData.append("variants", "[]");
-      }
-
-      const res = await apiClient.put(`/products/${id}`, formData, {
+      await apiClient.put(`/products/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (res.data?.success || res.status === 200) {
-        toast.success(`Textile Fabric "${product.name}" updated successfully!`);
-        showSuccess("Fabric Updated", `"${product.name}" has been updated.`);
-        setTimeout(() => {
-          router.push("/textile/products");
-        }, 800);
-      }
+      toast.success("Textile Fabric updated successfully!");
+      setTimeout(() => {
+        router.push("/textile/products");
+      }, 800);
     } catch (err) {
-      console.error("Error updating textile fabric product:", err);
-      const errMsg = err.response?.data?.message || "Failed to update product.";
-      toast.error(errMsg);
-      showError("Update Error", errMsg);
+      console.error("Error updating textile product:", err);
+      const msg = err.response?.data?.message || "Failed to update fabric product.";
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -441,9 +472,9 @@ export default function EditTextileProductPage({ params }) {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minHeight: "80vh", gap: "12px" }}>
-        <Loader2 style={{ animation: "spin 1s linear infinite", color: "#0d9488" }} size={36} />
-        <p style={{ color: "#64748b", fontWeight: "600", fontSize: "15px" }}>Loading Textile Fabric Details...</p>
+      <div className={styles.loadingContainer} style={{ padding: "80px 0", textAlign: "center" }}>
+        <Loader2 className="animate-spin text-teal-600" size={40} style={{ margin: "0 auto 16px auto" }} />
+        <p style={{ color: "#64748b", fontWeight: "600" }}>Loading Fabric Details...</p>
       </div>
     );
   }
@@ -455,12 +486,20 @@ export default function EditTextileProductPage({ params }) {
       {/* TEXTILE HERO HEADER BANNER */}
       <div className={styles.textileHeroBanner}>
         <div>
+          <button
+            type="button"
+            className={styles.backBtn}
+            onClick={() => router.push("/textile/products")}
+            style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", background: "none", border: "none", color: "#0f766e", cursor: "pointer", fontWeight: "700" }}
+          >
+            <FiArrowLeft size={16} /> Back to Textile Products
+          </button>
           <span className={styles.badgePill}>
             <FiLayers size={13} /> Textile Mill ERP
           </span>
           <h1 className={styles.heroTitle}>Edit Textile Fabric Product</h1>
           <p className={styles.heroSubtitle}>
-            Update finished fabric roll specifications, GSM metrics, weave types, roll inventory counts, pricing, and dynamic color matrix.
+            Update fabric metrics, inventory quantities, pricing tiers, and color variants.
           </p>
         </div>
 
@@ -470,8 +509,7 @@ export default function EditTextileProductPage({ params }) {
             className={styles.cancelBtn}
             onClick={() => router.push("/textile/products")}
           >
-            <FiArrowLeft size={15} />
-            <span>Cancel</span>
+            Cancel
           </button>
           <button
             type="button"
@@ -480,12 +518,12 @@ export default function EditTextileProductPage({ params }) {
             disabled={submitting}
           >
             <FiSave size={16} />
-            <span>{submitting ? "Updating Fabric..." : "Update Textile Product"}</span>
+            {submitting ? "Saving Changes..." : "Save Changes"}
           </button>
         </div>
       </div>
 
-      {/* VISUAL STEPPER NAVIGATION */}
+      {/* VISUAL STEPPER NAVIGATION (6 Steps) */}
       <div className={styles.stepperNav}>
         <div
           className={`${styles.stepItem} ${activeStep === 1 ? styles.activeTextileStep : ""}`}
@@ -508,7 +546,7 @@ export default function EditTextileProductPage({ params }) {
           onClick={() => scrollToSection(3, "tex-inventory")}
         >
           <div className={styles.stepNumber}>3</div>
-          <span className={styles.stepTitle}>Roll Inventory</span>
+          <span className={styles.stepTitle}>Inventory & Stock</span>
         </div>
 
         <div
@@ -524,7 +562,7 @@ export default function EditTextileProductPage({ params }) {
           onClick={() => scrollToSection(5, "tex-supplier")}
         >
           <div className={styles.stepNumber}>5</div>
-          <span className={styles.stepTitle}>Yarn Supplier</span>
+          <span className={styles.stepTitle}>Supplier / Manufacturing</span>
         </div>
 
         <div
@@ -532,14 +570,14 @@ export default function EditTextileProductPage({ params }) {
           onClick={() => scrollToSection(6, "tex-variants")}
         >
           <div className={styles.stepNumber}>6</div>
-          <span className={styles.stepTitle}>Color Variants</span>
+          <span className={styles.stepTitle}>Product Variants</span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className={styles.formLayout}>
         {/* LEFT COLUMN */}
         <div className={styles.mainColumn}>
-          {/* SECTION 1: Basic Information */}
+          {/* STEP 1: Basic Information */}
           <div id="tex-basic-info" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
@@ -548,7 +586,7 @@ export default function EditTextileProductPage({ params }) {
                 </div>
                 <h2>1. Basic Product Information</h2>
               </div>
-              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Fabric Title</span>
+              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Core Identity</span>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.formGroup}>
@@ -560,25 +598,55 @@ export default function EditTextileProductPage({ params }) {
                   name="name"
                   value={product.name}
                   onChange={handleChange}
-                  placeholder="e.g. Jacquard Damask Shirting Fabric"
+                  placeholder="e.g. Premium Cotton Poplin 40s"
                   required
                 />
               </div>
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Product Code / SKU</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>
+                      Product Code / SKU <span className={styles.required}>*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSku = generateSkuCode(product.name);
+                        setProduct((prev) => ({ ...prev, sku: newSku }));
+                        toast.success(`Generated SKU: ${newSku}`);
+                      }}
+                      title="Auto Generate Unique SKU Code"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "3px 8px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        color: "#0d9488",
+                        background: "#ccfbf1",
+                        border: "1px solid #99f6e4",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <FiZap size={13} /> Auto Generate
+                    </button>
+                  </div>
                   <input
                     type="text"
                     name="sku"
                     value={product.sku}
                     onChange={handleChange}
-                    placeholder="e.g. FAB-JD-001"
+                    placeholder="e.g. FAB-TEX-892301"
+                    required
                   />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Barcode / EAN</label>
+                  <label>Barcode / EAN (Optional)</label>
                   <input
                     type="text"
                     name="barcode"
@@ -596,6 +664,7 @@ export default function EditTextileProductPage({ params }) {
                     name="categoryId"
                     value={product.categoryId}
                     onChange={handleChange}
+                    required
                   >
                     <option value="">Select Category (Cotton, Silk, Linen...)</option>
                     {categories.map((c) => (
@@ -607,20 +676,20 @@ export default function EditTextileProductPage({ params }) {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Subcategory</label>
+                  <label>Subcategory (Optional)</label>
                   <input
                     type="text"
                     name="subcategory"
                     value={product.subcategory}
                     onChange={handleChange}
-                    placeholder="Shirting, Suiting, Curtain..."
+                    placeholder="e.g. Shirting, Suiting, Denim..."
                   />
                 </div>
               </div>
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Brand / Mill Name</label>
+                  <label>Brand / Mill Name (Optional)</label>
                   <select
                     name="brandId"
                     value={product.brandId}
@@ -636,20 +705,20 @@ export default function EditTextileProductPage({ params }) {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Status</label>
+                  <label>Status <span className={styles.required}>*</span></label>
                   <select
                     name="status"
                     value={product.status}
                     onChange={handleChange}
                   >
-                    <option value="ACTIVE">Active (Available)</option>
-                    <option value="INACTIVE">Inactive (Archived)</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
                   </select>
                 </div>
               </div>
 
               <div className={styles.formGroup}>
-                <label>Product Description</label>
+                <label>Product Description (Optional)</label>
                 <textarea
                   name="description"
                   value={product.description}
@@ -661,7 +730,7 @@ export default function EditTextileProductPage({ params }) {
             </div>
           </div>
 
-          {/* SECTION 2: Fabric Specifications */}
+          {/* STEP 2: Fabric Specifications */}
           <div id="tex-specs" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
@@ -681,7 +750,7 @@ export default function EditTextileProductPage({ params }) {
                     name="fabricComposition"
                     value={product.fabricComposition}
                     onChange={handleChange}
-                    placeholder="e.g. 80% Cotton, 20% Silk"
+                    placeholder="e.g. 100% Cotton, Cotton Blend, Polyester"
                   />
                 </div>
 
@@ -699,47 +768,26 @@ export default function EditTextileProductPage({ params }) {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Roll Width</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <input
-                      type="number"
-                      name="rollWidth"
-                      value={product.rollWidth}
-                      onChange={handleChange}
-                      placeholder="58"
-                      style={{ width: "100%" }}
-                    />
-                    <select
-                      name="widthUnit"
-                      value={product.widthUnit}
-                      onChange={handleChange}
-                      style={{ width: "130px" }}
-                    >
-                      <option value="Inches">Inches</option>
-                      <option value="CM">CM</option>
-                    </select>
-                  </div>
+                  <label>Fabric Width</label>
+                  <input
+                    type="number"
+                    name="rollWidth"
+                    value={product.rollWidth}
+                    onChange={handleChange}
+                    placeholder="e.g. 58"
+                  />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Color Name & Hex Swatch</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <input
-                      type="text"
-                      name="color"
-                      value={product.color}
-                      onChange={handleChange}
-                      placeholder="Royal Blue"
-                      style={{ width: "100%" }}
-                    />
-                    <input
-                      type="color"
-                      name="colorCode"
-                      value={product.colorCode || "#1e40af"}
-                      onChange={handleChange}
-                      style={{ width: "50px", padding: "2px", height: "46px", cursor: "pointer", borderRadius: "8px" }}
-                    />
-                  </div>
+                  <label>Width Unit</label>
+                  <select
+                    name="widthUnit"
+                    value={product.widthUnit}
+                    onChange={handleChange}
+                  >
+                    <option value="Inches">Inches</option>
+                    <option value="CM">CM</option>
+                  </select>
                 </div>
               </div>
 
@@ -792,89 +840,72 @@ export default function EditTextileProductPage({ params }) {
             </div>
           </div>
 
-          {/* SECTION 3: Inventory Details */}
+          {/* STEP 3: Inventory & Stock */}
           <div id="tex-inventory" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiArchive />
                 </div>
-                <h2>3. Roll Inventory & Mill Warehouses</h2>
+                <h2>3. Inventory & Stock</h2>
               </div>
-              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Mill Stock</span>
+              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Mill Quantities</span>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Stock Keeping Unit (UoM)</label>
+                  <label>Stock Unit <span className={styles.required}>*</span></label>
                   <select
                     name="stockUnit"
                     value={product.stockUnit}
                     onChange={handleChange}
                   >
-                    {units.map((u) => (
-                      <option key={u.id || u.code} value={u.code || u.id}>
-                        {u.name} ({u.code || u.name})
+                    {STOCK_UNITS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Current Stock (in selected UoM)</label>
+                  <label>Opening Stock Quantity ({product.stockUnit}s)</label>
                   <input
                     type="number"
                     name="initialStock"
                     value={product.initialStock}
                     onChange={handleChange}
-                    placeholder="e.g. 500"
+                    placeholder="500"
                   />
                 </div>
               </div>
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Number of Fabric Rolls</label>
+                  <label>Number of Fabric Rolls (Optional)</label>
                   <input
                     type="number"
                     name="numberOfRolls"
                     value={product.numberOfRolls}
                     onChange={handleChange}
-                    placeholder="e.g. 10"
+                    placeholder="10"
                   />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Mill Warehouse / Room</label>
-                  <select
-                    name="warehouseLocation"
-                    value={product.warehouseLocation}
+                  <label>Opening Stock Date</label>
+                  <input
+                    type="date"
+                    name="openingStockDate"
+                    value={product.openingStockDate}
                     onChange={handleChange}
-                  >
-                    <option value="">Select Mill Warehouse</option>
-                    {warehouses.map((wh) => (
-                      <option key={wh.id} value={wh.name}>
-                        {wh.name} {wh.code ? `(${wh.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 
-              <div className={styles.row3}>
+              <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Min Stock Alert</label>
-                  <input
-                    type="number"
-                    name="minimumStock"
-                    value={product.minimumStock}
-                    onChange={handleChange}
-                    placeholder="20"
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label>Reorder Level</label>
+                  <label>Low Stock Alert Level ({product.stockUnit}s)</label>
                   <input
                     type="number"
                     name="reorderLevel"
@@ -885,20 +916,36 @@ export default function EditTextileProductPage({ params }) {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Max Storage Cap</label>
-                  <input
-                    type="number"
-                    name="maximumStock"
-                    value={product.maximumStock}
+                  <label>Warehouse</label>
+                  <select
+                    name="warehouseId"
+                    value={product.warehouseId}
                     onChange={handleChange}
-                    placeholder="5000"
-                  />
+                  >
+                    <option value="">Select Warehouse</option>
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name} {wh.code ? `(${wh.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Rack / Shelf / Bin Location</label>
+                <input
+                  type="text"
+                  name="rackLocation"
+                  value={product.rackLocation}
+                  onChange={handleChange}
+                  placeholder="e.g. Rack FAB-12"
+                />
               </div>
             </div>
           </div>
 
-          {/* SECTION 4: Pricing & Taxes */}
+          {/* STEP 4: Pricing & GST */}
           <div id="tex-pricing" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
@@ -907,374 +954,442 @@ export default function EditTextileProductPage({ params }) {
                 </div>
                 <h2>4. Pricing & GST</h2>
               </div>
-              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Tiered Rates</span>
+              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>
+                Price Per {product.stockUnit}
+              </span>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Cost / Production Price (₹) *</label>
+                  <label>Cost Price (₹ per {product.stockUnit})</label>
                   <input
                     type="number"
-                    step="0.01"
                     name="costPrice"
                     value={product.costPrice}
                     onChange={handleChange}
-                    placeholder="e.g. 180.00"
+                    placeholder="240"
+                    step="0.01"
                   />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Selling Price / Meter (₹) *</label>
+                  <label>
+                    Selling Price (₹ per {product.stockUnit}) <span className={styles.required}>*</span>
+                  </label>
                   <input
                     type="number"
-                    step="0.01"
                     name="sellingPrice"
                     value={product.sellingPrice}
                     onChange={handleChange}
-                    placeholder="e.g. 260.00"
+                    placeholder="350"
+                    step="0.01"
                     required
                   />
                 </div>
               </div>
 
-              <div className={styles.row3}>
+              <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Wholesale / B2B Price (₹)</label>
+                  <label>Wholesale Price (₹ per {product.stockUnit}) (Optional)</label>
                   <input
                     type="number"
-                    step="0.01"
                     name="wholesalePrice"
                     value={product.wholesalePrice}
                     onChange={handleChange}
-                    placeholder="e.g. 220.00"
+                    placeholder="310"
+                    step="0.01"
                   />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Retail / Export Price (₹)</label>
+                  <label>MRP / Retail Price (₹ per {product.stockUnit}) (Optional)</label>
                   <input
                     type="number"
-                    step="0.01"
                     name="retailPrice"
                     value={product.retailPrice}
                     onChange={handleChange}
-                    placeholder="e.g. 290.00"
+                    placeholder="390"
+                    step="0.01"
                   />
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Default Discount (Optional)</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="number"
+                      name="discountValue"
+                      value={product.discountValue}
+                      onChange={handleChange}
+                      placeholder="0"
+                      step="0.01"
+                      style={{ width: "100%" }}
+                    />
+                    <select
+                      name="discountType"
+                      value={product.discountType}
+                      onChange={handleChange}
+                      style={{ width: "140px" }}
+                    >
+                      <option value="PERCENT">Percentage (%)</option>
+                      <option value="FIXED">Flat (₹)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>GST / Tax Rate (%)</label>
+                  <label>GST Rate (%)</label>
                   <select
                     name="taxRate"
                     value={product.taxRate}
                     onChange={handleChange}
                   >
                     <option value="0">0% (Exempted)</option>
-                    <option value="5">5% (Fabric Standard)</option>
-                    <option value="12">12% (Apparel/Madeups)</option>
-                    <option value="18">18% (Synthetic/Blends)</option>
+                    <option value="5">5% GST</option>
+                    <option value="12">12% GST</option>
+                    <option value="18">18% GST</option>
                   </select>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 5: Yarn & Dye Supplier */}
+          {/* STEP 5: Supplier / Manufacturing Information */}
           <div id="tex-supplier" className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiTruck />
                 </div>
-                <h2>5. Yarn & Dye Supplier Information</h2>
+                <h2>5. Supplier / Manufacturing Information</h2>
               </div>
-              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Vendor Link</span>
+              <span style={{ fontSize: "12px", color: "#0d9488", fontWeight: "700" }}>Supply & Mill</span>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Primary Yarn/Dye Supplier</label>
+                  <label>Default Supplier / Manufacturer (Optional)</label>
                   <select
                     name="supplierId"
                     value={product.supplierId}
                     onChange={handleChange}
                   >
-                    <option value="">Choose Supplier</option>
+                    <option value="">Select Supplier / Manufacturer</option>
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} {s.contactPerson ? `(${s.contactPerson})` : ""}
+                        {s.name || s.companyName}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Supplier Product Code</label>
+                  <label>Supplier Product Code (Optional)</label>
                   <input
                     type="text"
                     name="supplierProductCode"
                     value={product.supplierProductCode}
                     onChange={handleChange}
-                    placeholder="e.g. YARN-COT-60S"
+                    placeholder="e.g. TEX-SUP-901"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Manufacturing Unit (Optional)</label>
+                  <select
+                    name="branchId"
+                    value={product.branchId}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Manufacturing Unit / Branch</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} {b.code ? `(${b.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Lead Time in Days (Optional)</label>
+                  <input
+                    type="number"
+                    name="leadTime"
+                    value={product.leadTime}
+                    onChange={handleChange}
+                    placeholder="7"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 6: Color Variants Matrix */}
+          {/* STEP 6: Product Variants */}
           <div id="tex-variants" className={styles.card}>
-            <div className={styles.cardHeader}>
+            <div className={styles.cardHeader} style={{ justifyContent: "space-between" }}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiGrid />
                 </div>
-                <h2>6. Dynamic Color & Roll Width Variants</h2>
+                <h2>6. Product Variants</h2>
               </div>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "700", color: "#0f766e" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "700", color: "#0d9488" }}>
                 <input
                   type="checkbox"
-                  checked={hasVariants}
-                  onChange={(e) => setHasVariants(e.target.checked)}
+                  name="hasVariants"
+                  checked={product.hasVariants}
+                  onChange={handleChange}
+                  style={{ width: "18px", height: "18px", accentColor: "#0d9488" }}
                 />
-                <span>Enable Multi-Color Matrix</span>
+                Enable Product Variants
               </label>
             </div>
 
-            {hasVariants && (
+            {product.hasVariants && (
               <div className={styles.cardBody}>
-                <div style={{ background: "#f0fdfa", padding: "16px", borderRadius: "12px", border: "1px solid #ccfbf1", marginBottom: "16px" }}>
-                  <h4 style={{ margin: "0 0 12px", fontSize: "14px", fontWeight: "800", color: "#115e59" }}>
-                    Add Color Shade Variant
-                  </h4>
+                {/* Quick Color Generator Box */}
+                <div
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: "12px",
+                    padding: "18px",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <label style={{ fontWeight: "800", color: "#166534", marginBottom: "6px", display: "block" }}>
+                    ⚡ Quick Color Variants Generator
+                  </label>
+                  <p style={{ fontSize: "13px", color: "#15803d", margin: "0 0 12px 0" }}>
+                    Enter color names separated by commas to instantly generate variant rows with matched color swatches:
+                  </p>
 
-                  <div className={styles.row3}>
-                    <div className={styles.formGroup}>
-                      <label>Color Name</label>
-                      <input
-                        type="text"
-                        placeholder="Emerald Green"
-                        value={newVariant.color}
-                        onChange={(e) => setNewVariant({ ...newVariant, color: e.target.value })}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label>Color Swatch</label>
-                      <input
-                        type="color"
-                        value={newVariant.colorCode}
-                        onChange={(e) => setNewVariant({ ...newVariant, colorCode: e.target.value })}
-                        style={{ width: "100%", height: "46px", padding: "2px", cursor: "pointer", borderRadius: "8px" }}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label>Variant SKU</label>
-                      <input
-                        type="text"
-                        placeholder="FAB-JD-001-GRN"
-                        value={newVariant.sku}
-                        onChange={(e) => setNewVariant({ ...newVariant, sku: e.target.value })}
-                      />
-                    </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input
+                      type="text"
+                      value={quickColors}
+                      onChange={(e) => setQuickColors(e.target.value)}
+                      placeholder="Royal Blue, Emerald Green, Crimson Red, Charcoal Black"
+                      style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #86efac", fontSize: "14px" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateQuickColorVariants}
+                      style={{
+                        padding: "10px 18px",
+                        background: "#15803d",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "8px",
+                        fontWeight: "700",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <FiZap size={15} /> Generate Variant Rows
+                    </button>
                   </div>
-
-                  <div className={styles.row3}>
-                    <div className={styles.formGroup}>
-                      <label>Rolls Count</label>
-                      <input
-                        type="number"
-                        placeholder="5"
-                        value={newVariant.numberOfRolls}
-                        onChange={(e) => setNewVariant({ ...newVariant, numberOfRolls: e.target.value })}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label>Stock (Meters)</label>
-                      <input
-                        type="number"
-                        placeholder="250"
-                        value={newVariant.stock}
-                        onChange={(e) => setNewVariant({ ...newVariant, stock: e.target.value })}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label>Selling Price (₹)</label>
-                      <input
-                        type="number"
-                        placeholder="260.00"
-                        value={newVariant.sellingPrice}
-                        onChange={(e) => setNewVariant({ ...newVariant, sellingPrice: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleAddVariant}
-                    style={{
-                      marginTop: "10px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      background: "#0d9488",
-                      color: "#ffffff",
-                      border: "none",
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      fontWeight: "700",
-                      fontSize: "13px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <FiPlus />
-                    <span>Add Color Shade to Matrix</span>
-                  </button>
                 </div>
 
-                {variants.length > 0 && (
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                      <thead>
-                        <tr style={{ background: "#f8fafc", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>
-                          <th style={{ padding: "8px 12px" }}>Swatch</th>
-                          <th style={{ padding: "8px 12px" }}>Color</th>
-                          <th style={{ padding: "8px 12px" }}>SKU</th>
-                          <th style={{ padding: "8px 12px" }}>Rolls</th>
-                          <th style={{ padding: "8px 12px" }}>Stock</th>
-                          <th style={{ padding: "8px 12px" }}>Selling Price</th>
-                          <th style={{ padding: "8px 12px", textAlign: "right" }}>Action</th>
+                {/* Variants Matrix Table */}
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Color Name</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Swatch / Hex</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Variant SKU</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Barcode</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Stock ({product.stockUnit})</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Price (₹)</th>
+                        <th style={{ padding: "10px", textAlign: "left" }}>Status</th>
+                        <th style={{ padding: "10px", textAlign: "center" }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variants.map((v) => (
+                        <tr key={v.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "8px" }}>
+                            <input
+                              type="text"
+                              value={v.color}
+                              onChange={(e) => handleVariantChange(v.id, "color", e.target.value)}
+                              placeholder="e.g. Royal Blue"
+                              style={{ width: "100%", minWidth: "120px", padding: "6px", fontSize: "13px" }}
+                            />
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <input
+                                type="color"
+                                value={v.colorCode || "#1e40af"}
+                                onChange={(e) => handleVariantChange(v.id, "colorCode", e.target.value)}
+                                style={{ width: "32px", height: "32px", padding: "2px", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                              />
+                              <input
+                                type="text"
+                                value={v.colorCode || "#1e40af"}
+                                onChange={(e) => handleVariantChange(v.id, "colorCode", e.target.value)}
+                                style={{ width: "80px", padding: "6px", fontSize: "12px" }}
+                              />
+                            </div>
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <input
+                              type="text"
+                              value={v.sku}
+                              onChange={(e) => handleVariantChange(v.id, "sku", e.target.value)}
+                              style={{ width: "100%", minWidth: "130px", padding: "6px", fontSize: "13px" }}
+                            />
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <input
+                              type="text"
+                              value={v.barcode}
+                              onChange={(e) => handleVariantChange(v.id, "barcode", e.target.value)}
+                              placeholder="Optional"
+                              style={{ width: "100px", padding: "6px", fontSize: "13px" }}
+                            />
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <input
+                              type="number"
+                              value={v.stock}
+                              onChange={(e) => handleVariantChange(v.id, "stock", e.target.value)}
+                              style={{ width: "80px", padding: "6px", fontSize: "13px" }}
+                            />
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <input
+                              type="number"
+                              value={v.sellingPrice}
+                              onChange={(e) => handleVariantChange(v.id, "sellingPrice", e.target.value)}
+                              style={{ width: "80px", padding: "6px", fontSize: "13px" }}
+                            />
+                          </td>
+                          <td style={{ padding: "8px" }}>
+                            <select
+                              value={v.status || "ACTIVE"}
+                              onChange={(e) => handleVariantChange(v.id, "status", e.target.value)}
+                              style={{ padding: "6px", fontSize: "12px" }}
+                            >
+                              <option value="ACTIVE">Active</option>
+                              <option value="INACTIVE">Inactive</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: "8px", textAlign: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVariant(v.id)}
+                              style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "4px", padding: "6px", cursor: "pointer" }}
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {variants.map((v, idx) => (
-                          <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                            <td style={{ padding: "8px 12px" }}>
-                              <span style={{ display: "inline-block", width: "20px", height: "20px", borderRadius: "50%", backgroundColor: v.colorCode || "#0d9488", border: "1px solid #cbd5e1" }} />
-                            </td>
-                            <td style={{ padding: "8px 12px", fontWeight: "600" }}>{v.color || "Shade"}</td>
-                            <td style={{ padding: "8px 12px", color: "#64748b" }}>{v.sku}</td>
-                            <td style={{ padding: "8px 12px" }}>{v.numberOfRolls || "0"} Rolls</td>
-                            <td style={{ padding: "8px 12px", fontWeight: "700" }}>{v.stock || "0"} m</td>
-                            <td style={{ padding: "8px 12px", fontWeight: "700", color: "#0f766e" }}>₹{v.sellingPrice || product.sellingPrice}</td>
-                            <td style={{ padding: "8px 12px", textAlign: "right" }}>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveVariant(idx)}
-                                style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }}
-                              >
-                                <FiTrash2 size={15} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddVariant}
+                  style={{
+                    marginTop: "14px",
+                    padding: "8px 14px",
+                    background: "#f1f5f9",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <FiPlus size={15} /> Add Custom Variant Row
+                </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* RIGHT COLUMN (FABRIC SWATCH / MEDIA) */}
+        {/* RIGHT COLUMN */}
         <div className={styles.sideColumn}>
+          {/* Swatch Upload Card */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerLeft}>
                 <div className={styles.textileIconBox}>
                   <FiUpload />
                 </div>
-                <h2>Fabric Image / Swatch</h2>
+                <h2>Fabric Swatch Photo</h2>
               </div>
             </div>
             <div className={styles.cardBody}>
               <div
-                className={styles.uploadArea}
+                className={styles.imageUploadBox}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  accept="image/*"
-                  style={{ display: "none" }}
-                />
                 {imagePreview ? (
                   <div className={styles.previewContainer}>
-                    <img src={imagePreview} alt="Fabric Swatch Preview" className={styles.previewImage} />
+                    <img src={imagePreview} alt="Preview" className={styles.previewImg} />
                     <button
                       type="button"
-                      className={styles.removeImageBtn}
+                      className={styles.removeImgBtn}
                       onClick={(e) => {
                         e.stopPropagation();
                         removeImage();
                       }}
                     >
-                      <FiX />
+                      <FiX size={14} />
                     </button>
                   </div>
                 ) : (
                   <div className={styles.uploadPlaceholder}>
-                    <FiUpload size={32} style={{ color: "#0d9488", marginBottom: "8px" }} />
-                    <p style={{ fontWeight: "700", color: "#334155", margin: "0 0 4px" }}>Click to upload fabric texture image</p>
-                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>PNG, JPG or WEBP up to 5MB</span>
+                    <FiUpload className={styles.uploadIcon} style={{ color: "#0d9488" }} />
+                    <span style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a" }}>Upload Fabric Swatch</span>
+                    <small>Supports PNG, JPG up to 5MB</small>
                   </div>
                 )}
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: "none" }}
+              />
+            </div>
+          </div>
 
-              {/* QUICK SUMMARY CARD */}
-              <div style={{ marginTop: "20px", background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <h4 style={{ margin: "0 0 10px", fontSize: "13px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>
-                  Product Summary
-                </h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: "#64748b" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Fabric:</span>
-                    <strong style={{ color: "#0f172a" }}>{product.name || "Untitled"}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>SKU:</span>
-                    <strong>{product.sku || "N/A"}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Composition:</span>
-                    <strong>{product.fabricComposition || "N/A"}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>GSM:</span>
-                    <strong>{product.gsm ? `${product.gsm} g/m²` : "N/A"}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Price / Meter:</span>
-                    <strong style={{ color: "#0d9488" }}>₹{product.sellingPrice || "0.00"}</strong>
-                  </div>
-                </div>
+          {/* Textile Guidance Card */}
+          <div className={styles.card} style={{ background: "linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)" }}>
+            <div className={styles.cardHeader}>
+              <div className={styles.headerLeft}>
+                <FiCheckCircle style={{ color: "#0d9488", fontSize: "20px" }} />
+                <h2>Textile ERP Guidance</h2>
               </div>
-
-              {/* ACTION BUTTONS */}
-              <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                <button
-                  type="submit"
-                  className={styles.textileSaveBtn}
-                  style={{ width: "100%", justifyContent: "center" }}
-                  disabled={submitting}
-                >
-                  <FiSave size={16} />
-                  <span>{submitting ? "Updating..." : "Update Fabric Product"}</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  style={{ width: "100%", justifyContent: "center" }}
-                  onClick={() => router.push("/textile/products")}
-                >
-                  <span>Return to Product List</span>
-                </button>
-              </div>
+            </div>
+            <div className={styles.cardBody} style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6" }}>
+              <p style={{ margin: "0 0 12px 0" }}>
+                <strong>Product vs Variants:</strong> Update base fabric specifications and manage individual color variants in the matrix table.
+              </p>
+              <p style={{ margin: "0 0 12px 0" }}>
+                <strong>Dynamic Pricing:</strong> Pricing applies per selected stock unit ({product.stockUnit}), keeping fabric rolls and meter rates aligned.
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Low Stock Alert:</strong> Alerts are triggered when stock reaches or falls below the designated threshold.
+              </p>
             </div>
           </div>
         </div>

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "PROD-501",
+    "batchNumber": "PROD-501",
+    "orderNumber": "ORD-9053",
+    "companyId": "80779434-4c33-4ea6-be14-a55afde5fd6c",
+    "planId": null,
+    "productId": "bb2d0492-c4f3-4458-b10b-9b1a31aab6a3",
+    "customer": "Internal Production Order",
+    "batchName": "lapt",
+    "fabricType": "lapt",
+    "material": "lapt",
+    "fabricComposition": "lapt",
+    "targetQty": 500,
+    "targetOutput": 500,
+    "targetMeters": 500,
+    "completedQty": 0,
+    "completedMeters": 0,
+    "unit": "Rolls",
+    "currentStageIndex": 0,
+    "stage": "1. Yarn Spinning",
+    "currentStage": "1. Yarn Spinning",
+    "progress": 0,
+    "status": "IN_PROGRESS",
+    "priority": "Normal",
+    "manufacturingUnit": "Main Loom Mill",
+    "operator": "redg",
+    "startDate": "2026-08-30",
+    "targetDate": "2026-09-14",
+    "stageHistory": [
+      {
+        "stageIndex": 0,
+        "stageName": "1. Yarn Spinning",
+        "startedAt": "2026-08-30T08:37:23.935Z",
+        "operator": "redg",
+        "status": "IN_PROGRESS"
+      }
+    ],
+    "createdAt": "2026-08-30T08:37:23.935Z",
+    "updatedAt": "2026-08-30T08:37:23.935Z"
+  }
+]

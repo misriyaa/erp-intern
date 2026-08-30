@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   FiLayers,
   FiPlus,
@@ -15,12 +16,23 @@ import {
 } from "react-icons/fi";
 import { showConfirm } from "@/utils/swal";
 import { toast, Toaster } from "react-hot-toast";
+import apiClient from "@/services/apiClient";
+import { useCompany } from "@/context/CompanyContext";
 
 export default function RawMaterialsPage() {
+  const router = useRouter();
+  const { user, isModuleEnabled, loading: companyLoading } = useCompany();
+
   const [materials, setMaterials] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    if (!companyLoading && user && !isModuleEnabled("RAW_MATERIALS")) {
+      router.replace("/unauthorized");
+    }
+  }, [user, companyLoading, isModuleEnabled, router]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -33,22 +45,28 @@ export default function RawMaterialsPage() {
   });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("textile_raw_materials");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const userOnly = parsed.filter(
-          (m) => !["RM-101", "RM-102", "RM-103", "RM-104", "RM-105"].includes(m.id)
-        );
-        setMaterials(userOnly);
-        localStorage.setItem("textile_raw_materials", JSON.stringify(userOnly));
-      } else {
-        setMaterials([]);
+    async function loadMaterials() {
+      try {
+        const res = await apiClient.get("/textile/raw-materials");
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setMaterials(res.data.data);
+          localStorage.setItem("textile_raw_materials", JSON.stringify(res.data.data));
+          return;
+        }
+      } catch (err) {
+        console.warn("Backend raw-materials fetch fallback to localStorage:", err);
+      }
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("textile_raw_materials");
+        if (stored) {
+          setMaterials(JSON.parse(stored));
+        }
       }
     }
+    loadMaterials();
   }, []);
 
-  const saveMaterials = (newMaterials) => {
+  const saveMaterials = async (newMaterials) => {
     setMaterials(newMaterials);
     if (typeof window !== "undefined") {
       localStorage.setItem("textile_raw_materials", JSON.stringify(newMaterials));
@@ -60,18 +78,18 @@ export default function RawMaterialsPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddMaterial = (e) => {
+  const handleAddMaterial = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.stock) {
       toast.error("Please enter material name and stock quantity");
       return;
     }
 
-    const newMat = {
-      id: `RM-${Math.floor(100 + Math.random() * 900)}`,
+    const payload = {
       name: formData.name,
       category: formData.category,
       stock: Number(formData.stock),
+      quantity: Number(formData.stock),
       unit: formData.unit,
       reorderLevel: Number(formData.reorderLevel) || 500,
       supplier: formData.supplier || "General Supplier",
@@ -79,7 +97,25 @@ export default function RawMaterialsPage() {
       status: Number(formData.stock) <= (Number(formData.reorderLevel) || 500) ? "LOW_STOCK" : "IN_STOCK",
     };
 
-    saveMaterials([newMat, ...materials]);
+    try {
+      const res = await apiClient.post("/textile/raw-materials", payload);
+      if (res.data?.success && res.data?.data) {
+        saveMaterials([res.data.data, ...materials]);
+      } else {
+        const newMat = {
+          id: `RM-${Math.floor(100 + Math.random() * 900)}`,
+          ...payload,
+        };
+        saveMaterials([newMat, ...materials]);
+      }
+    } catch (err) {
+      const newMat = {
+        id: `RM-${Math.floor(100 + Math.random() * 900)}`,
+        ...payload,
+      };
+      saveMaterials([newMat, ...materials]);
+    }
+
     toast.success(`Raw Material "${formData.name}" saved successfully!`);
     setShowAddModal(false);
     setFormData({
@@ -93,7 +129,12 @@ export default function RawMaterialsPage() {
     });
   };
 
-  const handleDeleteMaterial = (id, name) => {
+  const handleDeleteMaterial = async (id, name) => {
+    try {
+      await apiClient.delete(`/textile/raw-materials/${id}`);
+    } catch (err) {
+      console.warn("Delete raw material API fallback:", err);
+    }
     const updated = materials.filter((m) => m.id !== id);
     saveMaterials(updated);
     toast.success(`Material "${name}" deleted.`);

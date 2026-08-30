@@ -41,40 +41,25 @@ export default function WarehouseStockPage() {
       setError("");
       const [invRes, prodRes, whRes, catRes] = await Promise.all([
         getInventories(),
-        getProducts(),
+        isTextile ? apiClient.get("/textile/products") : getProducts(),
         getWarehouses(),
         getCategories(),
       ]);
 
       const list = invRes?.data || (Array.isArray(invRes) ? invRes : []);
-      if (list.length > 0) {
-        setInventories(list);
-      } else {
-        if (isTextile) {
-          setInventories([
-            { id: "inv-tex-1", product: { name: "Cotton Yarn Spools", sku: "TEX-YARN-101", category: { name: "Cotton Yarns" } }, warehouse: { name: "Spinning Depot A" }, quantity: 4500, minimumStock: 500, status: "IN_STOCK", unit: "Kg" },
-            { id: "inv-tex-2", product: { name: "Woven Fabric Rolls", sku: "TEX-FAB-202", category: { name: "Woven Fabrics" } }, warehouse: { name: "Main Fabric Warehouse" }, quantity: 8200, minimumStock: 1000, status: "IN_STOCK", unit: "Meters" },
-            { id: "inv-tex-3", product: { name: "Reactive Dye Chemicals", sku: "TEX-DYE-404", category: { name: "Dyes & Pigments" } }, warehouse: { name: "Dyeing Chemical Store" }, quantity: 350, minimumStock: 500, status: "LOW_STOCK", unit: "Liters" },
-          ]);
-        } else if (isGym) {
-          setInventories([
-            { id: "inv-gym-1", product: { name: "Rubber Hex Dumbbell Sets", sku: "GYM-DUMB-01", category: { name: "Gym Gear" } }, warehouse: { name: "Main Fitness Store" }, quantity: 85, minimumStock: 15, status: "IN_STOCK", unit: "Pairs" },
-            { id: "inv-gym-2", product: { name: "Commercial Treadmill Belts", sku: "GYM-TRD-02", category: { name: "Personal Training" } }, warehouse: { name: "Main Fitness Store" }, quantity: 12, minimumStock: 20, status: "LOW_STOCK", unit: "Units" },
-            { id: "inv-gym-3", product: { name: "Whey Isolate Protein Tins", sku: "GYM-PROT-03", category: { name: "Nutrition Supplements" } }, warehouse: { name: "Nutrition Depot" }, quantity: 240, minimumStock: 50, status: "IN_STOCK", unit: "Tins" },
-          ]);
-        } else {
-          setInventories([
-            { id: "inv-ret-1", product: { name: "Packaged Supermarket Goods", sku: "RET-GROC-01", category: { name: "Groceries" } }, warehouse: { name: "Central Retail Store" }, quantity: 1500, minimumStock: 200, status: "IN_STOCK", unit: "Packs" },
-            { id: "inv-ret-2", product: { name: "Bottled Beverage Crates", sku: "RET-BEV-02", category: { name: "Beverages" } }, warehouse: { name: "Central Retail Store" }, quantity: 320, minimumStock: 50, status: "IN_STOCK", unit: "Crates" },
-          ]);
-        }
-      }
+      setInventories(list);
 
-      setProducts(prodRes?.data || (Array.isArray(prodRes) ? prodRes : []));
-      setWarehouses(whRes?.data || (Array.isArray(whRes) ? whRes : []));
-      setCategories(catRes?.data || (Array.isArray(catRes) ? catRes : []));
+      const prodList = prodRes?.data?.data || prodRes?.data || (Array.isArray(prodRes) ? prodRes : []);
+      setProducts(prodList);
+
+      const whList = whRes?.data?.data || whRes?.data || (Array.isArray(whRes) ? whRes : []);
+      setWarehouses(whList);
+
+      const catList = catRes?.data?.data || catRes?.data || (Array.isArray(catRes) ? catRes : []);
+      setCategories(catList);
     } catch (err) {
       console.error("Load stock inventory error:", err);
+      setError(err.response?.data?.message || err.message || "Failed to load inventory data");
     } finally {
       setLoading(false);
     }
@@ -86,21 +71,20 @@ export default function WarehouseStockPage() {
 
   const filteredProductsByIndustry = useMemo(() => {
     return products.filter((p) => {
-      const isTex = p.sku?.startsWith("TEX-") || p.description?.includes("[TEXTILE]");
-      if (isTextile) return isTex;
+      if (isTextile) return p.isTextile === true || p.category === "TEXTILE" || isTextile;
       if (isGym) return p.sku?.startsWith("GYM-") || p.description?.includes("[GYM]");
-      return !isTex && !p.sku?.startsWith("GYM-");
+      return !p.isTextile && !p.sku?.startsWith("TEX-") && !p.sku?.startsWith("GYM-");
     });
   }, [products, isTextile, isGym]);
 
   const filteredWarehousesByIndustry = useMemo(() => {
     const filtered = warehouses.filter((w) => {
-      const isTex = w.code?.startsWith("TEX-") || w.name?.toLowerCase().includes("mill") || w.name?.toLowerCase().includes("fabric") || w.name?.toLowerCase().includes("dye") || w.name?.toLowerCase().includes("spinning") || w.name?.toLowerCase().includes("textile") || w.address?.includes("[TEXTILE]");
-      const isGym = w.code?.startsWith("GYM-") || w.name?.toLowerCase().includes("fitness") || w.name?.toLowerCase().includes("gym") || w.address?.includes("[GYM]");
+      const isTex = w.isTextile === true || w.code?.startsWith("TEX-") || w.name?.toLowerCase().includes("mill") || w.name?.toLowerCase().includes("fabric") || w.name?.toLowerCase().includes("dye") || w.name?.toLowerCase().includes("spinning") || w.name?.toLowerCase().includes("textile") || w.address?.includes("[TEXTILE]");
+      const isGymMode = w.code?.startsWith("GYM-") || w.name?.toLowerCase().includes("fitness") || w.name?.toLowerCase().includes("gym") || w.address?.includes("[GYM]");
       
-      if (isTextile) return isTex;
-      if (isGym) return isGym;
-      return !isTex && !isGym;
+      if (isTextile) return isTex || true;
+      if (isGym) return isGymMode;
+      return !isTex && !isGymMode;
     });
 
     if (filtered.length > 0) return filtered;
@@ -124,10 +108,12 @@ export default function WarehouseStockPage() {
   // Map backend model shape to table-friendly shape
   const mappedStock = useMemo(() => {
     const filtered = inventories.filter((item) => {
+      if (isTextile) {
+        return item.product?.isTextile === true || item.product?.category === "TEXTILE" || item.product?.sku?.startsWith("TEX-") || item.product?.sku?.startsWith("FAB-") || true;
+      }
       const sku = item.product?.sku || "";
       const desc = item.product?.description || "";
-      const isTex = sku.startsWith("TEX-") || desc.includes("[TEXTILE]");
-      if (isTextile) return isTex;
+      const isTex = item.product?.isTextile || sku.startsWith("TEX-") || desc.includes("[TEXTILE]");
       if (isGym) return sku.startsWith("GYM-") || desc.includes("[GYM]");
       return !isTex && !sku.startsWith("GYM-");
     });

@@ -6,6 +6,10 @@ import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  getTextileCustomers,
+  createTextileCustomer,
+  updateTextileCustomer,
+  deleteTextileCustomer,
 } from "@/services/customerService";
 
 import {
@@ -27,7 +31,7 @@ import { useCompany } from "@/context/CompanyContext";
 import styles from "./customers.module.css";
 
 export default function CustomersPage() {
-  const { user } = useCompany();
+  const { user, isTextile } = useCompany();
   const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase();
   const isAccountant = roleUpper.includes("ACCOUNTANT");
 
@@ -45,15 +49,21 @@ export default function CustomersPage() {
   const fetchCustomerData = async () => {
     try {
       setLoading(true);
-      const response = await getCustomers();
+      const response = isTextile
+        ? await getTextileCustomers({ search })
+        : await getCustomers();
+
       if (response && response.data) {
         setCustomers(response.data);
       } else if (Array.isArray(response)) {
         setCustomers(response);
+      } else {
+        setCustomers([]);
       }
     } catch (err) {
       console.error("Failed to fetch customers:", err);
       showError("API/server failure", err.response?.data?.message || err.message || "Failed to load customers.");
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
@@ -61,7 +71,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomerData();
-  }, []);
+  }, [isTextile]);
 
   const handleAddNew = () => {
     setEditingCustomer(null);
@@ -76,11 +86,15 @@ export default function CustomersPage() {
   const handleFormSubmit = async (formData) => {
     try {
       if (editingCustomer) {
-        const res = await updateCustomer(editingCustomer.id, formData);
-        showSuccess("Product updated", res.message || `Customer "${formData.name}" updated successfully.`);
+        const res = isTextile
+          ? await updateTextileCustomer(editingCustomer.id, formData)
+          : await updateCustomer(editingCustomer.id, formData);
+        showSuccess("Customer updated", res.message || `Customer "${formData.name}" updated successfully.`);
       } else {
-        const res = await createCustomer(formData);
-        showSuccess("Employee added", res.message || `Customer "${formData.name}" added successfully.`);
+        const res = isTextile
+          ? await createTextileCustomer(formData)
+          : await createCustomer(formData);
+        showSuccess("Customer added", res.message || `Customer "${formData.name}" added successfully.`);
       }
       await fetchCustomerData();
       handleCancelForm();
@@ -104,12 +118,14 @@ export default function CustomersPage() {
       type: "danger",
       onConfirm: async () => {
         try {
-          const res = await deleteCustomer(customer.id);
-          showSuccess("Product updated", res.message || "Customer record deleted successfully.");
+          const res = isTextile
+            ? await deleteTextileCustomer(customer.id)
+            : await deleteCustomer(customer.id);
+          showSuccess("Customer deleted", res.message || "Customer record deleted successfully.");
           await fetchCustomerData();
         } catch (err) {
           console.error("Customer delete error:", err);
-          showError("Product couldn't be deleted", err.response?.data?.message || err.message || "Failed to delete customer.");
+          showError("Customer couldn't be deleted", err.response?.data?.message || err.message || "Failed to delete customer.");
         }
       },
     });
@@ -164,11 +180,12 @@ export default function CustomersPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       data = data.filter((c) => {
-        const name = (c.name || `${c.firstName || ""} ${c.lastName || ""}`).toLowerCase();
+        const name = (c.name || c.companyName || `${c.firstName || ""} ${c.lastName || ""}`).toLowerCase();
         const email = (c.email || "").toLowerCase();
         const phone = (c.phone || "").toLowerCase();
         const id = (c.id || "").toLowerCase();
-        return name.includes(q) || email.includes(q) || phone.includes(q) || id.includes(q);
+        const city = (c.city || "").toLowerCase();
+        return name.includes(q) || email.includes(q) || phone.includes(q) || id.includes(q) || city.includes(q);
       });
     }
 
@@ -178,22 +195,30 @@ export default function CustomersPage() {
 
     if (sortOrder === "az") {
       data.sort((a, b) =>
-        (a.name || a.firstName || "").localeCompare(b.name || b.firstName || "")
+        (a.name || a.companyName || a.firstName || "").localeCompare(b.name || b.companyName || b.firstName || "")
       );
     } else if (sortOrder === "za") {
       data.sort((a, b) =>
-        (b.name || b.firstName || "").localeCompare(a.name || a.firstName || "")
+        (b.name || b.companyName || b.firstName || "").localeCompare(a.name || a.companyName || a.firstName || "")
       );
     }
 
     return data;
   }, [customers, search, filterStatus, sortOrder]);
 
+  const pageTitle = isTextile ? "Textile Buyers & Wholesale Customers" : "Customers";
+  const pageSubtitle = isTextile
+    ? "Manage garment manufacturers, fabric wholesalers, export houses, and boutique retail clients."
+    : "Manage your client base, contact details, and account balances.";
+
   return (
     <div className={styles.page}>
       {/* HEADER */}
       <div className={styles.header}>
-        <h1>Customers</h1>
+        <div>
+          <h1>{pageTitle}</h1>
+          <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b" }}>{pageSubtitle}</p>
+        </div>
 
         <div className={styles.headerActions}>
           <button type="button" className={styles.secondaryButton} onClick={handlePrint}>
@@ -234,6 +259,7 @@ export default function CustomersPage() {
             initialData={editingCustomer || {}}
             onSubmit={handleFormSubmit}
             onCancel={handleCancelForm}
+            isTextile={isTextile}
           />
         </div>
       )}
@@ -246,7 +272,7 @@ export default function CustomersPage() {
             <FiSearch size={18} />
             <input
               type="text"
-              placeholder="Search customers..."
+              placeholder="Search customers by name, phone, email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -302,6 +328,7 @@ export default function CustomersPage() {
             onDelete={isAccountant ? undefined : handleDeleteCustomer}
             onEdit={isAccountant ? undefined : handleEditCustomer}
             readOnly={isAccountant}
+            isTextile={isTextile}
           />
         )}
       </div>

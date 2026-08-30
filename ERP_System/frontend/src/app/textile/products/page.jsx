@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   FiShoppingBag,
   FiPlus,
@@ -13,12 +14,22 @@ import {
 import { toast, Toaster } from "react-hot-toast";
 import apiClient from "@/services/apiClient";
 import { showConfirm } from "@/utils/swal";
+import { useCompany } from "@/context/CompanyContext";
 
 export default function TextileProductsPage() {
+  const router = useRouter();
+  const { user, isModuleEnabled, loading: companyLoading } = useCompany();
+
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!companyLoading && user && !isModuleEnabled("PRODUCTS")) {
+      router.replace("/unauthorized");
+    }
+  }, [user, companyLoading, isModuleEnabled, router]);
 
   const [formData, setFormData] = useState({
     name: "",

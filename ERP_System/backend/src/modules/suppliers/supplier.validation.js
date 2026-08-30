@@ -2,113 +2,153 @@ import { body } from "express-validator";
 
 export const createSupplierValidation = [
   body("companyName")
-    .trim()
-    .notEmpty()
-    .withMessage("Company name is required")
-    .isLength({ min: 2, max: 150 })
-    .withMessage("Company name must be between 2 and 150 characters"),
+    .optional({ nullable: true, checkFalsy: true })
+    .trim(),
+
+  body("name")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim(),
+
+  // Custom validation to accept either companyName or name
+  body().custom((value, { req }) => {
+    const nameVal = (req.body.companyName || req.body.name || "").trim();
+    if (!nameVal) {
+      throw new Error("Supplier / Company name is required");
+    }
+    if (nameVal.length < 2 || nameVal.length > 150) {
+      throw new Error("Supplier name must be between 2 and 150 characters");
+    }
+    return true;
+  }),
 
   body("contactPerson")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
     .isLength({ max: 100 })
     .withMessage("Contact person cannot exceed 100 characters"),
 
   body("email")
-    .optional({ checkFalsy: true })
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isEmail()
-    .withMessage("Invalid email address"),
+    .custom((value) => {
+      if (!value || value.trim() === "") return true;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value.trim())) {
+        throw new Error("Invalid email address format");
+      }
+      return true;
+    }),
 
   body("phone")
     .trim()
     .notEmpty()
     .withMessage("Phone number is required")
-    .isLength({ min: 8, max: 20 })
-    .withMessage("Phone number must be between 8 and 20 characters"),
+    .isLength({ min: 3, max: 30 })
+    .withMessage("Phone number must be between 3 and 30 characters"),
 
   body("address")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("city")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("state")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("country")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("taxNumber")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("status")
-    .optional()
-    .isIn(["ACTIVE", "INACTIVE"])
-    .withMessage("Status must be ACTIVE or INACTIVE"),
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((val) => {
+      if (!val) return true;
+      const s = String(val).toUpperCase();
+      if (s !== "ACTIVE" && s !== "INACTIVE") {
+        throw new Error("Status must be ACTIVE or INACTIVE");
+      }
+      return true;
+    }),
 
   body("category")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("isTextile")
     .optional()
-    .isBoolean()
     .toBoolean(),
 ];
 
 export const updateSupplierValidation = [
   body("companyName")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
     .isLength({ min: 2, max: 150 })
     .withMessage("Company name must be between 2 and 150 characters"),
 
+  body("name")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim(),
+
   body("contactPerson")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
     .isLength({ max: 100 })
     .withMessage("Contact person cannot exceed 100 characters"),
 
   body("email")
-    .optional({ checkFalsy: true })
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isEmail()
-    .withMessage("Invalid email address"),
+    .custom((value) => {
+      if (!value || value.trim() === "") return true;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value.trim())) {
+        throw new Error("Invalid email address format");
+      }
+      return true;
+    }),
 
   body("phone")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isLength({ min: 8, max: 20 })
-    .withMessage("Phone number must be between 8 and 20 characters"),
+    .isLength({ min: 3, max: 30 })
+    .withMessage("Phone number must be between 3 and 30 characters"),
 
   body("address")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("city")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("state")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("country")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("taxNumber")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim(),
 
   body("status")
-    .optional()
-    .isIn(["ACTIVE", "INACTIVE"])
-    .withMessage("Status must be ACTIVE or INACTIVE"),
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((val) => {
+      if (!val) return true;
+      const s = String(val).toUpperCase();
+      if (s !== "ACTIVE" && s !== "INACTIVE") {
+        throw new Error("Status must be ACTIVE or INACTIVE");
+      }
+      return true;
+    }),
 ];

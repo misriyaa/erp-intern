@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   FiLayers,
@@ -12,99 +12,154 @@ import {
   FiPlus,
   FiActivity,
   FiTruck,
-  FiBarChart2,
+  FiRefreshCw,
+  FiAlertTriangle,
+  FiClock,
+  FiSliders,
 } from "react-icons/fi";
 import apiClient from "@/services/apiClient";
+import socketService from "@/services/socketService";
+import { useCompany } from "@/context/CompanyContext";
 
 export default function TextileDashboard() {
-  const [stats, setStats] = useState({
-    rawMaterialStock: 0,
-    activeBatchesCount: 0,
-    spinningCount: 0,
-    weavingCount: 0,
-    dyeingCount: 0,
-    qcCount: 0,
-    finishingCount: 0,
-    passRate: 100,
-    finishedFabricMeters: 0,
-    finishedFabricCount: 0,
-    millsCount: 0,
-    suppliersCount: 0,
-    salesCount: 0,
-  });
+  const { company, industryCode } = useCompany();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [batches, setBatches] = useState([]);
+  const fetchDashboardData = useCallback(async (isSilent = false) => {
+    try {
+      if (!isSilent) setLoading(true);
+      else setRefreshing(true);
+      setError(null);
 
-  useEffect(() => {
-    async function loadDynamicDashboard() {
-      try {
-        const [prodRes, branchRes, suppRes, salesRes] = await Promise.all([
-          apiClient.get("/products").then((r) => r.data).catch(() => []),
-          apiClient.get("/branches").then((r) => r.data).catch(() => []),
-          apiClient.get("/suppliers").then((r) => r.data).catch(() => []),
-          apiClient.get("/sales").then((r) => r.data).catch(() => []),
-        ]);
-
-        const allProds = prodRes.data || (Array.isArray(prodRes) ? prodRes : []);
-        const textileProds = allProds.filter(
-          (p) =>
-            p.sku?.startsWith("TEX-") ||
-            p.description?.includes("[TEXTILE]") ||
-            p.isTextile === true ||
-            p.category === "TEXTILE"
-        );
-
-        const storedRaw = JSON.parse(localStorage.getItem("textile_raw_materials") || "[]");
-        const totalRawKg = storedRaw.reduce((sum, item) => sum + (Number(item.stock) || Number(item.quantity) || 0), 0);
-
-        const storedBatches = JSON.parse(localStorage.getItem("textile_production_batches") || "[]");
-        setBatches(storedBatches);
-
-        const spinning = storedBatches.filter((b) => (b.stage || b.status || "").toLowerCase().includes("spin")).length;
-        const weaving = storedBatches.filter((b) => (b.stage || b.status || "").toLowerCase().includes("weav")).length;
-        const dyeing = storedBatches.filter((b) => (b.stage || b.status || "").toLowerCase().includes("dye")).length;
-        const qc = storedBatches.filter((b) => (b.stage || b.status || "").toLowerCase().includes("qc") || (b.stage || "").toLowerCase().includes("quality")).length;
-        const finishing = storedBatches.filter((b) => (b.stage || b.status || "").toLowerCase().includes("finish") || (b.stage || "").toLowerCase().includes("print")).length;
-
-        const finishedMeters = storedBatches
-          .filter((b) => b.status === "COMPLETED" || b.progress === 100)
-          .reduce((sum, b) => sum + (Number(b.completedQty) || Number(b.targetQty) || 0), 0);
-
-        const storedQC = JSON.parse(localStorage.getItem("textile_qc_logs") || "[]");
-        let calcPassRate = 100;
-        if (storedQC.length > 0) {
-          const passed = storedQC.filter((q) => q.status === "PASSED" || q.result === "PASS").length;
-          calcPassRate = Number(((passed / storedQC.length) * 100).toFixed(1));
-        }
-
-        const branchesList = branchRes.data || (Array.isArray(branchRes) ? branchRes : []);
-        const suppList = suppRes.data || (Array.isArray(suppRes) ? suppRes : []);
-        const salesList = salesRes.data || (Array.isArray(salesRes) ? salesRes : []);
-
-        setStats({
-          rawMaterialStock: totalRawKg,
-          activeBatchesCount: storedBatches.length,
-          spinningCount: spinning,
-          weavingCount: weaving,
-          dyeingCount: dyeing,
-          qcCount: qc,
-          finishingCount: finishing,
-          passRate: calcPassRate,
-          finishedFabricMeters: finishedMeters,
-          finishedFabricCount: textileProds.length,
-          millsCount: branchesList.length,
-          suppliersCount: suppList.length,
-          salesCount: salesList.length,
-        });
-      } catch (err) {
-        console.error("Dashboard dynamic load error:", err);
+      const res = await apiClient.get("/textile/dashboard");
+      if (res.data?.success && res.data?.data) {
+        setData(res.data.data);
+      } else {
+        throw new Error(res.data?.message || "Invalid dashboard response structure");
       }
+    } catch (err) {
+      console.error("Error fetching textile dashboard:", err);
+      // Fallback: load from tenant storage / DB fallback
+      try {
+        const storedRaw = JSON.parse(localStorage.getItem("textile_raw_materials") || "[]");
+        const storedBatches = JSON.parse(localStorage.getItem("textile_production_batches") || "[]");
+        const storedQC = JSON.parse(localStorage.getItem("textile_qc_inspections") || "[]");
+
+        const totalRaw = storedRaw.reduce((sum, item) => sum + (Number(item.stock) || Number(item.quantity) || 0), 0);
+        const lowStock = storedRaw.filter((item) => (Number(item.stock) || 0) <= (Number(item.reorderLevel) || 500)).length;
+        const yarnStock = storedRaw.filter((i) => (i.category || "").toLowerCase().includes("yarn") || (i.name || "").toLowerCase().includes("yarn")).reduce((s, i) => s + (Number(i.stock) || 0), 0);
+        const dyeStock = storedRaw.filter((i) => (i.category || "").toLowerCase().includes("dye") || (i.category || "").toLowerCase().includes("chem")).reduce((s, i) => s + (Number(i.stock) || 0), 0);
+
+        const activeBatches = storedBatches.filter((b) => b.status !== "COMPLETED" && (b.progress || 0) < 100);
+        const spinning = activeBatches.filter((b) => (b.stage || b.currentStage || "").toLowerCase().includes("spin") || b.currentStageIndex === 0).length;
+        const weaving = activeBatches.filter((b) => (b.stage || b.currentStage || "").toLowerCase().includes("weav") || b.currentStageIndex === 1).length;
+        const dyeing = activeBatches.filter((b) => (b.stage || b.currentStage || "").toLowerCase().includes("dye") || b.currentStageIndex === 2).length;
+        const printing = activeBatches.filter((b) => (b.stage || b.currentStage || "").toLowerCase().includes("print") || b.currentStageIndex === 3).length;
+        const qc = activeBatches.filter((b) => (b.stage || b.currentStage || "").toLowerCase().includes("qc") || b.currentStageIndex === 4).length;
+
+        const passedQC = storedQC.filter((q) => q.status === "PASSED" || q.result === "PASS" || q.grade === "Grade A").length;
+        const failedQC = storedQC.filter((q) => q.status === "REJECTED" || q.result === "FAIL" || q.grade === "Reject").length;
+        const totalQC = passedQC + failedQC;
+        const passRate = totalQC > 0 ? Number(((passedQC / totalQC) * 100).toFixed(1)) : 0;
+
+        const completedBatches = storedBatches.filter((b) => b.status === "COMPLETED" || (b.progress || 0) >= 100);
+        const finishedMeters = completedBatches.reduce((s, b) => s + (Number(b.completedQty) || Number(b.targetQty) || Number(b.targetMeters) || 0), 0);
+
+        setData({
+          rawMaterials: {
+            totalQuantity: totalRaw,
+            unit: "KG",
+            yarnStock,
+            dyeStock,
+            lowStockCount: lowStock,
+            unitBreakdown: [{ unit: "KG", quantity: totalRaw }],
+          },
+          activeBatches: {
+            total: activeBatches.length,
+            spinning,
+            weaving,
+            dyeing,
+            printing,
+            qc,
+            stageSummary: `${spinning} Spinning, ${weaving} Weaving, ${dyeing} Dyeing, ${qc} QC`,
+          },
+          qualityControl: {
+            passRate,
+            hasQcData: totalQC > 0,
+            passed: passedQC,
+            failed: failedQC,
+            pending: storedQC.filter((q) => q.status === "PENDING").length,
+            totalCompleted: totalQC,
+          },
+          finishedFabrics: {
+            totalQuantity: finishedMeters,
+            unit: "Meters",
+            productCount: completedBatches.length,
+          },
+          pipeline: [
+            { stage: "1. Yarn Spinning", activeBatches: spinning, countLabel: `${spinning} Batches`, status: spinning > 0 ? "Active" : "Idle", bg: "#f0fdf4", color: "#166534" },
+            { stage: "2. Loom Weaving", activeBatches: weaving, countLabel: `${weaving} Batches`, status: weaving > 0 ? "Active" : "Idle", bg: "#eff6ff", color: "#1e40af" },
+            { stage: "3. Dyeing & Washing", activeBatches: dyeing, countLabel: `${dyeing} Batches`, status: dyeing > 0 ? "Active" : "Idle", bg: "#fdf4ff", color: "#86198f" },
+            { stage: "4. Printing & Finish", activeBatches: printing, countLabel: `${printing} Batches`, status: printing > 0 ? "Active" : "Idle", bg: "#fff7ed", color: "#c2410c" },
+            { stage: "5. QC Inspection", activeBatches: qc, countLabel: `${qc} Batches`, status: qc > 0 ? "Inspecting" : "Idle", bg: "#ecfdf5", color: "#047857" },
+            { stage: "6. Finished Stock", activeBatches: completedBatches.length, countLabel: `${(finishedMeters || 0).toLocaleString()} Meters`, status: finishedMeters > 0 ? "Ready" : "Empty", bg: "#f8fafc", color: "#334155" },
+          ],
+          ongoingOrders: activeBatches.map((b) => ({
+            id: b.id,
+            batchId: b.id,
+            fabricType: b.fabricType || b.material || b.batchName || "Fabric Roll",
+            currentStage: b.stage || b.currentStage || "1. Yarn Spinning",
+            targetOutput: Number(b.targetOutput || b.targetMeters || b.targetQty || 0),
+            completedQty: Number(b.completedQty || 0),
+            unit: b.unit || "Meters",
+            progress: Number(b.progress || 0),
+            status: b.status || "IN_PROGRESS",
+          })),
+        });
+      } catch (fallbackErr) {
+        setError(err.response?.data?.message || err.message || "Failed to load dashboard data.");
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    loadDynamicDashboard();
   }, []);
 
+  useEffect(() => {
+    fetchDashboardData();
+
+    // Setup real-time websocket listener
+    const unsubscribeUpdated = socketService.on("textile.dashboard.updated", () => {
+      fetchDashboardData(true);
+    });
+    const unsubscribeGlobal = socketService.on("dashboard.updated", () => {
+      fetchDashboardData(true);
+    });
+
+    // Background polling fallback every 8 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData(true);
+    }, 8000);
+
+    return () => {
+      if (unsubscribeUpdated) unsubscribeUpdated();
+      if (unsubscribeGlobal) unsubscribeGlobal();
+      clearInterval(interval);
+    };
+  }, [fetchDashboardData, company?.id]);
+
+  const raw = data?.rawMaterials || { totalQuantity: 0, unit: "KG", yarnStock: 0, dyeStock: 0, lowStockCount: 0 };
+  const activeBatches = data?.activeBatches || { total: 0, stageSummary: "0 Spinning, 0 Weaving, 0 Dyeing, 0 QC" };
+  const qc = data?.qualityControl || { passRate: 0, hasQcData: false, passed: 0, failed: 0, pending: 0, totalCompleted: 0 };
+  const finished = data?.finishedFabrics || { totalQuantity: 0, unit: "Meters", productCount: 0 };
+  const pipeline = data?.pipeline || [];
+  const ongoingOrders = data?.ongoingOrders || [];
+
   return (
-    <div style={{ padding: "24px", fontFamily: "Inter, sans-serif" }}>
+    <div style={{ padding: "24px", fontFamily: "Inter, sans-serif", maxWidth: "1400px", margin: "0 auto" }}>
       {/* HEADER SECTION */}
       <div
         style={{
@@ -129,6 +184,7 @@ export default function TextileDashboard() {
             }}
           >
             🧵 Textile & Production Overview
+            {refreshing && <FiRefreshCw className="animate-spin" size={16} style={{ color: "#0d9488" }} />}
           </h1>
           <p style={{ color: "#64748b", margin: "4px 0 0 0", fontSize: "14px" }}>
             Real-time tracking for raw materials, yarn spinning, weaving batches, dyeing, and quality control.
@@ -175,15 +231,54 @@ export default function TextileDashboard() {
         </div>
       </div>
 
+      {/* ERROR BANNER IF ANY */}
+      {error && (
+        <div
+          style={{
+            padding: "14px 18px",
+            background: "#fee2e2",
+            color: "#b91c1c",
+            borderRadius: "10px",
+            marginBottom: "20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "14px",
+            border: "1px solid #fecaca",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <FiAlertTriangle size={18} />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => fetchDashboardData()}
+            style={{
+              background: "#b91c1c",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "6px",
+              padding: "6px 12px",
+              fontSize: "12px",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* KPI METRIC CARDS */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: "18px",
           marginBottom: "28px",
         }}
       >
+        {/* CARD 1: RAW MATERIALS STOCK */}
         <div
           style={{
             background: "#ffffff",
@@ -212,14 +307,39 @@ export default function TextileDashboard() {
               <FiLayers size={22} />
             </div>
           </div>
-          <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
-            {stats.rawMaterialStock.toLocaleString()} <span style={{ fontSize: "15px", color: "#64748b", fontWeight: "500" }}>KG</span>
-          </h2>
-          <div style={{ fontSize: "12px", color: "#10b981", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+
+          {loading && !data ? (
+            <div style={{ height: "34px", background: "#f1f5f9", borderRadius: "6px", margin: "12px 0 4px 0" }} />
+          ) : (
+            <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
+              {raw.totalQuantity > 0 ? (
+                <>
+                  {(raw.totalQuantity || 0).toLocaleString()}{" "}
+                  <span style={{ fontSize: "15px", color: "#64748b", fontWeight: "500" }}>{raw.unit}</span>
+                </>
+              ) : (
+                <span style={{ color: "#94a3b8", fontSize: "22px" }}>0 {raw.unit}</span>
+              )}
+            </h2>
+          )}
+
+          <div style={{ fontSize: "12px", color: "#0f766e", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
             <FiTrendingUp /> Real-time Yarn & Dye Inventory
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+            {raw.yarnStock > 0 || raw.dyeStock > 0 ? (
+              <span>
+                {(raw.yarnStock || 0).toLocaleString()} KG Yarn • {(raw.dyeStock || 0).toLocaleString()} KG Dyes & Chem
+              </span>
+            ) : raw.lowStockCount > 0 ? (
+              <span style={{ color: "#b91c1c", fontWeight: "600" }}>⚠️ {raw.lowStockCount} item(s) below reorder level</span>
+            ) : (
+              <span>No raw material inventory available</span>
+            )}
           </div>
         </div>
 
+        {/* CARD 2: ACTIVE BATCHES */}
         <div
           style={{
             background: "#ffffff",
@@ -248,14 +368,29 @@ export default function TextileDashboard() {
               <FiCpu size={22} />
             </div>
           </div>
-          <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
-            {stats.activeBatchesCount} <span style={{ fontSize: "15px", color: "#64748b", fontWeight: "500" }}>Orders</span>
-          </h2>
-          <div style={{ fontSize: "12px", color: "#6366f1", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-            <FiActivity /> {stats.spinningCount} Spinning, {stats.weavingCount} Weaving, {stats.dyeingCount} Dyeing, {stats.qcCount} QC
+
+          {loading && !data ? (
+            <div style={{ height: "34px", background: "#f1f5f9", borderRadius: "6px", margin: "12px 0 4px 0" }} />
+          ) : (
+            <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
+              {activeBatches.total}{" "}
+              <span style={{ fontSize: "15px", color: "#64748b", fontWeight: "500" }}>Orders</span>
+            </h2>
+          )}
+
+          <div style={{ fontSize: "12px", color: "#6366f1", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
+            <FiActivity /> Stage Breakdown
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+            {activeBatches.total > 0 ? (
+              <span>{activeBatches.stageSummary}</span>
+            ) : (
+              <span>No active production batches</span>
+            )}
           </div>
         </div>
 
+        {/* CARD 3: QUALITY PASS RATE */}
         <div
           style={{
             background: "#ffffff",
@@ -284,14 +419,30 @@ export default function TextileDashboard() {
               <FiCheckCircle size={22} />
             </div>
           </div>
-          <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
-            {stats.passRate}%
-          </h2>
-          <div style={{ fontSize: "12px", color: "#10b981", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-            <FiCheckCircle /> Logged Quality Control Rate
+
+          {loading && !data ? (
+            <div style={{ height: "34px", background: "#f1f5f9", borderRadius: "6px", margin: "12px 0 4px 0" }} />
+          ) : (
+            <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
+              {qc.hasQcData ? `${qc.passRate}%` : <span style={{ color: "#94a3b8", fontSize: "20px" }}>No QC Data</span>}
+            </h2>
+          )}
+
+          <div style={{ fontSize: "12px", color: "#10b981", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
+            <FiCheckCircle /> Inspection Results
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+            {qc.hasQcData ? (
+              <span>
+                {qc.passed} Passed • {qc.failed} Failed ({qc.totalCompleted} Total)
+              </span>
+            ) : (
+              <span>No completed QC inspections logged</span>
+            )}
           </div>
         </div>
 
+        {/* CARD 4: FINISHED FABRICS */}
         <div
           style={{
             background: "#ffffff",
@@ -320,11 +471,31 @@ export default function TextileDashboard() {
               <FiShoppingBag size={22} />
             </div>
           </div>
-          <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
-            {stats.finishedFabricMeters.toLocaleString()} <span style={{ fontSize: "15px", color: "#64748b", fontWeight: "500" }}>Meters</span>
-          </h2>
-          <div style={{ fontSize: "12px", color: "#d97706", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-            <FiTruck /> ({stats.finishedFabricCount} Finished Products)
+
+          {loading && !data ? (
+            <div style={{ height: "34px", background: "#f1f5f9", borderRadius: "6px", margin: "12px 0 4px 0" }} />
+          ) : (
+            <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "12px 0 4px 0" }}>
+              {finished.totalQuantity > 0 ? (
+                <>
+                  {finished.totalQuantity.toLocaleString()}{" "}
+                  <span style={{ fontSize: "15px", color: "#64748b", fontWeight: "500" }}>{finished.unit}</span>
+                </>
+              ) : (
+                <span style={{ color: "#94a3b8", fontSize: "22px" }}>0 {finished.unit}</span>
+              )}
+            </h2>
+          )}
+
+          <div style={{ fontSize: "12px", color: "#d97706", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
+            <FiTruck /> Ready Stock Output
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+            {finished.productCount > 0 ? (
+              <span>({finished.productCount} Finished Products Available)</span>
+            ) : (
+              <span>No finished fabric inventory available</span>
+            )}
           </div>
         </div>
       </div>
@@ -340,33 +511,37 @@ export default function TextileDashboard() {
           boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
         }}
       >
-        <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", marginBottom: "16px" }}>
-          ⚙️ Textile Production Pipeline Stages
-        </h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+            ⚙️ Textile Production Pipeline Stages
+          </h3>
+          <span style={{ fontSize: "12px", color: "#64748b" }}>Live Manufacturing Flow</span>
+        </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
-          {[
-            { stage: "1. Yarn Spinning", count: `${stats.spinningCount} Batches`, status: stats.spinningCount > 0 ? "Active" : "Idle", bg: "#f0fdf4", color: "#166534" },
-            { stage: "2. Loom Weaving", count: `${stats.weavingCount} Batches`, status: stats.weavingCount > 0 ? "In Progress" : "Idle", bg: "#eff6ff", color: "#1e40af" },
-            { stage: "3. Dyeing & Washing", count: `${stats.dyeingCount} Batches`, status: stats.dyeingCount > 0 ? "In Progress" : "Idle", bg: "#fdf4ff", color: "#86198f" },
-            { stage: "4. Printing & Finish", count: `${stats.finishingCount} Batches`, status: stats.finishingCount > 0 ? "Processing" : "Idle", bg: "#fff7ed", color: "#c2410c" },
-            { stage: "5. QC Inspection", count: `${stats.qcCount} Batches`, status: stats.qcCount > 0 ? "Inspecting" : "Idle", bg: "#ecfdf5", color: "#047857" },
-            { stage: "6. Finished Stock", count: `${stats.finishedFabricMeters.toLocaleString()} Meters`, status: stats.finishedFabricMeters > 0 ? "Ready" : "Empty", bg: "#f8fafc", color: "#334155" },
-          ].map((s, idx) => (
+          {pipeline.map((s, idx) => (
             <div
               key={idx}
               style={{
-                background: s.bg,
+                background: s.bg || "#f8fafc",
                 border: "1px solid #cbd5e1",
                 borderRadius: "10px",
                 padding: "14px",
+                transition: "transform 0.2s ease",
               }}
             >
-              <div style={{ fontSize: "12px", fontWeight: "700", color: s.color, marginBottom: "4px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "700", color: s.color || "#1e293b", marginBottom: "4px" }}>
                 {s.stage}
               </div>
-              <div style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>{s.count}</div>
-              <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px", fontWeight: "600" }}>
+              <div style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>{s.countLabel}</div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: s.status === "Active" ? "#047857" : s.status === "Inspecting" ? "#0f766e" : s.status === "Attention Required" ? "#b91c1c" : "#64748b",
+                  marginTop: "4px",
+                  fontWeight: "700",
+                }}
+              >
                 Status: {s.status}
               </div>
             </div>
@@ -416,11 +591,11 @@ export default function TextileDashboard() {
               </tr>
             </thead>
             <tbody>
-              {batches.length > 0 ? (
-                batches.map((b) => (
-                  <tr key={b.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px 20px", fontWeight: "700", color: "#0d9488" }}>{b.id}</td>
-                    <td style={{ padding: "16px 20px", fontWeight: "600", color: "#0f172a" }}>{b.material}</td>
+              {ongoingOrders.length > 0 ? (
+                ongoingOrders.map((b) => (
+                  <tr key={b.id || b.batchId} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "16px 20px", fontWeight: "700", color: "#0d9488" }}>{b.batchId || b.id}</td>
+                    <td style={{ padding: "16px 20px", fontWeight: "600", color: "#0f172a" }}>{b.fabricType || b.material}</td>
                     <td style={{ padding: "16px 20px" }}>
                       <span
                         style={{
@@ -442,11 +617,11 @@ export default function TextileDashboard() {
                               : "#4338ca",
                         }}
                       >
-                        {b.stage || b.status}
+                        {b.currentStage || b.stage || b.status}
                       </span>
                     </td>
                     <td style={{ padding: "16px 20px", fontWeight: "600", color: "#334155" }}>
-                      {b.completedQty} / {b.targetQty}
+                      {Number(b.completedQty || 0).toLocaleString()} / {Number(b.targetOutput || b.targetQty || 0).toLocaleString()} {b.unit || "Meters"}
                     </td>
                     <td style={{ padding: "16px 20px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -461,10 +636,11 @@ export default function TextileDashboard() {
                         >
                           <div
                             style={{
-                              width: `${b.progress || 0}%`,
+                              width: `${Math.min(b.progress || 0, 100)}%`,
                               height: "100%",
                               background: b.progress === 100 ? "#10b981" : "#0d9488",
                               borderRadius: "4px",
+                              transition: "width 0.3s ease",
                             }}
                           />
                         </div>
@@ -477,8 +653,16 @@ export default function TextileDashboard() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" style={{ padding: "32px", textAlign: "center", color: "#94a3b8" }}>
-                    No ongoing production orders found. Click &quot;New Production Order&quot; to start a new batch.
+                  <td colSpan="5" style={{ padding: "36px 20px", textAlign: "center", color: "#94a3b8" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                      <FiClock size={28} style={{ color: "#cbd5e1" }} />
+                      <div style={{ fontSize: "15px", fontWeight: "600", color: "#475569" }}>
+                        No ongoing production orders found.
+                      </div>
+                      <div style={{ fontSize: "13px", color: "#94a3b8" }}>
+                        Click &quot;New Production Order&quot; to start a new batch.
+                      </div>
+                    </div>
                   </td>
                 </tr>
               )}

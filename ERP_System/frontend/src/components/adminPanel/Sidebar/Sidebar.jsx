@@ -182,6 +182,12 @@ export default function Sidebar({ isOpen, onClose }) {
     if (item.href === "/dashboard" && ["RESTAURANT", "LAUNDRY"].includes(codeUpper)) {
       return false;
     }
+    // For Textile ERP: exclude duplicate shared items ("Dashboard", "Employees / Staff", "Reports & Analytics")
+    if (codeUpper === "TEXTILE") {
+      if (!item.industry && (item.moduleCode === "DASHBOARD" || item.moduleCode === "EMPLOYEES" || item.moduleCode === "REPORTS")) {
+        return false;
+      }
+    }
     // For Restaurant ERP: exclude duplicate shared items ("Employees / Staff" and generic "Reports & Analytics")
     if (codeUpper === "RESTAURANT") {
       if (!item.industry && (item.moduleCode === "EMPLOYEES" || item.moduleCode === "REPORTS" || item.moduleCode === "PURCHASES" || item.moduleCode === "WASTAGE")) {
@@ -299,7 +305,7 @@ export default function Sidebar({ isOpen, onClose }) {
             );
           })
         ) : (
-          visibleNavItems.map((item) => {
+          visibleNavItems.map((item, idx) => {
             const IconComp = item.icon;
             const active = isActivePath(item.href);
             const finalHref = selectedRestaurantId && item.href.startsWith("/restaurant/")
@@ -308,7 +314,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
             return (
               <Link
-                key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}`}
+                key={`${item.industry || "SHARED"}-${item.moduleCode}-${item.label}-${item.href}-${idx}`}
                 href={finalHref}
                 className={active ? styles.active : ""}
                 onClick={handleLinkClick}

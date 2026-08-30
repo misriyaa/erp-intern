@@ -320,6 +320,7 @@ app.use("/api/restaurant-reports", restaurantReportRoutes);
 app.use("/api/restaurant/ingredients", restaurantIngredientRoutes);
 app.use("/api/restaurant-ingredients", restaurantIngredientRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/textile", textileRoutes);
 
 
 app.use((req, res) => {
