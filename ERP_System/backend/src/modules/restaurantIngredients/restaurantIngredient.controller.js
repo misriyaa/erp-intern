@@ -3,6 +3,9 @@ import * as ingredientService from "./restaurantIngredient.service.js";
 export const createIngredient = async (req, res, next) => {
   try {
     const companyId = req.companyId || req.user?.companyId;
+    if (!companyId) {
+      return res.status(403).json({ success: false, message: "Tenant context required." });
+    }
     const body = req.body || {};
 
     const name = (body.name || body.ingredientName || "").trim();
@@ -15,7 +18,6 @@ export const createIngredient = async (req, res, next) => {
 
     const payload = {
       ...body,
-      companyId,
       name,
     };
 
@@ -23,7 +25,7 @@ export const createIngredient = async (req, res, next) => {
       payload.image = `/uploads/${req.file.filename}`;
     }
 
-    const ingredient = await ingredientService.createIngredient(payload);
+    const ingredient = await ingredientService.createIngredient(companyId, payload);
 
     return res.status(201).json({
       success: true,
@@ -42,16 +44,18 @@ export const createIngredient = async (req, res, next) => {
 export const getAllIngredients = async (req, res, next) => {
   try {
     const companyId = req.companyId || req.user?.companyId;
+    if (!companyId) {
+      return res.status(200).json({ success: true, data: [] });
+    }
     const { restaurantOutletId, search, status } = req.query;
 
     const params = {
-      companyId,
       restaurantOutletId,
       search,
       status,
     };
 
-    const ingredients = await ingredientService.getAllIngredients(params);
+    const ingredients = await ingredientService.getAllIngredients(companyId, params);
 
     return res.status(200).json({
       success: true,
@@ -68,13 +72,8 @@ export const getAllIngredients = async (req, res, next) => {
 
 export const getIngredientById = async (req, res, next) => {
   try {
-    const ingredient = await ingredientService.getIngredientById(req.params.id);
-    if (!ingredient) {
-      return res.status(404).json({
-        success: false,
-        message: "Ingredient not found",
-      });
-    }
+    const companyId = req.companyId || req.user?.companyId;
+    const ingredient = await ingredientService.getIngredientById(req.params.id, companyId);
     return res.status(200).json({
       success: true,
       data: ingredient,
@@ -86,11 +85,12 @@ export const getIngredientById = async (req, res, next) => {
 
 export const updateIngredient = async (req, res, next) => {
   try {
+    const companyId = req.companyId || req.user?.companyId;
     const payload = { ...req.body };
     if (req.file) {
       payload.image = `/uploads/${req.file.filename}`;
     }
-    const ingredient = await ingredientService.updateIngredient(req.params.id, payload);
+    const ingredient = await ingredientService.updateIngredient(req.params.id, companyId, payload);
     return res.status(200).json({
       success: true,
       message: "Ingredient updated successfully",
@@ -107,7 +107,8 @@ export const updateIngredient = async (req, res, next) => {
 
 export const deleteIngredient = async (req, res, next) => {
   try {
-    await ingredientService.deleteIngredient(req.params.id);
+    const companyId = req.companyId || req.user?.companyId;
+    await ingredientService.deleteIngredient(req.params.id, companyId);
     return res.status(200).json({
       success: true,
       message: "Ingredient deleted successfully",

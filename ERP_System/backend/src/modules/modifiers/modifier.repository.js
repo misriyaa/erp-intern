@@ -1,6 +1,22 @@
 import prisma from "../../config/prisma.js";
 
-export const createModifierGroup = async (data) => {
+export const createModifierGroup = async (companyId, data) => {
+  if (!companyId) {
+    const error = new Error("Tenant company context required.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // Validate restaurant belongs to company
+  const restaurant = await prisma.restaurant.findFirst({
+    where: { id: data.restaurantId, companyId },
+  });
+  if (!restaurant) {
+    const error = new Error("Restaurant outlet not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const { modifiers, ...groupData } = data;
   return await prisma.modifierGroup.create({
     data: {
@@ -28,9 +44,18 @@ export const createModifierGroup = async (data) => {
   });
 };
 
-export const getModifierGroups = async (restaurantId) => {
-  const where = {};
-  if (restaurantId) where.restaurantId = restaurantId;
+export const getModifierGroups = async (companyId, restaurantId) => {
+  if (!companyId) return [];
+
+  const where = {
+    restaurant: {
+      companyId,
+    },
+  };
+
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
 
   return await prisma.modifierGroup.findMany({
     where,
@@ -46,9 +71,16 @@ export const getModifierGroups = async (restaurantId) => {
   });
 };
 
-export const getModifierGroupById = async (id) => {
-  return await prisma.modifierGroup.findUnique({
-    where: { id },
+export const getModifierGroupById = async (id, companyId) => {
+  if (!id) return null;
+
+  const where = { id };
+  if (companyId) {
+    where.restaurant = { companyId };
+  }
+
+  return await prisma.modifierGroup.findFirst({
+    where,
     include: {
       modifiers: true,
       menuItems: {
@@ -60,7 +92,14 @@ export const getModifierGroupById = async (id) => {
   });
 };
 
-export const updateModifierGroup = async (id, data) => {
+export const updateModifierGroup = async (id, companyId, data) => {
+  const existing = await getModifierGroupById(id, companyId);
+  if (!existing) {
+    const error = new Error("Modifier group not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const { modifiers, ...groupData } = data;
 
   return await prisma.$transaction(async (tx) => {
@@ -90,7 +129,26 @@ export const updateModifierGroup = async (id, data) => {
   });
 };
 
-export const linkMenuItemModifierGroup = async (menuItemId, modifierGroupId) => {
+export const linkMenuItemModifierGroup = async (companyId, menuItemId, modifierGroupId) => {
+  // Validate menuItem and modifierGroup belong to company
+  const menuItem = await prisma.menuItem.findFirst({
+    where: { id: menuItemId, restaurant: { companyId } },
+  });
+  if (!menuItem) {
+    const error = new Error("Menu item not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const modifierGroup = await prisma.modifierGroup.findFirst({
+    where: { id: modifierGroupId, restaurant: { companyId } },
+  });
+  if (!modifierGroup) {
+    const error = new Error("Modifier group not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.menuItemModifierGroup.upsert({
     where: {
       menuItemId_modifierGroupId: {
@@ -106,7 +164,16 @@ export const linkMenuItemModifierGroup = async (menuItemId, modifierGroupId) => 
   });
 };
 
-export const unlinkMenuItemModifierGroup = async (menuItemId, modifierGroupId) => {
+export const unlinkMenuItemModifierGroup = async (companyId, menuItemId, modifierGroupId) => {
+  const menuItem = await prisma.menuItem.findFirst({
+    where: { id: menuItemId, restaurant: { companyId } },
+  });
+  if (!menuItem) {
+    const error = new Error("Menu item not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.menuItemModifierGroup.delete({
     where: {
       menuItemId_modifierGroupId: {
@@ -117,7 +184,14 @@ export const unlinkMenuItemModifierGroup = async (menuItemId, modifierGroupId) =
   });
 };
 
-export const deleteModifierGroup = async (id) => {
+export const deleteModifierGroup = async (id, companyId) => {
+  const existing = await getModifierGroupById(id, companyId);
+  if (!existing) {
+    const error = new Error("Modifier group not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.modifierGroup.delete({
     where: { id },
   });

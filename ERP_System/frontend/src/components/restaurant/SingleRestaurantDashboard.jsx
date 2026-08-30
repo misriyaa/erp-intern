@@ -56,8 +56,11 @@ import {
 
 const PIE_COLORS = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4"];
 
+import { useCompany } from "@/context/CompanyContext";
+
 export default function SingleRestaurantDashboard() {
   const router = useRouter();
+  const { company } = useCompany();
 
   // Loading & Filter States
   const [loading, setLoading] = useState(true);
@@ -82,11 +85,11 @@ export default function SingleRestaurantDashboard() {
 
   useEffect(() => {
     fetchInitialData();
-  }, []);
+  }, [company?.id]);
 
   useEffect(() => {
     fetchDashboardMetrics();
-  }, [selectedOutletId]);
+  }, [selectedOutletId, company?.id]);
 
   const fetchInitialData = async () => {
     try {

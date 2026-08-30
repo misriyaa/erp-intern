@@ -1,19 +1,19 @@
-import * as kitchenRepo from "./kitchen.repository.js";
+import * as kitchenRepository from "./kitchen.repository.js";
 
-export const getKitchenOrders = async (restaurantId, status) => {
-  return await kitchenRepo.getKitchenOrders(restaurantId, status);
+export const getKitchenOrders = async (companyId, restaurantId, status) => {
+  return await kitchenRepository.getKitchenOrders(companyId, restaurantId, status);
 };
 
-export const getKitchenOrderById = async (id) => {
-  const kot = await kitchenRepo.getKitchenOrderById(id);
-  if (!kot) throw new Error("KOT not found.");
+export const getKitchenOrderById = async (id, companyId) => {
+  const kot = await kitchenRepository.getKitchenOrderById(id, companyId);
+  if (!kot) {
+    const error = new Error("Kitchen order ticket not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
   return kot;
 };
 
-export const updateKOTStatus = async (id, status) => {
-  const validStatuses = ["NEW", "PREPARING", "READY", "SERVED", "CANCELLED"];
-  if (!validStatuses.includes(status)) {
-    throw new Error(`Invalid KOT status: ${status}`);
-  }
-  return await kitchenRepo.updateKOTStatus(id, status);
+export const updateKOTStatus = async (id, companyId, status) => {
+  return await kitchenRepository.updateKOTStatus(id, companyId, status);
 };

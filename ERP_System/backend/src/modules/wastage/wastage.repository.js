@@ -1,8 +1,13 @@
 import prisma from "../../config/prisma.js";
 
-export const createWastage = async (data) => {
-  const { items, ...wastageData } = data;
+export const createWastage = async (companyId, data) => {
+  if (!companyId) {
+    const error = new Error("Tenant company context required.");
+    error.statusCode = 403;
+    throw error;
+  }
 
+  const { items, ...wastageData } = data;
   const wastageNumber = wastageData.wastageNumber || `WST-${Date.now().toString().slice(-6)}`;
 
   return await prisma.$transaction(async (tx) => {
@@ -12,8 +17,8 @@ export const createWastage = async (data) => {
     if (items && items.length > 0) {
       for (const item of items) {
         const qty = parseFloat(item.quantity) || 1;
-        const product = await tx.product.findUnique({
-          where: { id: item.productId },
+        const product = await tx.product.findFirst({
+          where: { id: item.productId, companyId },
         });
 
         const unitCost = parseFloat(item.unitCost) || (product ? parseFloat(product.costPrice) : 0);
@@ -49,7 +54,7 @@ export const createWastage = async (data) => {
           // Create stock movement record
           await tx.stockMovement.create({
             data: {
-              companyId: wastageData.companyId,
+              companyId,
               productId: item.productId,
               warehouseId: wastageData.warehouseId,
               type: "WASTAGE",
@@ -65,6 +70,7 @@ export const createWastage = async (data) => {
     const wastage = await tx.wastage.create({
       data: {
         ...wastageData,
+        companyId,
         wastageNumber,
         totalCost,
         items: {
@@ -86,13 +92,18 @@ export const createWastage = async (data) => {
   });
 };
 
-export const getWastages = async (params) => {
-  const { companyId, restaurantId, warehouseId } = params;
-  const where = {};
+export const getWastages = async (companyId, params = {}) => {
+  if (!companyId) return [];
 
-  if (companyId) where.companyId = companyId;
-  if (restaurantId) where.restaurantId = restaurantId;
-  if (warehouseId) where.warehouseId = warehouseId;
+  const { restaurantId, warehouseId } = params;
+  const where = { companyId };
+
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
+  if (warehouseId && warehouseId !== "ALL" && warehouseId !== "undefined" && warehouseId !== "null" && String(warehouseId).trim() !== "") {
+    where.warehouseId = warehouseId;
+  }
 
   return await prisma.wastage.findMany({
     where,
@@ -109,9 +120,16 @@ export const getWastages = async (params) => {
   });
 };
 
-export const getWastageById = async (id) => {
-  return await prisma.wastage.findUnique({
-    where: { id },
+export const getWastageById = async (id, companyId) => {
+  if (!id) return null;
+
+  const where = { id };
+  if (companyId) {
+    where.companyId = companyId;
+  }
+
+  return await prisma.wastage.findFirst({
+    where,
     include: {
       items: {
         include: {
@@ -124,7 +142,14 @@ export const getWastageById = async (id) => {
   });
 };
 
-export const deleteWastage = async (id) => {
+export const deleteWastage = async (id, companyId) => {
+  const existing = await getWastageById(id, companyId);
+  if (!existing) {
+    const error = new Error("Wastage record not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.wastage.delete({
     where: { id },
   });

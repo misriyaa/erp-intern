@@ -1,21 +1,21 @@
-import * as recipeRepo from "./recipe.repository.js";
+import * as recipeRepository from "./recipe.repository.js";
 
-export const upsertRecipe = async (menuItemId, data) => {
-  if (!menuItemId) throw new Error("Menu item ID is required.");
-  if (!data.ingredients || !Array.isArray(data.ingredients)) {
-    throw new Error("Ingredients array is required.");
+export const upsertRecipe = async (companyId, menuItemId, data) => {
+  if (!menuItemId) {
+    throw new Error("Menu item ID is required.");
   }
-  return await recipeRepo.upsertRecipe(menuItemId, data);
+  return await recipeRepository.upsertRecipe(companyId, menuItemId, data);
 };
 
-export const getRecipeByMenuItem = async (menuItemId) => {
-  return await recipeRepo.getRecipeByMenuItem(menuItemId);
+export const getRecipeByMenuItem = async (companyId, menuItemId) => {
+  const recipe = await recipeRepository.getRecipeByMenuItem(companyId, menuItemId);
+  return recipe;
 };
 
-export const getAllRecipes = async (restaurantId) => {
-  return await recipeRepo.getAllRecipes(restaurantId);
+export const getAllRecipes = async (companyId, restaurantId) => {
+  return await recipeRepository.getAllRecipes(companyId, restaurantId);
 };
 
-export const deleteRecipe = async (id) => {
-  return await recipeRepo.deleteRecipe(id);
+export const deleteRecipe = async (id, companyId) => {
+  return await recipeRepository.deleteRecipe(id, companyId);
 };

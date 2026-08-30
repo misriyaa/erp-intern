@@ -1,38 +1,35 @@
-import * as resRepo from "./reservation.repository.js";
+import * as reservationRepository from "./reservation.repository.js";
 
-export const createReservation = async (data) => {
-  if (!data.restaurantId || !data.reservationDate || !data.reservationTime) {
-    throw new Error("Restaurant ID, date, and time are required.");
+export const createReservation = async (companyId, data) => {
+  if (!data.restaurantId) throw new Error("Restaurant ID is required.");
+  if (!data.reservationDate) throw new Error("Reservation date is required.");
+  if (!data.reservationTime) throw new Error("Reservation time is required.");
+  if (!data.numberOfGuests) throw new Error("Number of guests is required.");
+  return await reservationRepository.createReservation(companyId, data);
+};
+
+export const getReservations = async (companyId, restaurantId, status, date) => {
+  return await reservationRepository.getReservations(companyId, restaurantId, status, date);
+};
+
+export const getReservationById = async (id, companyId) => {
+  const reservation = await reservationRepository.getReservationById(id, companyId);
+  if (!reservation) {
+    const error = new Error("Reservation not found or access denied.");
+    error.statusCode = 404;
+    throw error;
   }
-  return await resRepo.createReservation(data);
+  return reservation;
 };
 
-export const getReservations = async (restaurantId, status, date) => {
-  return await resRepo.getReservations(restaurantId, status, date);
+export const updateReservation = async (id, companyId, data) => {
+  return await reservationRepository.updateReservation(id, companyId, data);
 };
 
-export const getReservationById = async (id) => {
-  const res = await resRepo.getReservationById(id);
-  if (!res) throw new Error("Reservation not found.");
-  return res;
+export const updateReservationStatus = async (id, companyId, status) => {
+  return await reservationRepository.updateReservationStatus(id, companyId, status);
 };
 
-export const updateReservation = async (id, data) => {
-  const existing = await resRepo.getReservationById(id);
-  if (!existing) throw new Error("Reservation not found.");
-  return await resRepo.updateReservation(id, data);
-};
-
-export const updateReservationStatus = async (id, status) => {
-  const validStatuses = ["PENDING", "CONFIRMED", "SEATED", "COMPLETED", "CANCELLED", "NO_SHOW"];
-  if (!validStatuses.includes(status)) {
-    throw new Error(`Invalid status. Allowed: ${validStatuses.join(", ")}`);
-  }
-  return await resRepo.updateReservationStatus(id, status);
-};
-
-export const deleteReservation = async (id) => {
-  const existing = await resRepo.getReservationById(id);
-  if (!existing) throw new Error("Reservation not found.");
-  return await resRepo.deleteReservation(id);
+export const deleteReservation = async (id, companyId) => {
+  return await reservationRepository.deleteReservation(id, companyId);
 };

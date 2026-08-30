@@ -1,6 +1,26 @@
 import prisma from "../../config/prisma.js";
 
-export const upsertRecipe = async (menuItemId, data) => {
+export const upsertRecipe = async (companyId, menuItemId, data) => {
+  if (!companyId) {
+    const error = new Error("Tenant company context required.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // Validate menuItem belongs to company
+  const menuItem = await prisma.menuItem.findFirst({
+    where: {
+      id: menuItemId,
+      restaurant: { companyId },
+    },
+  });
+
+  if (!menuItem) {
+    const error = new Error("Menu item not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const { ingredients, ...recipeFields } = data;
 
   return await prisma.$transaction(async (tx) => {
@@ -29,8 +49,9 @@ export const upsertRecipe = async (menuItemId, data) => {
 
     if (ingredients && ingredients.length > 0) {
       for (const ing of ingredients) {
-        const product = await tx.product.findUnique({
-          where: { id: ing.productId },
+        // Validate ingredient product belongs to company
+        const product = await tx.product.findFirst({
+          where: { id: ing.productId, companyId },
         });
 
         const unitCost = product ? parseFloat(product.costPrice) || 0 : 0;
@@ -73,9 +94,18 @@ export const upsertRecipe = async (menuItemId, data) => {
   });
 };
 
-export const getRecipeByMenuItem = async (menuItemId) => {
-  return await prisma.recipe.findUnique({
-    where: { menuItemId },
+export const getRecipeByMenuItem = async (companyId, menuItemId) => {
+  if (!menuItemId) return null;
+
+  const where = { menuItemId };
+  if (companyId) {
+    where.menuItem = {
+      restaurant: { companyId },
+    };
+  }
+
+  return await prisma.recipe.findFirst({
+    where,
     include: {
       ingredients: {
         include: {
@@ -87,10 +117,19 @@ export const getRecipeByMenuItem = async (menuItemId) => {
   });
 };
 
-export const getAllRecipes = async (restaurantId) => {
-  const where = {};
-  if (restaurantId) {
-    where.menuItem = { restaurantId };
+export const getAllRecipes = async (companyId, restaurantId) => {
+  if (!companyId) return [];
+
+  const where = {
+    menuItem: {
+      restaurant: {
+        companyId,
+      },
+    },
+  };
+
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.menuItem.restaurantId = restaurantId;
   }
 
   return await prisma.recipe.findMany({
@@ -111,7 +150,24 @@ export const getAllRecipes = async (restaurantId) => {
   });
 };
 
-export const deleteRecipe = async (id) => {
+export const deleteRecipe = async (id, companyId) => {
+  if (!id) return null;
+
+  const existing = await prisma.recipe.findFirst({
+    where: {
+      id,
+      menuItem: {
+        restaurant: { companyId },
+      },
+    },
+  });
+
+  if (!existing) {
+    const error = new Error("Recipe not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.recipe.delete({
     where: { id },
   });

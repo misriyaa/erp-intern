@@ -2,52 +2,65 @@ import * as modifierService from "./modifier.service.js";
 
 export const createModifierGroup = async (req, res, next) => {
   try {
-    const group = await modifierService.createModifierGroup(req.body);
-    return res.status(201).json({ success: true, message: "Modifier group created", data: group });
+    const companyId = req.companyId || req.user?.companyId;
+    if (!companyId) {
+      return res.status(403).json({ success: false, message: "Tenant context required." });
+    }
+    const group = await modifierService.createModifierGroup(companyId, req.body);
+    return res.status(201).json({ success: true, message: "Modifier group created successfully", data: group });
   } catch (error) { next(error); }
 };
 
 export const getModifierGroups = async (req, res, next) => {
   try {
+    const companyId = req.companyId || req.user?.companyId;
+    if (!companyId) {
+      return res.status(200).json({ success: true, data: [] });
+    }
     const { restaurantId } = req.query;
-    const groups = await modifierService.getModifierGroups(restaurantId);
+    const groups = await modifierService.getModifierGroups(companyId, restaurantId);
     return res.status(200).json({ success: true, data: groups });
   } catch (error) { next(error); }
 };
 
 export const getModifierGroupById = async (req, res, next) => {
   try {
-    const group = await modifierService.getModifierGroupById(req.params.id);
+    const companyId = req.companyId || req.user?.companyId;
+    const group = await modifierService.getModifierGroupById(req.params.id, companyId);
     return res.status(200).json({ success: true, data: group });
   } catch (error) { next(error); }
 };
 
 export const updateModifierGroup = async (req, res, next) => {
   try {
-    const group = await modifierService.updateModifierGroup(req.params.id, req.body);
-    return res.status(200).json({ success: true, message: "Modifier group updated", data: group });
+    const companyId = req.companyId || req.user?.companyId;
+    const group = await modifierService.updateModifierGroup(req.params.id, companyId, req.body);
+    return res.status(200).json({ success: true, message: "Modifier group updated successfully", data: group });
   } catch (error) { next(error); }
 };
 
-export const linkMenuItemModifierGroup = async (req, res, next) => {
+export const linkMenuItem = async (req, res, next) => {
   try {
+    const companyId = req.companyId || req.user?.companyId;
     const { menuItemId, modifierGroupId } = req.body;
-    const link = await modifierService.linkMenuItemModifierGroup(menuItemId, modifierGroupId);
-    return res.status(200).json({ success: true, message: "Modifier linked to menu item", data: link });
+    const result = await modifierService.linkMenuItem(companyId, menuItemId, modifierGroupId);
+    return res.status(200).json({ success: true, message: "Modifier linked successfully", data: result });
   } catch (error) { next(error); }
 };
 
-export const unlinkMenuItemModifierGroup = async (req, res, next) => {
+export const unlinkMenuItem = async (req, res, next) => {
   try {
+    const companyId = req.companyId || req.user?.companyId;
     const { menuItemId, modifierGroupId } = req.body;
-    await modifierService.unlinkMenuItemModifierGroup(menuItemId, modifierGroupId);
-    return res.status(200).json({ success: true, message: "Modifier unlinked" });
+    await modifierService.unlinkMenuItem(companyId, menuItemId, modifierGroupId);
+    return res.status(200).json({ success: true, message: "Modifier unlinked successfully" });
   } catch (error) { next(error); }
 };
 
 export const deleteModifierGroup = async (req, res, next) => {
   try {
-    await modifierService.deleteModifierGroup(req.params.id);
-    return res.status(200).json({ success: true, message: "Modifier group deleted" });
+    const companyId = req.companyId || req.user?.companyId;
+    await modifierService.deleteModifierGroup(req.params.id, companyId);
+    return res.status(200).json({ success: true, message: "Modifier group deleted successfully" });
   } catch (error) { next(error); }
 };

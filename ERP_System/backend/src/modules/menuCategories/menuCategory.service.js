@@ -1,30 +1,33 @@
-import * as menuCategoryRepo from "./menuCategory.repository.js";
+import * as menuCategoryRepository from "./menuCategory.repository.js";
 
-export const createMenuCategory = async (data) => {
-  if (!data.name || !data.restaurantId) {
-    throw new Error("Category name and restaurant ID are required.");
+export const createMenuCategory = async (companyId, data) => {
+  if (!data.name) {
+    throw new Error("Category name is required.");
   }
-  return await menuCategoryRepo.createMenuCategory(data);
+  if (!data.restaurantId) {
+    throw new Error("Restaurant ID is required.");
+  }
+  return await menuCategoryRepository.createMenuCategory(companyId, data);
 };
 
-export const getMenuCategories = async (restaurantId) => {
-  return await menuCategoryRepo.getMenuCategories(restaurantId);
+export const getMenuCategories = async (companyId, restaurantId) => {
+  return await menuCategoryRepository.getMenuCategories(companyId, restaurantId);
 };
 
-export const getMenuCategoryById = async (id) => {
-  const cat = await menuCategoryRepo.getMenuCategoryById(id);
-  if (!cat) throw new Error("Category not found.");
-  return cat;
+export const getMenuCategoryById = async (id, companyId) => {
+  const category = await menuCategoryRepository.getMenuCategoryById(id, companyId);
+  if (!category) {
+    const error = new Error("Menu Category not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+  return category;
 };
 
-export const updateMenuCategory = async (id, data) => {
-  const existing = await menuCategoryRepo.getMenuCategoryById(id);
-  if (!existing) throw new Error("Category not found.");
-  return await menuCategoryRepo.updateMenuCategory(id, data);
+export const updateMenuCategory = async (id, companyId, data) => {
+  return await menuCategoryRepository.updateMenuCategory(id, companyId, data);
 };
 
-export const deleteMenuCategory = async (id) => {
-  const existing = await menuCategoryRepo.getMenuCategoryById(id);
-  if (!existing) throw new Error("Category not found.");
-  return await menuCategoryRepo.deleteMenuCategory(id);
+export const deleteMenuCategory = async (id, companyId) => {
+  return await menuCategoryRepository.deleteMenuCategory(id, companyId);
 };

@@ -1,8 +1,17 @@
 import prisma from "../../config/prisma.js";
 
-export const getFoodCostingReport = async (restaurantId) => {
-  const where = {};
-  if (restaurantId) where.restaurantId = restaurantId;
+export const getFoodCostingReport = async (companyId, restaurantId) => {
+  if (!companyId) return [];
+
+  const where = {
+    restaurant: {
+      companyId,
+    },
+  };
+
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    where.restaurantId = restaurantId;
+  }
 
   const menuItems = await prisma.menuItem.findMany({
     where,

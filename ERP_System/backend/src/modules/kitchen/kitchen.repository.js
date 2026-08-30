@@ -21,8 +21,15 @@ const kotInclude = {
   },
 };
 
-export const getKitchenOrders = async (restaurantId, status) => {
-  const where = {};
+export const getKitchenOrders = async (companyId, restaurantId, status) => {
+  if (!companyId) return [];
+
+  const where = {
+    restaurant: {
+      companyId,
+    },
+  };
+
   if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
     where.restaurantId = restaurantId;
   }
@@ -42,14 +49,28 @@ export const getKitchenOrders = async (restaurantId, status) => {
   });
 };
 
-export const getKitchenOrderById = async (id) => {
-  return await prisma.kitchenOrder.findUnique({
-    where: { id },
+export const getKitchenOrderById = async (id, companyId) => {
+  if (!id) return null;
+
+  const where = { id };
+  if (companyId) {
+    where.restaurant = { companyId };
+  }
+
+  return await prisma.kitchenOrder.findFirst({
+    where,
     include: kotInclude,
   });
 };
 
-export const updateKOTStatus = async (id, status) => {
+export const updateKOTStatus = async (id, companyId, status) => {
+  const existing = await getKitchenOrderById(id, companyId);
+  if (!existing) {
+    const error = new Error("Kitchen order ticket not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const kot = await prisma.$transaction(async (tx) => {
     const updatedKot = await tx.kitchenOrder.update({
       where: { id },
@@ -92,8 +113,8 @@ export const updateKOTStatus = async (id, status) => {
 
   if (kot?.orderId) {
     try {
-      const fullOrder = await prisma.restaurantOrder.findUnique({
-        where: { id: kot.orderId },
+      const fullOrder = await prisma.restaurantOrder.findFirst({
+        where: { id: kot.orderId, companyId },
         include: {
           restaurant: true,
           table: { include: { area: true } },

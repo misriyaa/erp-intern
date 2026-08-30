@@ -25,10 +25,6 @@ export const getOrCreateRawMaterialCategory = async (companyId) => {
     return created.id;
   }
 
-  // Fallback to any category
-  const firstCat = await prisma.category.findFirst();
-  if (firstCat) return firstCat.id;
-
   const fallback = await prisma.category.create({
     data: {
       name: "Raw Materials & Ingredients",
@@ -44,23 +40,26 @@ export const getOrCreateRawMaterialCategory = async (companyId) => {
  */
 export const resolveUnitId = async (unitInput, companyId) => {
   if (!unitInput) {
-    const firstUnit = await prisma.unit.findFirst();
-    if (firstUnit) return firstUnit.id;
+    if (companyId) {
+      const existing = await prisma.unit.findFirst({ where: { companyId } });
+      if (existing) return existing.id;
+    }
     const def = await prisma.unit.create({
-      data: { name: "Kilogram", code: "kg", companyId },
+      data: { name: "Kilogram", code: "kg", companyId: companyId || null },
     });
     return def.id;
   }
 
   // Check if unitInput is a valid UUID
-  const byId = await prisma.unit.findUnique({
-    where: { id: unitInput },
+  const byId = await prisma.unit.findFirst({
+    where: { id: unitInput, ...(companyId && { companyId }) },
   });
   if (byId) return byId.id;
 
-  // Search by code or name
+  // Search by code or name within company
   const byCode = await prisma.unit.findFirst({
     where: {
+      ...(companyId && { companyId }),
       OR: [
         { code: { equals: unitInput, mode: "insensitive" } },
         { name: { equals: unitInput, mode: "insensitive" } },
@@ -74,7 +73,7 @@ export const resolveUnitId = async (unitInput, companyId) => {
     data: {
       name: unitInput,
       code: unitInput.toLowerCase().slice(0, 10),
-      companyId,
+      companyId: companyId || null,
     },
   });
   return newUnit.id;
@@ -100,9 +99,6 @@ export const getDefaultWarehouseId = async (companyId) => {
     });
     return created.id;
   }
-
-  const anyWh = await prisma.warehouse.findFirst();
-  if (anyWh) return anyWh.id;
 
   const defWh = await prisma.warehouse.create({
     data: {
@@ -160,6 +156,12 @@ export const createIngredient = async (payload) => {
     image = null,
   } = payload;
 
+  if (!companyId) {
+    const error = new Error("Tenant company context required.");
+    error.statusCode = 403;
+    throw error;
+  }
+
   const finalName = (name || ingredientName || "").trim();
   const finalSku = (sku || ingredientCode || `ING-${Date.now().toString().slice(-6)}`).trim();
   const finalCost = parseFloat(purchaseCost || costPrice || 0);
@@ -177,7 +179,7 @@ export const createIngredient = async (payload) => {
     // 1. Create the ingredient product
     const ingredient = await tx.product.create({
       data: {
-        companyId: companyId || null,
+        companyId,
         name: finalName,
         sku: finalSku,
         barcode: finalSku,
@@ -231,26 +233,25 @@ export const createIngredient = async (payload) => {
 export const getAllIngredients = async (params) => {
   const { companyId, restaurantOutletId, search, status } = params;
 
+  if (!companyId) return [];
+
   const where = {
+    companyId,
     productType: "RAW_MATERIAL",
   };
 
-  if (companyId) {
-    where.companyId = companyId;
-  }
-
-  if (restaurantOutletId && restaurantOutletId !== "ALL") {
+  if (restaurantOutletId && restaurantOutletId !== "ALL" && restaurantOutletId !== "undefined" && restaurantOutletId !== "null" && String(restaurantOutletId).trim() !== "") {
     where.OR = [
       { restaurantOutletId },
       { restaurantOutletId: null },
     ];
   }
 
-  if (status) {
+  if (status && status !== "ALL" && status !== "undefined" && status !== "null") {
     where.status = status;
   }
 
-  if (search) {
+  if (search && String(search).trim() !== "") {
     where.AND = [
       {
         OR: [
@@ -287,9 +288,15 @@ export const getAllIngredients = async (params) => {
 /**
  * Get ingredient by ID
  */
-export const getIngredientById = async (id) => {
-  const item = await prisma.product.findUnique({
-    where: { id },
+export const getIngredientById = async (id, companyId) => {
+  if (!id) return null;
+
+  const item = await prisma.product.findFirst({
+    where: {
+      id,
+      productType: "RAW_MATERIAL",
+      ...(companyId && { companyId }),
+    },
     include: ingredientInclude,
   });
 
@@ -312,7 +319,14 @@ export const getIngredientById = async (id) => {
 /**
  * Update ingredient
  */
-export const updateIngredient = async (id, payload) => {
+export const updateIngredient = async (id, companyId, payload) => {
+  const existing = await getIngredientById(id, companyId);
+  if (!existing) {
+    const error = new Error("Ingredient not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const {
     name,
     ingredientName,
@@ -375,7 +389,7 @@ export const updateIngredient = async (id, payload) => {
   if (image !== undefined) updateData.image = image;
 
   if (baseUnitId || unitId || baseUnit) {
-    updateData.unitId = await resolveUnitId(baseUnitId || unitId || baseUnit);
+    updateData.unitId = await resolveUnitId(baseUnitId || unitId || baseUnit, companyId);
   }
 
   return await prisma.product.update({
@@ -388,7 +402,14 @@ export const updateIngredient = async (id, payload) => {
 /**
  * Delete ingredient
  */
-export const deleteIngredient = async (id) => {
+export const deleteIngredient = async (id, companyId) => {
+  const existing = await getIngredientById(id, companyId);
+  if (!existing) {
+    const error = new Error("Ingredient not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.$transaction(async (tx) => {
     await tx.inventory.deleteMany({
       where: { productId: id },

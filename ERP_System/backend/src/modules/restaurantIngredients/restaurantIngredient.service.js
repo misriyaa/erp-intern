@@ -1,21 +1,27 @@
 import * as ingredientRepo from "./restaurantIngredient.repository.js";
 
-export const createIngredient = async (data) => {
-  return await ingredientRepo.createIngredient(data);
+export const createIngredient = async (companyId, data) => {
+  return await ingredientRepo.createIngredient({ ...data, companyId });
 };
 
-export const getAllIngredients = async (params) => {
-  return await ingredientRepo.getAllIngredients(params);
+export const getAllIngredients = async (companyId, params) => {
+  return await ingredientRepo.getAllIngredients({ ...params, companyId });
 };
 
-export const getIngredientById = async (id) => {
-  return await ingredientRepo.getIngredientById(id);
+export const getIngredientById = async (id, companyId) => {
+  const item = await ingredientRepo.getIngredientById(id, companyId);
+  if (!item) {
+    const error = new Error("Ingredient not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+  return item;
 };
 
-export const updateIngredient = async (id, data) => {
-  return await ingredientRepo.updateIngredient(id, data);
+export const updateIngredient = async (id, companyId, data) => {
+  return await ingredientRepo.updateIngredient(id, companyId, data);
 };
 
-export const deleteIngredient = async (id) => {
-  return await ingredientRepo.deleteIngredient(id);
+export const deleteIngredient = async (id, companyId) => {
+  return await ingredientRepo.deleteIngredient(id, companyId);
 };

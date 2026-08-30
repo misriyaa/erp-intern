@@ -1,38 +1,41 @@
-import * as modifierRepo from "./modifier.repository.js";
+import * as modifierRepository from "./modifier.repository.js";
 
-export const createModifierGroup = async (data) => {
-  if (!data.name || !data.restaurantId) {
-    throw new Error("Name and restaurant ID are required.");
+export const createModifierGroup = async (companyId, data) => {
+  if (!data.name) {
+    throw new Error("Modifier group name is required.");
   }
-  return await modifierRepo.createModifierGroup(data);
+  if (!data.restaurantId) {
+    throw new Error("Restaurant ID is required.");
+  }
+  return await modifierRepository.createModifierGroup(companyId, data);
 };
 
-export const getModifierGroups = async (restaurantId) => {
-  return await modifierRepo.getModifierGroups(restaurantId);
+export const getModifierGroups = async (companyId, restaurantId) => {
+  return await modifierRepository.getModifierGroups(companyId, restaurantId);
 };
 
-export const getModifierGroupById = async (id) => {
-  const group = await modifierRepo.getModifierGroupById(id);
-  if (!group) throw new Error("Modifier group not found.");
+export const getModifierGroupById = async (id, companyId) => {
+  const group = await modifierRepository.getModifierGroupById(id, companyId);
+  if (!group) {
+    const error = new Error("Modifier group not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
   return group;
 };
 
-export const updateModifierGroup = async (id, data) => {
-  const existing = await modifierRepo.getModifierGroupById(id);
-  if (!existing) throw new Error("Modifier group not found.");
-  return await modifierRepo.updateModifierGroup(id, data);
+export const updateModifierGroup = async (id, companyId, data) => {
+  return await modifierRepository.updateModifierGroup(id, companyId, data);
 };
 
-export const linkMenuItemModifierGroup = async (menuItemId, modifierGroupId) => {
-  return await modifierRepo.linkMenuItemModifierGroup(menuItemId, modifierGroupId);
+export const linkMenuItem = async (companyId, menuItemId, modifierGroupId) => {
+  return await modifierRepository.linkMenuItemModifierGroup(companyId, menuItemId, modifierGroupId);
 };
 
-export const unlinkMenuItemModifierGroup = async (menuItemId, modifierGroupId) => {
-  return await modifierRepo.unlinkMenuItemModifierGroup(menuItemId, modifierGroupId);
+export const unlinkMenuItem = async (companyId, menuItemId, modifierGroupId) => {
+  return await modifierRepository.unlinkMenuItemModifierGroup(companyId, menuItemId, modifierGroupId);
 };
 
-export const deleteModifierGroup = async (id) => {
-  const existing = await modifierRepo.getModifierGroupById(id);
-  if (!existing) throw new Error("Modifier group not found.");
-  return await modifierRepo.deleteModifierGroup(id);
+export const deleteModifierGroup = async (id, companyId) => {
+  return await modifierRepository.deleteModifierGroup(id, companyId);
 };

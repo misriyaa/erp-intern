@@ -668,22 +668,134 @@ export const getDashboardOverview = async ({
     orderBy: { name: "asc" },
   }).catch(() => []);
 
-  const branchOptions = [
-    { id: "ALL", name: "All Branches" },
-    ...allBranches.map((b) => ({ id: b.id, name: b.name })),
-  ];
+  // ----------------------------------------------------
+  // 11. UNIFIED RETAIL DASHBOARD SPECIFIC COMPUTATIONS
+  // ----------------------------------------------------
+
+  // 11.1 Daily Sales Overview Chart for selected date range
+  const daysDiff = Math.min(Math.max(Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)), 1), 60);
+  const salesByDayMap = {};
+  for (let i = 0; i < daysDiff; i++) {
+    const curD = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
+    const key = curD.toISOString().slice(0, 10);
+    const label = curD.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+    salesByDayMap[key] = { date: key, label, sales: 0, orders: 0 };
+  }
+
+  currentSales.forEach((sale) => {
+    const d = new Date(sale.orderDate || sale.createdAt);
+    const key = d.toISOString().slice(0, 10);
+    if (salesByDayMap[key]) {
+      salesByDayMap[key].sales += Number(sale.netAmount || sale.totalAmount || 0);
+      salesByDayMap[key].orders += 1;
+    }
+  });
+
+  const salesOverviewChart = Object.values(salesByDayMap).map((item) => ({
+    ...item,
+    sales: Math.round(item.sales),
+  }));
+
+  // 11.2 Low Stock Products Table
+  const allActiveProducts = await prisma.product.findMany({
+    where: {
+      ...companyWhere,
+      status: "ACTIVE",
+    },
+    include: {
+      category: true,
+      inventories: {
+        where: effectiveBranchId ? { warehouse: { branchId: effectiveBranchId } } : {},
+      },
+    },
+    take: 100,
+    orderBy: { createdAt: "desc" },
+  }).catch(() => []);
+
+  const lowStockAlerts = [];
+  allActiveProducts.forEach((prod) => {
+    const totalQty = (prod.inventories || []).reduce((acc, inv) => acc + Number(inv.quantity || 0), 0);
+    const minStock = Number(prod.reorderLevel ?? 10);
+    if (totalQty <= minStock) {
+      lowStockAlerts.push({
+        id: prod.id,
+        name: prod.name,
+        sku: prod.sku || "N/A",
+        currentStock: totalQty,
+        minStock,
+        unit: prod.unit || "Pcs",
+        status: totalQty <= 0 ? "Out of Stock" : "Low Stock",
+        category: prod.category?.name || "General",
+      });
+    }
+  });
+
+  // 11.3 Recent Completed Sales
+  const recentSalesRaw = await prisma.salesOrder.findMany({
+    where: {
+      ...companyWhere,
+      ...branchWhere,
+      status: { not: "CANCELLED" },
+    },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+  }).catch(() => []);
+
+  const customerIds = recentSalesRaw.map((s) => s.customerId).filter(Boolean);
+  const customersList = customerIds.length > 0
+    ? await prisma.customer.findMany({
+        where: { id: { in: customerIds } },
+        select: { id: true, name: true, phone: true },
+      }).catch(() => [])
+    : [];
+  const customerMap = new Map(customersList.map((c) => [c.id, c.name]));
+
+  const salesOrderIds = recentSalesRaw.map((s) => s.id);
+  const invoicesList = salesOrderIds.length > 0
+    ? await prisma.invoice.findMany({
+        where: { salesOrderId: { in: salesOrderIds } },
+        include: { payments: true },
+      }).catch(() => [])
+    : [];
+  const invoiceByOrderMap = new Map(invoicesList.map((inv) => [inv.salesOrderId, inv]));
+
+  const recentSales = recentSalesRaw.map((sale) => {
+    const inv = invoiceByOrderMap.get(sale.id);
+    const paymentMethod = inv?.payments?.[0]?.paymentMethod || (sale.netAmount ? "CASH" : "PAID");
+    const customerName = sale.customerId ? (customerMap.get(sale.customerId) || "Customer") : "Walk-in Customer";
+    const amount = Number(sale.netAmount || sale.totalAmount || 0);
+
+    return {
+      id: sale.id,
+      invoiceNumber: sale.orderNumber || inv?.invoiceNumber || `INV-${sale.id.slice(0, 6)}`,
+      customerName,
+      dateTime: sale.orderDate || sale.createdAt,
+      paymentMethod: paymentMethod.toUpperCase(),
+      totalAmount: amount,
+      totalAmountFormatted: `₹${amount.toLocaleString("en-IN")}`,
+      status: sale.status || "COMPLETED",
+    };
+  });
+
+  const ordersDelta = calculateDelta(currentSales.length, prevSales.length);
 
   return {
     summary: {
+      totalSales: Math.round(totalEarnings),
+      totalSalesFormatted: `₹${Math.round(totalEarnings).toLocaleString("en-IN")}`,
+      salesDelta: earningsDelta.deltaStr,
+      salesDeltaPositive: earningsDelta.isPositive,
+
+      totalOrders: currentSales.length,
+      ordersDelta: ordersDelta.deltaStr,
+      ordersDeltaPositive: ordersDelta.isPositive,
+
       activeProducts: currentActiveProducts,
       activeProductsFormatted: `${currentActiveProducts} Items`,
       productDelta: productDelta.deltaStr,
       productDeltaPositive: productDelta.isPositive,
 
-      activeStaff: currentActiveStaff,
-      activeStaffFormatted: `${currentActiveStaff} Staff`,
-      staffDelta: staffDelta.deltaStr,
-      staffDeltaPositive: staffDelta.isPositive,
+      totalProducts: currentActiveProducts,
 
       lowStock: lowStockCount,
       lowStockFormatted: `${lowStockCount} Items`,
@@ -698,12 +810,21 @@ export const getDashboardOverview = async ({
       earningsDelta: earningsDelta.deltaStr,
       earningsDeltaPositive: earningsDelta.isPositive,
 
+      activeStaff: currentActiveStaff,
+      activeStaffFormatted: `${currentActiveStaff} Staff`,
+      staffDelta: staffDelta.deltaStr,
+      staffDeltaPositive: staffDelta.isPositive,
+
       totalOutstanding,
       totalOutstandingFormatted: `₹${totalOutstanding.toLocaleString("en-IN")}`,
 
       shrinkageCost,
       currency: "₹",
     },
+
+    salesOverviewChart,
+    lowStockAlerts,
+    recentSales,
 
     stockHealth: {
       inStock: inStockCount,
@@ -713,6 +834,8 @@ export const getDashboardOverview = async ({
       selectedBranchId: effectiveBranchId || "ALL",
       branches: branchOptions,
     },
+
+    branches: branchOptions,
 
     topPerformer,
     bestSellingProduct,

@@ -57,19 +57,31 @@ export const getRestaurantAnalytics = async (params) => {
 
   const { start, end, prevStart, prevEnd } = buildDateRange(startDate, endDate, period);
 
+  if (!companyId) {
+    return {
+      overview: { totalSales: 0, previousPeriodSales: 0, salesGrowthPercent: 0, totalOrders: 0, completedOrdersCount: 0, averageOrderValue: 0, liveActiveOrders: 0, totalCustomers: 0 },
+      salesTimeline: [],
+      salesByOrderType: [],
+      orderAnalytics: { totalOrders: 0, validOrders: 0, completedOrders: 0, activeOrders: 0, cancelledOrders: 0, pendingOrders: 0, statusBreakdown: {} },
+      menuPerformance: { topSelling: [], topRevenue: [], totalItemsSold: 0, distinctItemsCount: 0 },
+      tablePerformance: [],
+      paymentAnalytics: [],
+      staffPerformance: [],
+      inventoryInsights: { lowStock: [], outOfStock: [], totalTrackedIngredients: 0 },
+    };
+  }
+
   // Build Base Filter for Orders
   const orderWhere = {
+    companyId,
     createdAt: {
       gte: start,
       lte: end,
     },
   };
 
-  if (restaurantId && restaurantId !== "ALL") {
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
     orderWhere.restaurantId = restaurantId;
-  }
-  if (companyId) {
-    orderWhere.companyId = companyId;
   }
   if (branchId) {
     orderWhere.branchId = branchId;
@@ -305,8 +317,12 @@ export const getRestaurantAnalytics = async (params) => {
 
   // 9. TABLE PERFORMANCE (Dine-In only)
   const tableMap = {};
-  const tableQuery = {};
-  if (restaurantId && restaurantId !== "ALL") tableQuery.restaurantId = restaurantId;
+  const tableQuery = {
+    restaurant: { companyId },
+  };
+  if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
+    tableQuery.restaurantId = restaurantId;
+  }
   const allTables = await prisma.restaurantTable.findMany({
     where: tableQuery,
     include: { area: true },

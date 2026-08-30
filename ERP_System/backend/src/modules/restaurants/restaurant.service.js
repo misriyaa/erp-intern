@@ -7,6 +7,9 @@ export const createRestaurant = async (data) => {
   if (!data.branchId) {
     throw new Error("Branch ID is required.");
   }
+  if (!data.companyId) {
+    throw new Error("Company ID is required.");
+  }
   return await restaurantRepository.createRestaurant(data);
 };
 
@@ -14,26 +17,20 @@ export const getAllRestaurants = async (companyId, branchId) => {
   return await restaurantRepository.getAllRestaurants(companyId, branchId);
 };
 
-export const getRestaurantById = async (id) => {
-  const restaurant = await restaurantRepository.getRestaurantById(id);
+export const getRestaurantById = async (id, companyId) => {
+  const restaurant = await restaurantRepository.getRestaurantById(id, companyId);
   if (!restaurant) {
-    throw new Error("Restaurant not found.");
+    const error = new Error("Restaurant not found or access denied.");
+    error.statusCode = 404;
+    throw error;
   }
   return restaurant;
 };
 
-export const updateRestaurant = async (id, data) => {
-  const existing = await restaurantRepository.getRestaurantById(id);
-  if (!existing) {
-    throw new Error("Restaurant not found.");
-  }
-  return await restaurantRepository.updateRestaurant(id, data);
+export const updateRestaurant = async (id, companyId, data) => {
+  return await restaurantRepository.updateRestaurant(id, companyId, data);
 };
 
-export const deleteRestaurant = async (id) => {
-  const existing = await restaurantRepository.getRestaurantById(id);
-  if (!existing) {
-    throw new Error("Restaurant not found.");
-  }
-  return await restaurantRepository.deleteRestaurant(id);
+export const deleteRestaurant = async (id, companyId) => {
+  return await restaurantRepository.deleteRestaurant(id, companyId);
 };

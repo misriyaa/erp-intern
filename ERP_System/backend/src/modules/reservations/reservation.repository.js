@@ -1,6 +1,33 @@
 import prisma from "../../config/prisma.js";
 
-export const createReservation = async (data) => {
+export const createReservation = async (companyId, data) => {
+  if (!companyId) {
+    const error = new Error("Tenant company context required.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // Validate restaurant belongs to company
+  const restaurant = await prisma.restaurant.findFirst({
+    where: { id: data.restaurantId, companyId },
+  });
+  if (!restaurant) {
+    const error = new Error("Restaurant outlet not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (data.tableId) {
+    const table = await prisma.restaurantTable.findFirst({
+      where: { id: data.tableId, restaurant: { companyId } },
+    });
+    if (!table) {
+      const error = new Error("Table not found or access denied.");
+      error.statusCode = 404;
+      throw error;
+    }
+  }
+
   return await prisma.reservation.create({
     data,
     include: {
@@ -11,8 +38,15 @@ export const createReservation = async (data) => {
   });
 };
 
-export const getReservations = async (restaurantId, status, date) => {
-  const where = {};
+export const getReservations = async (companyId, restaurantId, status, date) => {
+  if (!companyId) return [];
+
+  const where = {
+    restaurant: {
+      companyId,
+    },
+  };
+
   if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
     where.restaurantId = restaurantId;
   }
@@ -45,9 +79,16 @@ export const getReservations = async (restaurantId, status, date) => {
   });
 };
 
-export const getReservationById = async (id) => {
-  return await prisma.reservation.findUnique({
-    where: { id },
+export const getReservationById = async (id, companyId) => {
+  if (!id) return null;
+
+  const where = { id };
+  if (companyId) {
+    where.restaurant = { companyId };
+  }
+
+  return await prisma.reservation.findFirst({
+    where,
     include: {
       restaurant: true,
       table: true,
@@ -56,7 +97,14 @@ export const getReservationById = async (id) => {
   });
 };
 
-export const updateReservation = async (id, data) => {
+export const updateReservation = async (id, companyId, data) => {
+  const existing = await getReservationById(id, companyId);
+  if (!existing) {
+    const error = new Error("Reservation not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.reservation.update({
     where: { id },
     data,
@@ -68,7 +116,14 @@ export const updateReservation = async (id, data) => {
   });
 };
 
-export const updateReservationStatus = async (id, status) => {
+export const updateReservationStatus = async (id, companyId, status) => {
+  const existing = await getReservationById(id, companyId);
+  if (!existing) {
+    const error = new Error("Reservation not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.$transaction(async (tx) => {
     const reservation = await tx.reservation.update({
       where: { id },
@@ -99,7 +154,14 @@ export const updateReservationStatus = async (id, status) => {
   });
 };
 
-export const deleteReservation = async (id) => {
+export const deleteReservation = async (id, companyId) => {
+  const existing = await getReservationById(id, companyId);
+  if (!existing) {
+    const error = new Error("Reservation not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   return await prisma.reservation.delete({
     where: { id },
   });

@@ -39,21 +39,86 @@ const orderInclude = {
   payments: true,
 };
 
-export const createOrder = async (data) => {
-  const { items, ...orderData } = data;
+export const createOrder = async (companyId, data) => {
+  if (!companyId) {
+    const error = new Error("Tenant company context required.");
+    error.statusCode = 403;
+    throw error;
+  }
 
+  const { items, ...orderData } = data;
   const orderNumber = orderData.orderNumber || `RST-${Date.now().toString().slice(-6)}`;
 
   return await prisma.$transaction(async (tx) => {
+    // 1. Resolve and validate Restaurant belonging to company
+    const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+    let cleanRestaurantId = isUUID(orderData.restaurantId) ? orderData.restaurantId : null;
+
+    if (cleanRestaurantId) {
+      const rest = await tx.restaurant.findFirst({
+        where: { id: cleanRestaurantId, companyId },
+      });
+      if (!rest) {
+        const error = new Error("Restaurant outlet not found or access denied.");
+        error.statusCode = 404;
+        throw error;
+      }
+    } else {
+      const firstRest = await tx.restaurant.findFirst({
+        where: { companyId, ...(orderData.branchId ? { branchId: orderData.branchId } : {}) },
+      });
+      if (!firstRest) {
+        const error = new Error("No active restaurant outlet found for this company.");
+        error.statusCode = 404;
+        throw error;
+      }
+      cleanRestaurantId = firstRest.id;
+    }
+
+    // 2. Validate Table if given
+    const cleanTableId = isUUID(orderData.tableId) ? orderData.tableId : null;
+    if (cleanTableId) {
+      const table = await tx.restaurantTable.findFirst({
+        where: { id: cleanTableId, restaurant: { companyId } },
+      });
+      if (!table) {
+        const error = new Error("Table not found or access denied.");
+        error.statusCode = 404;
+        throw error;
+      }
+    }
+
+    // 3. Validate Customer if given
+    const cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
+    if (cleanCustomerId) {
+      const cust = await tx.customer.findFirst({
+        where: { id: cleanCustomerId, companyId },
+      });
+      if (!cust) {
+        const error = new Error("Customer not found or access denied.");
+        error.statusCode = 404;
+        throw error;
+      }
+    }
+
     let subtotal = 0;
     let totalTax = 0;
-
     const formattedItems = [];
 
     if (items && items.length > 0) {
       for (const item of items) {
+        // Validate menuItem belongs to company
+        const menuItem = await tx.menuItem.findFirst({
+          where: { id: item.menuItemId, restaurant: { companyId } },
+        });
+        if (!menuItem) {
+          const error = new Error(`Menu item not found or access denied: ${item.menuItemId}`);
+          error.statusCode = 404;
+          throw error;
+        }
+
         const qty = parseFloat(item.quantity) || 1;
-        const price = parseFloat(item.unitPrice) || 0;
+        const price = parseFloat(item.unitPrice) || parseFloat(menuItem.sellingPrice) || 0;
         const discount = parseFloat(item.discount) || 0;
         const tax = parseFloat(item.tax) || 0;
         const itemTotal = price * qty - discount + tax;
@@ -79,21 +144,10 @@ export const createOrder = async (data) => {
     const taxAmount = parseFloat(orderData.taxAmount) || totalTax;
     const totalAmount = subtotal - discountAmount + taxAmount;
 
-    const isUUID = (str) => typeof str === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-    const cleanCustomerId = isUUID(orderData.customerId) ? orderData.customerId : null;
-    const cleanTableId = isUUID(orderData.tableId) ? orderData.tableId : null;
-
-    let cleanRestaurantId = isUUID(orderData.restaurantId) ? orderData.restaurantId : null;
-    if (!cleanRestaurantId) {
-      const firstRest = await tx.restaurant.findFirst({
-        where: orderData.branchId ? { branchId: orderData.branchId } : {},
-      });
-      cleanRestaurantId = firstRest?.id || null;
-    }
-
     const order = await tx.restaurantOrder.create({
       data: {
         ...orderData,
+        companyId,
         restaurantId: cleanRestaurantId,
         customerId: cleanCustomerId,
         tableId: cleanTableId,
@@ -121,18 +175,17 @@ export const createOrder = async (data) => {
   });
 };
 
-export const getOrders = async (params) => {
-  const { restaurantId, branchId, companyId, tableId, status, orderType, search } = params;
-  const where = {};
+export const getOrders = async (companyId, params = {}) => {
+  if (!companyId) return [];
+
+  const { restaurantId, branchId, tableId, status, orderType, search } = params;
+  const where = { companyId };
 
   if (restaurantId && restaurantId !== "ALL" && restaurantId !== "undefined" && restaurantId !== "null" && String(restaurantId).trim() !== "") {
     where.restaurantId = restaurantId;
   }
   if (branchId && branchId !== "ALL" && branchId !== "undefined" && branchId !== "null" && String(branchId).trim() !== "") {
     where.branchId = branchId;
-  }
-  if (companyId && companyId !== "ALL" && companyId !== "undefined" && companyId !== "null" && String(companyId).trim() !== "") {
-    where.companyId = companyId;
   }
   if (tableId && tableId !== "ALL" && tableId !== "undefined" && tableId !== "null" && String(tableId).trim() !== "") {
     where.tableId = tableId;
@@ -161,14 +214,28 @@ export const getOrders = async (params) => {
   });
 };
 
-export const getOrderById = async (id) => {
-  return await prisma.restaurantOrder.findUnique({
-    where: { id },
+export const getOrderById = async (id, companyId) => {
+  if (!id) return null;
+
+  const where = { id };
+  if (companyId) {
+    where.companyId = companyId;
+  }
+
+  return await prisma.restaurantOrder.findFirst({
+    where,
     include: orderInclude,
   });
 };
 
-export const updateOrder = async (id, data) => {
+export const updateOrder = async (id, companyId, data) => {
+  const existing = await getOrderById(id, companyId);
+  if (!existing) {
+    const error = new Error("Restaurant order not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const { items, ...orderData } = data;
 
   const resOrder = await prisma.$transaction(async (tx) => {
@@ -251,11 +318,10 @@ export const updateOrder = async (id, data) => {
       });
     }
 
-    const finalOrder = await tx.restaurantOrder.findUnique({
+    return await tx.restaurantOrder.findUnique({
       where: { id },
       include: orderInclude,
     });
-    return finalOrder;
   });
 
   if (resOrder) {
@@ -295,11 +361,7 @@ export const processStockDeductionOnServed = async (orderId, tx) => {
     },
   });
 
-  if (!order) return;
-
-  if (order.stockDeducted) {
-    return;
-  }
+  if (!order || order.stockDeducted) return;
 
   const defaultWh = await db.warehouse.findFirst({
     where: {
@@ -330,7 +392,6 @@ export const processStockDeductionOnServed = async (orderId, tx) => {
 
         const recipeUnit = ing.unit || ing.product.stockUnit || ing.product.unit || "";
         const stockUnit = ing.product.stockUnit || ing.product.unit || "";
-
         const convertedQty = convertUnit(rawRequired, recipeUnit, stockUnit);
 
         if (!ingredientTotals[ing.productId]) {
@@ -417,31 +478,9 @@ export const processStockDeductionOnServed = async (orderId, tx) => {
   });
 };
 
-export const checkStockAvailability = async (orderId, warehouseId) => {
-  const order = await prisma.restaurantOrder.findUnique({
-    where: { id: orderId },
-    include: {
-      items: {
-        include: {
-          menuItem: {
-            include: {
-              recipe: {
-                include: {
-                  ingredients: {
-                    include: {
-                      product: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!order) throw new Error("Order not found.");
+export const checkStockAvailability = async (orderId, companyId, warehouseId) => {
+  const order = await getOrderById(orderId, companyId);
+  if (!order) throw new Error("Order not found or access denied.");
 
   let targetWarehouseId = warehouseId;
   if (!targetWarehouseId) {
@@ -461,16 +500,16 @@ export const checkStockAvailability = async (orderId, warehouseId) => {
   const ingredientTotals = {};
 
   for (const item of order.items) {
-    const recipe = item.menuItem.recipe;
+    const recipe = item.menuItem?.recipe;
     if (recipe && recipe.ingredients) {
       for (const ing of recipe.ingredients) {
-        const requiredQty = ing.quantity * item.quantity;
+        const requiredQty = (parseFloat(ing.quantity) || 0) * (parseFloat(item.quantity) || 1);
         if (!ingredientTotals[ing.productId]) {
           ingredientTotals[ing.productId] = {
             productId: ing.productId,
-            productName: ing.product.name,
+            productName: ing.product?.name || "Ingredient",
             required: 0,
-            unit: ing.unit || ing.product.stockUnit || "unit",
+            unit: ing.unit || ing.product?.stockUnit || "unit",
           };
         }
         ingredientTotals[ing.productId].required += requiredQty;
@@ -509,10 +548,17 @@ export const checkStockAvailability = async (orderId, warehouseId) => {
   };
 };
 
-export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOverride = false) => {
+export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, allowStockOverride = false) => {
+  const existing = await getOrderById(orderId, companyId);
+  if (!existing) {
+    const error = new Error("Order not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const result = await prisma.$transaction(async (tx) => {
-    const order = await tx.restaurantOrder.findUnique({
-      where: { id: orderId },
+    const order = await tx.restaurantOrder.findFirst({
+      where: { id: orderId, companyId },
       include: {
         restaurant: true,
         table: true,
@@ -544,12 +590,6 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
       throw err;
     }
 
-    if (order.table && order.restaurantId && order.table.restaurantId && order.table.restaurantId !== order.restaurantId) {
-      const err = new Error("The selected table does not belong to the active restaurant outlet.");
-      err.statusCode = 400;
-      throw err;
-    }
-
     let targetWarehouseId = warehouseId;
     if (!targetWarehouseId) {
       const defaultWh = await tx.warehouse.findFirst({
@@ -561,17 +601,16 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
       targetWarehouseId = defaultWh?.id;
     }
 
-    // Check stock availability
     if (targetWarehouseId && !allowStockOverride) {
       const ingredientTotals = {};
       for (const item of order.items) {
-        const recipe = item.menuItem.recipe;
+        const recipe = item.menuItem?.recipe;
         if (recipe && recipe.ingredients) {
           for (const ing of recipe.ingredients) {
-            const requiredQty = ing.quantity * item.quantity;
+            const requiredQty = (parseFloat(ing.quantity) || 0) * (parseFloat(item.quantity) || 1);
             if (!ingredientTotals[ing.productId]) {
               ingredientTotals[ing.productId] = {
-                productName: ing.product.name,
+                productName: ing.product?.name || "Ingredient",
                 required: 0,
               };
             }
@@ -597,13 +636,11 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
       }
     }
 
-    // Update order status
     const updatedOrder = await tx.restaurantOrder.update({
       where: { id: orderId },
       data: { status: "CONFIRMED" },
     });
 
-    // Create KOT Ticket
     const countKOT = await tx.kitchenOrder.count({
       where: { restaurantId: order.restaurantId },
     });
@@ -648,8 +685,8 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
   });
 
   try {
-    const fullOrder = await prisma.restaurantOrder.findUnique({
-      where: { id: orderId },
+    const fullOrder = await prisma.restaurantOrder.findFirst({
+      where: { id: orderId, companyId },
       include: orderInclude,
     });
     if (fullOrder) {
@@ -662,10 +699,17 @@ export const confirmOrderAndSendKOT = async (orderId, warehouseId, allowStockOve
   return result;
 };
 
-export const completeOrderAndPay = async (orderId, paymentData) => {
+export const completeOrderAndPay = async (orderId, companyId, paymentData) => {
+  const existing = await getOrderById(orderId, companyId);
+  if (!existing) {
+    const error = new Error("Order not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const result = await prisma.$transaction(async (tx) => {
-    const order = await tx.restaurantOrder.findUnique({
-      where: { id: orderId },
+    const order = await tx.restaurantOrder.findFirst({
+      where: { id: orderId, companyId },
       include: {
         table: true,
         items: true,
@@ -718,8 +762,8 @@ export const completeOrderAndPay = async (orderId, paymentData) => {
   });
 
   try {
-    const fullOrder = await prisma.restaurantOrder.findUnique({
-      where: { id: orderId },
+    const fullOrder = await prisma.restaurantOrder.findFirst({
+      where: { id: orderId, companyId },
       include: orderInclude,
     });
     if (fullOrder) {
@@ -732,10 +776,17 @@ export const completeOrderAndPay = async (orderId, paymentData) => {
   return result;
 };
 
-export const cancelOrder = async (orderId, reason) => {
+export const cancelOrder = async (orderId, companyId, reason) => {
+  const existing = await getOrderById(orderId, companyId);
+  if (!existing) {
+    const error = new Error("Order not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   const result = await prisma.$transaction(async (tx) => {
-    const order = await tx.restaurantOrder.findUnique({
-      where: { id: orderId },
+    const order = await tx.restaurantOrder.findFirst({
+      where: { id: orderId, companyId },
     });
 
     if (!order) throw new Error("Order not found.");
@@ -764,8 +815,8 @@ export const cancelOrder = async (orderId, reason) => {
   });
 
   try {
-    const fullOrder = await prisma.restaurantOrder.findUnique({
-      where: { id: orderId },
+    const fullOrder = await prisma.restaurantOrder.findFirst({
+      where: { id: orderId, companyId },
       include: orderInclude,
     });
     if (fullOrder) {

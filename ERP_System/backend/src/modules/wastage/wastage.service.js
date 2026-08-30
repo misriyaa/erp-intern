@@ -1,24 +1,23 @@
 import * as wastageRepo from "./wastage.repository.js";
 
-export const createWastage = async (data) => {
-  if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
-    throw new Error("Wastage items are required.");
+export const createWastage = async (companyId, data) => {
+  return await wastageRepo.createWastage(companyId, data);
+};
+
+export const getWastages = async (companyId, params) => {
+  return await wastageRepo.getWastages(companyId, params);
+};
+
+export const getWastageById = async (id, companyId) => {
+  const wastage = await wastageRepo.getWastageById(id, companyId);
+  if (!wastage) {
+    const error = new Error("Wastage not found or access denied.");
+    error.statusCode = 404;
+    throw error;
   }
-  return await wastageRepo.createWastage(data);
-};
-
-export const getWastages = async (params) => {
-  return await wastageRepo.getWastages(params);
-};
-
-export const getWastageById = async (id) => {
-  const wastage = await wastageRepo.getWastageById(id);
-  if (!wastage) throw new Error("Wastage record not found.");
   return wastage;
 };
 
-export const deleteWastage = async (id) => {
-  const existing = await wastageRepo.getWastageById(id);
-  if (!existing) throw new Error("Wastage record not found.");
-  return await wastageRepo.deleteWastage(id);
+export const deleteWastage = async (id, companyId) => {
+  return await wastageRepo.deleteWastage(id, companyId);
 };

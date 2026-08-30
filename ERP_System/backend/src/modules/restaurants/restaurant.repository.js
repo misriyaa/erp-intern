@@ -12,9 +12,12 @@ export const createRestaurant = async (data) => {
 };
 
 export const getAllRestaurants = async (companyId, branchId) => {
-  const where = {};
-  if (companyId) where.companyId = companyId;
-  if (branchId) where.branchId = branchId;
+  if (!companyId) return [];
+
+  const where = { companyId };
+  if (branchId && branchId !== "ALL" && branchId !== "undefined" && branchId !== "null" && String(branchId).trim() !== "") {
+    where.branchId = branchId;
+  }
 
   return await prisma.restaurant.findMany({
     where,
@@ -33,9 +36,16 @@ export const getAllRestaurants = async (companyId, branchId) => {
   });
 };
 
-export const getRestaurantById = async (id) => {
-  return await prisma.restaurant.findUnique({
-    where: { id },
+export const getRestaurantById = async (id, companyId) => {
+  if (!id) return null;
+
+  const where = { id };
+  if (companyId) {
+    where.companyId = companyId;
+  }
+
+  return await prisma.restaurant.findFirst({
+    where,
     include: {
       branch: true,
       areas: {
@@ -49,10 +59,19 @@ export const getRestaurantById = async (id) => {
   });
 };
 
-export const updateRestaurant = async (id, data) => {
+export const updateRestaurant = async (id, companyId, data) => {
+  const existing = await getRestaurantById(id, companyId);
+  if (!existing) {
+    const error = new Error("Restaurant not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const { companyId: _ignored, ...updateData } = data;
+
   return await prisma.restaurant.update({
     where: { id },
-    data,
+    data: updateData,
     include: {
       branch: true,
       areas: true,
@@ -61,7 +80,14 @@ export const updateRestaurant = async (id, data) => {
   });
 };
 
-export const deleteRestaurant = async (id) => {
+export const deleteRestaurant = async (id, companyId) => {
+  const existing = await getRestaurantById(id, companyId);
+  if (!existing) {
+    const error = new Error("Restaurant not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
   try {
     return await prisma.$transaction(async (tx) => {
       // 1. Delete dependent child relations

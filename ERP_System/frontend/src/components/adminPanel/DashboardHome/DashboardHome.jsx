@@ -1,101 +1,51 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import DashboardNav from "../DashboardNav/DashboardNav";
 import apiClient from "@/services/apiClient";
+import socketService from "@/services/socketService";
 import { useCompany } from "@/context/CompanyContext";
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
-
 import {
+  TrendingUp,
+  ShoppingCart,
+  Package,
+  AlertTriangle,
+  Layers,
+  Users,
+  RefreshCw,
+  PlusCircle,
+  Plus,
   Truck,
+  Building2,
   Calendar,
-  Clock,
-  Bell,
   CheckCircle2,
-  XCircle,
+  Inbox,
   ArrowUpRight,
   ArrowDownRight,
-  Boxes,
-  ShoppingCart,
-  Building2,
-  FileBarChart2,
-  ChevronDown,
-  Plus,
-  Inbox,
-  AlertCircle,
-  RefreshCw,
-  Award,
-  PackageX,
-  PlusCircle,
-  CheckSquare,
+  ChevronRight,
+  CreditCard,
+  Eye,
+  Loader2,
 } from "lucide-react";
-
 import styles from "./DashboardHome.module.css";
 
-/* =========================
-   STAT CARD COMPONENT
-========================= */
-function StatCard({ label, value, delta, isPositive = true, onClick, interactive = false }) {
-  return (
-    <div
-      className={`${styles.statCard} ${interactive ? styles.interactiveCard : ""}`}
-      onClick={onClick}
-      style={{ cursor: interactive ? "pointer" : "default" }}
-    >
-      <div>
-        <p className={styles.statLabel}>{label}</p>
-        <p className={styles.statValue}>{value}</p>
-      </div>
-
-      {delta && (
-        <span
-          className={`${styles.statDelta} ${
-            isPositive ? styles.statPositive : styles.statNegative
-          }`}
-        >
-          {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-          {delta}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/* =========================
-   EMPTY STATE COMPONENT
-========================= */
-function EmptyState({ icon: Icon = Inbox, title = "No data available", subtitle = "" }) {
-  return (
-    <div className={styles.emptyState}>
-      <Icon size={28} style={{ color: "#94a3b8", opacity: 0.7 }} />
-      <p className={styles.emptyStateText}>{title}</p>
-      {subtitle && <p className={styles.emptyStateSubtext}>{subtitle}</p>}
-    </div>
-  );
-}
-
-/* =========================
-   MAIN COMPONENT
-========================= */
 export default function DashboardHome() {
   const router = useRouter();
-  const { user } = useCompany();
+  const { user, company } = useCompany();
 
   // State Management
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   // Filters
@@ -104,59 +54,45 @@ export default function DashboardHome() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
-  // Data States (All strictly dynamic, starting from null/empty)
+  // Data States
   const [summary, setSummary] = useState({
-    activeProductsFormatted: "0 Items",
+    totalSales: 0,
+    totalSalesFormatted: "₹0",
+    salesDelta: "0.0%",
+    salesDeltaPositive: true,
+    totalOrders: 0,
+    ordersDelta: "0.0%",
+    ordersDeltaPositive: true,
+    totalProducts: 0,
     productDelta: "0.0%",
     productDeltaPositive: true,
-    activeStaffFormatted: "0 Staff",
-    staffDelta: "0.0%",
-    staffDeltaPositive: true,
-    lowStockFormatted: "0 Items",
-    lowStockDelta: "0.0%",
+    lowStock: 0,
+    totalInventoryValue: 0,
     totalInventoryValueFormatted: "₹0",
-    inventoryDelta: "0.0%",
-    totalEarningsFormatted: "₹0",
-    earningsDelta: "0.0%",
-    earningsDeltaPositive: true,
-    totalOutstandingFormatted: "₹0",
-    shrinkageCost: 0,
+    activeStaff: 0,
     currency: "₹",
   });
 
-  const [stockHealth, setStockHealth] = useState({
-    inStock: 0,
-    lowStock: 0,
-    outOfStock: 0,
-    totalSkus: 0,
-    branches: [{ id: "ALL", name: "All Branches" }],
-  });
+  const [branches, setBranches] = useState([{ id: "ALL", name: "All Branches" }]);
+  const [salesOverviewChart, setSalesOverviewChart] = useState([]);
+  const [lowStockAlerts, setLowStockAlerts] = useState([]);
+  const [recentSales, setRecentSales] = useState([]);
 
-  const [topPerformer, setTopPerformer] = useState(null);
-  const [bestSellingProduct, setBestSellingProduct] = useState(null);
-  const [revenueChart, setRevenueChart] = useState([]);
-  const [earningsTrend, setEarningsTrend] = useState([]);
-  const [topCategories, setTopCategories] = useState([]);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [pendingApprovals, setPendingApprovals] = useState([]);
-  const [notices, setNotices] = useState([]);
-  const [todos, setTodos] = useState([]);
-  const [recentActivities, setRecentActivities] = useState([]);
+  // Determine user role and permissions
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.designation || user?.type || "").toUpperCase();
+  const isSuperAdmin = roleUpper.includes("SUPER");
+  const isAdmin = isSuperAdmin || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
+  const isManager = roleUpper.includes("MANAGER");
+  const isCashier = roleUpper.includes("CASHIER") || roleUpper.includes("BILLING") || roleUpper.includes("COUNTER");
+  const isInventoryManager = roleUpper.includes("INVENTORY") || roleUpper.includes("STOCK");
+  const isPurchaseManager = roleUpper.includes("PURCHASE");
+  const isAccountant = roleUpper.includes("ACCOUNT") || roleUpper.includes("FINANCE");
 
-  // Modals for creating quick Notice or Todo
-  const [showNoticeModal, setShowNoticeModal] = useState(false);
-  const [newNoticeTitle, setNewNoticeTitle] = useState("");
-  const [newNoticeDesc, setNewNoticeDesc] = useState("");
-  const [newNoticeDays, setNewNoticeDays] = useState(7);
-
-  const [showTodoModal, setShowTodoModal] = useState(false);
-  const [newTodoTitle, setNewTodoTitle] = useState("");
-  const [newTodoPriority, setNewTodoPriority] = useState("Medium");
-
-  // Fetch complete dynamic dashboard overview from backend
-  const fetchDashboardData = useCallback(async () => {
+  // Fetch unified Retail Dashboard data
+  const fetchDashboardData = useCallback(async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (isManualRefresh) setRefreshing(true);
+      else setLoading(true);
       setError(null);
 
       const params = {
@@ -174,23 +110,17 @@ export default function DashboardHome() {
       if (res.data?.success && res.data?.data) {
         const d = res.data.data;
         if (d.summary) setSummary(d.summary);
-        if (d.stockHealth) setStockHealth(d.stockHealth);
-        setTopPerformer(d.topPerformer || null);
-        setBestSellingProduct(d.bestSellingProduct || null);
-        setRevenueChart(d.revenueChart || []);
-        setEarningsTrend(d.earningsTrend || []);
-        setTopCategories(d.topCategories || []);
-        setUpcomingEvents(d.upcomingEvents || []);
-        setPendingApprovals(d.pendingApprovals || []);
-        setNotices(d.notices || []);
-        setTodos(d.todos || []);
-        setRecentActivities(d.recentActivities || []);
+        if (d.branches) setBranches(d.branches);
+        if (d.salesOverviewChart) setSalesOverviewChart(d.salesOverviewChart);
+        if (d.lowStockAlerts) setLowStockAlerts(d.lowStockAlerts);
+        if (d.recentSales) setRecentSales(d.recentSales);
       }
     } catch (err) {
-      console.error("Dashboard overview fetch error:", err);
-      setError("Unable to load live dashboard data. Please check your connection.");
+      console.error("Retail Dashboard fetch error:", err);
+      setError("Unable to load live dashboard metrics. Please check your connection.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [selectedBranch, datePeriod, customStart, customEnd]);
 
@@ -198,951 +128,492 @@ export default function DashboardHome() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Handle task checkbox toggle
-  const handleToggleTodo = async (todoId, currentStatus) => {
-    const newStatus = currentStatus === "Completed" ? "Pending" : "Completed";
-    try {
-      // Optimistic update
-      setTodos((prev) =>
-        prev.map((t) =>
-          t.id === todoId ? { ...t, status: newStatus, done: newStatus === "Completed" } : t
-        )
-      );
-      await apiClient.patch(`/dashboard/todos/${todoId}/toggle`, { status: newStatus });
-    } catch (err) {
-      console.error("Failed to toggle todo status:", err);
-      fetchDashboardData();
-    }
+  // Real-time socket event listeners for instant updates
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchDashboardData(true);
+    };
+
+    const unsubSale = socketService.on("sale.completed", handleUpdate);
+    const unsubStock = socketService.on("stock.updated", handleUpdate);
+    const unsubProduct = socketService.on("product.created", handleUpdate);
+    const unsubPurchase = socketService.on("purchase.created", handleUpdate);
+    const unsubDashboard = socketService.on("dashboard.updated", handleUpdate);
+
+    return () => {
+      if (typeof unsubSale === "function") unsubSale();
+      if (typeof unsubStock === "function") unsubStock();
+      if (typeof unsubProduct === "function") unsubProduct();
+      if (typeof unsubPurchase === "function") unsubPurchase();
+      if (typeof unsubDashboard === "function") unsubDashboard();
+    };
+  }, [fetchDashboardData]);
+
+  if (loading && !refreshing && summary.totalProducts === 0 && salesOverviewChart.length === 0) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.loadingContainer}>
+          <Loader2 className="animate-spin" size={32} color="#2563eb" />
+          <span>Loading Retail Dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Format currency helper
+  const formatCurrency = (val) => {
+    return `₹${Number(val || 0).toLocaleString("en-IN")}`;
   };
 
-  // Handle Create Notice
-  const handleCreateNotice = async (e) => {
-    e.preventDefault();
-    if (!newNoticeTitle.trim()) return;
-
-    try {
-      const expDate = new Date();
-      expDate.setDate(expDate.getDate() + Number(newNoticeDays || 7));
-
-      await apiClient.post("/dashboard/notices", {
-        title: newNoticeTitle,
-        description: newNoticeDesc,
-        branchId: selectedBranch,
-        expiryDate: expDate.toISOString(),
-      });
-
-      setShowNoticeModal(false);
-      setNewNoticeTitle("");
-      setNewNoticeDesc("");
-      fetchDashboardData();
-    } catch (err) {
-      console.error("Failed to create notice:", err);
-    }
+  // Format date helper
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "N/A";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
-
-  // Handle Create Todo
-  const handleCreateTodo = async (e) => {
-    e.preventDefault();
-    if (!newTodoTitle.trim()) return;
-
-    try {
-      await apiClient.post("/dashboard/todos", {
-        title: newTodoTitle,
-        priority: newTodoPriority,
-        branchId: selectedBranch,
-      });
-
-      setShowTodoModal(false);
-      setNewTodoTitle("");
-      fetchDashboardData();
-    } catch (err) {
-      console.error("Failed to create todo:", err);
-    }
-  };
-
-  // Stock status pie data
-  const dynamicStockStatus = [
-    { name: "In stock", value: stockHealth.inStock || 0, color: "#3B4CCA" },
-    { name: "Low stock", value: stockHealth.lowStock || 0, color: "#F5A623" },
-    { name: "Out of stock", value: stockHealth.outOfStock || 0, color: "#E11D48" },
-  ];
-
-  const totalStockItems =
-    (stockHealth.inStock || 0) + (stockHealth.lowStock || 0) + (stockHealth.outOfStock || 0);
 
   return (
     <div className={styles.dashboard}>
       <div className={styles.container}>
-        <DashboardNav />
-
-        {/* HEADER & FILTERS */}
+        
+        {/* =========================================================
+           1. HEADER & TOOLBAR
+        ========================================================= */}
         <div className={styles.header}>
-          <div>
-            <h1 className={styles.pageTitle}>Retail Executive Overview</h1>
-            <p className={styles.pageSubtitle}>
-              Live System Telemetry & Operations • {user?.companyName || "Enterprise"}
-            </p>
+          <div className={styles.titleArea}>
+            <h1 className={styles.pageTitle}>Retail Dashboard</h1>
+            <p className={styles.pageSubtitle}>Business Overview & Live Operations</p>
           </div>
 
-          <div className={styles.controlsBar}>
-            {/* Branch Selector */}
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className={styles.selectControl}
-              aria-label="Filter by branch"
-            >
-              {(stockHealth.branches || [{ id: "ALL", name: "All Branches" }]).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Date Range Selector */}
-            <select
-              value={datePeriod}
-              onChange={(e) => setDatePeriod(e.target.value)}
-              className={styles.selectControl}
-              aria-label="Filter by date period"
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="7days">Last 7 Days</option>
-              <option value="30days">Last 30 Days</option>
-              <option value="this_month">This Month</option>
-              <option value="last_month">Last Month</option>
-              <option value="this_year">This Year</option>
-              <option value="custom">Custom Range</option>
-            </select>
-
-            {datePeriod === "custom" && (
-              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                <input
-                  type="date"
-                  value={customStart}
-                  onChange={(e) => setCustomStart(e.target.value)}
-                  className={styles.selectControl}
-                />
-                <span style={{ fontSize: "12px", color: "#64748b" }}>to</span>
-                <input
-                  type="date"
-                  value={customEnd}
-                  onChange={(e) => setCustomEnd(e.target.value)}
-                  className={styles.selectControl}
-                />
+          <div className={styles.filtersBar}>
+            {/* Branch Filter */}
+            {(isAdmin || isSuperAdmin || branches.length > 1) && (
+              <div className={styles.filterGroup}>
+                <Building2 size={16} />
+                <select
+                  className={styles.selectInput}
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  aria-label="Filter by Branch"
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 
-            {/* ACTION: + New Sale Button */}
+            {/* Date Range Filter */}
+            <div className={styles.filterGroup}>
+              <Calendar size={16} />
+              <select
+                className={styles.selectInput}
+                value={datePeriod}
+                onChange={(e) => setDatePeriod(e.target.value)}
+                aria-label="Filter by Date Period"
+              >
+                <option value="today">Today</option>
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="this_month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+            </div>
+
+            {/* Custom Date Range Pickers */}
+            {datePeriod === "custom" && (
+              <>
+                <input
+                  type="date"
+                  className={styles.customDateInput}
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  placeholder="Start Date"
+                />
+                <input
+                  type="date"
+                  className={styles.customDateInput}
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  placeholder="End Date"
+                />
+              </>
+            )}
+
+            {/* Refresh Button */}
             <button
               type="button"
-              className={styles.newSaleBtn}
-              onClick={() => router.push("/pos")}
-              title="Open Retail POS Terminal"
+              className={`${styles.refreshBtn} ${refreshing ? styles.spinning : ""}`}
+              onClick={() => fetchDashboardData(true)}
+              title="Refresh Dashboard"
+              aria-label="Refresh Dashboard"
             >
-              <Plus size={16} />
-              <span>New Sale</span>
-            </button>
-
-            <button
-              className={styles.notificationButton}
-              onClick={fetchDashboardData}
-              title="Refresh Dashboard Data"
-            >
-              <RefreshCw size={18} className={loading ? styles.skeletonPulse : ""} />
+              <RefreshCw size={16} />
             </button>
           </div>
         </div>
 
-        {/* ERROR STATE BANNER */}
-        {error && (
-          <div
-            style={{
-              padding: "16px",
-              marginBottom: "24px",
-              borderRadius: "12px",
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              color: "#991b1b",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <AlertCircle size={20} />
-              <span>{error}</span>
-            </div>
-            <button
-              onClick={fetchDashboardData}
-              style={{
-                padding: "6px 12px",
-                background: "#dc2626",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "6px",
-                fontWeight: "600",
-                cursor: "pointer",
-              }}
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {/* 1. TOP 4 DYNAMIC KPIS */}
+        {/* =========================================================
+           2. TOP SUMMARY CARDS
+        ========================================================= */}
         <div className={styles.kpiGrid}>
-          <StatCard
-            label="Total Active Products"
-            value={summary.activeProductsFormatted}
-            delta={summary.productDelta}
-            isPositive={summary.productDeltaPositive}
-            onClick={() => router.push("/admin/products")}
-            interactive={true}
-          />
-
-          <StatCard
-            label="Active Staff Members"
-            value={summary.activeStaffFormatted}
-            delta={summary.staffDelta}
-            isPositive={summary.staffDeltaPositive}
-            onClick={() => router.push("/admin/employees")}
-            interactive={true}
-          />
-
-          <StatCard
-            label="Low Stock Warnings"
-            value={summary.lowStockFormatted}
-            delta={summary.lowStockDelta}
-            isPositive={false}
-            onClick={() => router.push("/admin/inventory")}
-            interactive={true}
-          />
-
-          <StatCard
-            label="Total Inventory Value"
-            value={summary.totalInventoryValueFormatted}
-            delta={summary.inventoryDelta}
-            isPositive={true}
-            onClick={() => router.push("/admin/inventory")}
-            interactive={true}
-          />
-        </div>
-
-        {/* 2. UPCOMING DELIVERIES / TOP HIGHLIGHTS / STOCK HEALTH */}
-        <div className={styles.threeColumnGrid}>
-          {/* UPCOMING EVENTS / DELIVERIES */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Upcoming Schedule</h3>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>Live</span>
-            </div>
-
-            <div className={styles.deliveryList}>
-              {upcomingEvents.length > 0 ? (
-                upcomingEvents.map((delivery, index) => (
-                  <div
-                    key={index}
-                    className={`${styles.deliveryItem} ${
-                      delivery.tone === "rose" ? styles.deliveryRose : ""
-                    }`}
-                  >
-                    <p className={styles.deliveryTitle}>
-                      <Truck size={14} />
-                      {delivery.title}
-                    </p>
-
-                    <p className={styles.deliveryMeta}>
-                      <Calendar size={12} />
-                      {delivery.date}
-                    </p>
-
-                    <p className={styles.deliveryMeta}>
-                      <Clock size={12} />
-                      {delivery.time}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  icon={Calendar}
-                  title="No upcoming events"
-                  subtitle="No supplier deliveries or stock audits scheduled"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* HIGHLIGHTS (TOP PERFORMER & BEST-SELLING SKU) */}
-          <div className={styles.highlightGrid}>
-            {/* TOP PERFORMER */}
-            <div className={`${styles.highlightCard} ${styles.highlightGreen}`}>
-              {topPerformer ? (
-                <div>
-                  <p className={styles.highlightLabel}>Top performer</p>
-                  <p className={styles.highlightTitle}>{topPerformer.name}</p>
-                  <p className={styles.highlightDescription}>
-                    {topPerformer.role} · {topPerformer.branch}
-                  </p>
-                  <p style={{ fontSize: "12px", color: "#065f46", marginTop: "8px", fontWeight: "600" }}>
-                    {topPerformer.detail}
-                  </p>
+          {/* Card 1: Total Sales */}
+          {(!isInventoryManager && !isPurchaseManager) && (
+            <div className={styles.kpiCard}>
+              <div className={styles.kpiHeader}>
+                <span className={styles.kpiLabel}>Total Sales</span>
+                <div className={styles.kpiIconWrapper} style={{ background: "#eff6ff", color: "#2563eb" }}>
+                  <TrendingUp size={18} />
                 </div>
-              ) : (
-                <div>
-                  <p className={styles.highlightLabel}>Top performer</p>
-                  <p className={styles.highlightTitle} style={{ fontSize: "16px", color: "#64748b" }}>
-                    No performance data
-                  </p>
-                  <p className={styles.highlightDescription}>
-                    Transactions will rank top staff automatically.
-                  </p>
-                </div>
-              )}
-              <div className={styles.highlightIcon}>🏆</div>
-            </div>
-
-            {/* BEST-SELLING SKU */}
-            <div className={`${styles.highlightCard} ${styles.highlightBlue}`}>
-              {bestSellingProduct ? (
-                <div>
-                  <p className={styles.highlightLabel}>Best-selling SKU</p>
-                  <p className={styles.highlightTitle}>{bestSellingProduct.name}</p>
-                  <p className={styles.highlightDescription}>
-                    {bestSellingProduct.category} · {bestSellingProduct.unitsSold} units sold
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <p className={styles.highlightLabel}>Best-selling SKU</p>
-                  <p className={styles.highlightTitle} style={{ fontSize: "16px", color: "#64748b" }}>
-                    No sales data available
-                  </p>
-                  <p className={styles.highlightDescription}>
-                    Completed sales will identify top products.
-                  </p>
-                </div>
-              )}
-              <div className={styles.highlightIcon}>🛒</div>
-            </div>
-          </div>
-
-          {/* STOCK HEALTH */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Stock health</h3>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>
-                {selectedBranch === "ALL" ? "All Branches" : "Selected Outlet"}
-              </span>
-            </div>
-
-            <div className={styles.stockHealth}>
-              <div className={styles.stockChart}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={dynamicStockStatus}
-                      dataKey="value"
-                      innerRadius={34}
-                      outerRadius={52}
-                      paddingAngle={2}
-                    >
-                      {dynamicStockStatus.map((item) => (
-                        <Cell key={item.name} fill={item.color} stroke="none" />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
               </div>
-
-              <div className={styles.stockList}>
-                {dynamicStockStatus.map((item) => (
-                  <div key={item.name} className={styles.stockRow}>
-                    <span className={styles.stockName}>
-                      <span className={styles.stockDot} style={{ background: item.color }} />
-                      {item.name}
-                    </span>
-                    <span className={styles.stockValue}>{item.value}</span>
-                  </div>
-                ))}
-                <p className={styles.stockTotal}>
-                  {stockHealth.totalSkus || totalStockItems} SKUs tracked
-                </p>
+              <div className={styles.kpiValue}>{summary.totalSalesFormatted || formatCurrency(summary.totalSales)}</div>
+              <div className={styles.kpiFooter}>
+                <span className={summary.salesDeltaPositive ? styles.kpiDeltaPositive : styles.kpiDeltaNegative}>
+                  {summary.salesDeltaPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                  {summary.salesDelta || "0.0%"}
+                </span>
+                <span className={styles.kpiSubtext}>vs previous period</span>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Card 2: Total Orders */}
+          {(!isInventoryManager && !isPurchaseManager) && (
+            <div className={styles.kpiCard}>
+              <div className={styles.kpiHeader}>
+                <span className={styles.kpiLabel}>Total Orders</span>
+                <div className={styles.kpiIconWrapper} style={{ background: "#f0fdf4", color: "#16a34a" }}>
+                  <ShoppingCart size={18} />
+                </div>
+              </div>
+              <div className={styles.kpiValue}>{Number(summary.totalOrders || 0).toLocaleString("en-IN")}</div>
+              <div className={styles.kpiFooter}>
+                <span className={summary.ordersDeltaPositive ? styles.kpiDeltaPositive : styles.kpiDeltaNegative}>
+                  {summary.ordersDeltaPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                  {summary.ordersDelta || "0.0%"}
+                </span>
+                <span className={styles.kpiSubtext}>completed sales</span>
+              </div>
+            </div>
+          )}
+
+          {/* Card 3: Total Products */}
+          {(!isCashier) && (
+            <div className={styles.kpiCard}>
+              <div className={styles.kpiHeader}>
+                <span className={styles.kpiLabel}>Total Products</span>
+                <div className={styles.kpiIconWrapper} style={{ background: "#faf5ff", color: "#9333ea" }}>
+                  <Package size={18} />
+                </div>
+              </div>
+              <div className={styles.kpiValue}>{Number(summary.totalProducts || summary.activeProducts || 0).toLocaleString("en-IN")}</div>
+              <div className={styles.kpiFooter}>
+                <span className={styles.kpiSubtext}>active in catalog</span>
+              </div>
+            </div>
+          )}
+
+          {/* Card 4: Low Stock Items */}
+          {(!isCashier && !isAccountant) && (
+            <div className={styles.kpiCard}>
+              <div className={styles.kpiHeader}>
+                <span className={styles.kpiLabel}>Low Stock Items</span>
+                <div
+                  className={styles.kpiIconWrapper}
+                  style={{
+                    background: summary.lowStock > 0 ? "#fef2f2" : "#f0fdf4",
+                    color: summary.lowStock > 0 ? "#dc2626" : "#16a34a",
+                  }}
+                >
+                  <AlertTriangle size={18} />
+                </div>
+              </div>
+              <div className={styles.kpiValue} style={{ color: summary.lowStock > 0 ? "#dc2626" : "#0f172a" }}>
+                {Number(summary.lowStock || 0).toLocaleString("en-IN")}
+              </div>
+              <div className={styles.kpiFooter}>
+                <span className={styles.kpiSubtext}>
+                  {summary.lowStock > 0 ? "requires restock" : "all items sufficient"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Card 5: Total Inventory Value */}
+          {(!isCashier) && (
+            <div className={styles.kpiCard}>
+              <div className={styles.kpiHeader}>
+                <span className={styles.kpiLabel}>Inventory Value</span>
+                <div className={styles.kpiIconWrapper} style={{ background: "#f8fafc", color: "#0891b2" }}>
+                  <Layers size={18} />
+                </div>
+              </div>
+              <div className={styles.kpiValue}>
+                {summary.totalInventoryValueFormatted || formatCurrency(summary.totalInventoryValue)}
+              </div>
+              <div className={styles.kpiFooter}>
+                <span className={styles.kpiSubtext}>current stock valuation</span>
+              </div>
+            </div>
+          )}
+
+          {/* Optional Card 6: Active Staff (Admin & Store Manager) */}
+          {(isAdmin || isManager) && (
+            <div className={styles.kpiCard}>
+              <div className={styles.kpiHeader}>
+                <span className={styles.kpiLabel}>Active Staff</span>
+                <div className={styles.kpiIconWrapper} style={{ background: "#fff7ed", color: "#ea580c" }}>
+                  <Users size={18} />
+                </div>
+              </div>
+              <div className={styles.kpiValue}>{Number(summary.activeStaff || 0).toLocaleString("en-IN")}</div>
+              <div className={styles.kpiFooter}>
+                <span className={styles.kpiSubtext}>assigned team members</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 3. REVENUE COLLECTION CHART & PENDING APPROVALS */}
-        <div className={styles.twoColumnGrid}>
-          {/* REVENUE CHART */}
-          <div className={styles.card}>
+        {/* =========================================================
+           3. SALES OVERVIEW CHART
+        ========================================================= */}
+        {(!isInventoryManager && !isPurchaseManager) && (
+          <div className={styles.chartCard}>
             <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Revenue collection</h3>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>Quarterly Trends</span>
+              <div>
+                <h3>Sales Overview</h3>
+                <p>Daily completed sales revenue for the selected period</p>
+              </div>
             </div>
 
-            <div className={styles.revenueChart}>
-              {revenueChart.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueChart} barGap={4}>
-                    <XAxis
-                      dataKey="q"
-                      tick={{ fontSize: 11, fill: "#94A3B8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "#94A3B8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "#F5F6FA" }}
-                      contentStyle={{
-                        borderRadius: 10,
-                        border: "1px solid #E2E8F0",
-                        fontSize: 12,
-                      }}
-                      formatter={(val) => [`₹${Number(val).toLocaleString()}`, "Amount"]}
-                    />
-                    <Bar
-                      dataKey="target"
-                      fill="#E5E9F5"
-                      radius={[4, 4, 0, 0]}
-                      name="Target"
-                    />
-                    <Bar
-                      dataKey="collected"
-                      fill="#3B4CCA"
-                      radius={[4, 4, 0, 0]}
-                      name="Collected"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyState
-                  icon={FileBarChart2}
-                  title="No revenue data available"
-                  subtitle="Complete sales and invoices to generate telemetry"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* PENDING APPROVALS */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Pending approvals</h3>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>
-                {pendingApprovals.length} pending
-              </span>
-            </div>
-
-            <div className={styles.approvalList}>
-              {pendingApprovals.length > 0 ? (
-                pendingApprovals.map((approval) => (
-                  <div key={approval.id} className={styles.approvalItem}>
-                    <div className={styles.approvalTop}>
-                      <p className={styles.approvalName}>
-                        {approval.name}
-                        <span
-                          className={styles.approvalTag}
-                          style={{
-                            background: approval.tagTone === "rose" ? "#FBE7EA" : "#FCEFD9",
-                            color: approval.tagTone === "rose" ? "#9A1B34" : "#8A5A00",
-                          }}
-                        >
-                          {approval.tag}
-                        </span>
-                      </p>
-
-                      <div className={styles.approvalActions}>
-                        <button
-                          className={`${styles.approvalButton} ${styles.approve}`}
-                          onClick={() => router.push("/admin/purchases")}
-                          title="View & Approve"
-                        >
-                          <CheckCircle2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <p className={styles.approvalRole}>
-                      {approval.role} · {approval.detail} · {approval.date}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  icon={CheckCircle2}
-                  title="No pending approvals"
-                  subtitle="All orders and requests are approved"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 4. QUICK ACTIONS */}
-        <div className={styles.quickActionsGrid}>
-          <button
-            className={styles.quickAction}
-            style={{ background: "#FCEFD9" }}
-            onClick={() => router.push("/admin/inventory")}
-          >
-            <span className={styles.quickActionLeft}>
-              <span className={styles.quickActionIcon} style={{ background: "#F5A623" }}>
-                <Boxes size={16} />
-              </span>
-              <span className={styles.quickActionLabel} style={{ color: "#8A5A00" }}>
-                Inventory
-              </span>
-            </span>
-            <ArrowUpRight size={15} style={{ color: "#8A5A00" }} />
-          </button>
-
-          <button
-            className={styles.quickAction}
-            style={{ background: "#E1F5EC" }}
-            onClick={() => router.push("/admin/sales")}
-          >
-            <span className={styles.quickActionLeft}>
-              <span className={styles.quickActionIcon} style={{ background: "#16A34A" }}>
-                <ShoppingCart size={16} />
-              </span>
-              <span className={styles.quickActionLabel} style={{ color: "#0F6E4E" }}>
-                Orders & Sales
-              </span>
-            </span>
-            <ArrowUpRight size={15} style={{ color: "#0F6E4E" }} />
-          </button>
-
-          <button
-            className={styles.quickAction}
-            style={{ background: "#FBE7EA" }}
-            onClick={() => router.push("/admin/suppliers")}
-          >
-            <span className={styles.quickActionLeft}>
-              <span className={styles.quickActionIcon} style={{ background: "#E11D48" }}>
-                <Building2 size={16} />
-              </span>
-              <span className={styles.quickActionLabel} style={{ color: "#9A1B34" }}>
-                Suppliers
-              </span>
-            </span>
-            <ArrowUpRight size={15} style={{ color: "#9A1B34" }} />
-          </button>
-
-          <button
-            className={styles.quickAction}
-            style={{ background: "#E6F0FD" }}
-            onClick={() => router.push("/admin/reports")}
-          >
-            <span className={styles.quickActionLeft}>
-              <span className={styles.quickActionIcon} style={{ background: "#3B4CCA" }}>
-                <FileBarChart2 size={16} />
-              </span>
-              <span className={styles.quickActionLabel} style={{ color: "#134487" }}>
-                Reports & Audit
-              </span>
-            </span>
-            <ArrowUpRight size={15} style={{ color: "#134487" }} />
-          </button>
-        </div>
-
-        {/* 5. EARNINGS / NOTICE BOARD / OUTSTANDING */}
-        <div className={styles.threeColumnGrid}>
-          {/* TOTAL EARNINGS */}
-          <div className={styles.card}>
-            <p className={styles.smallLabel}>Total earnings (Period)</p>
-            <p className={styles.largeValue}>{summary.totalEarningsFormatted}</p>
-
-            <div className={styles.earningsChart}>
-              {earningsTrend.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={earningsTrend}>
+            {salesOverviewChart.length > 0 ? (
+              <div className={styles.chartContainer}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={salesOverviewChart} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3B4CCA" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#3B4CCA" stopOpacity={0} />
+                      <linearGradient id="retailSalesGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="name" hide />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="label"
+                      stroke="#94a3b8"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e2e8f0" }}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                    />
+                    <Tooltip
+                      formatter={(value) => [formatCurrency(value), "Sales Amount"]}
+                      labelFormatter={(label) => `Date: ${label}`}
+                      contentStyle={{
+                        background: "#0f172a",
+                        color: "#ffffff",
+                        borderRadius: "8px",
+                        border: "none",
+                        fontSize: "13px",
+                      }}
+                    />
                     <Area
                       type="monotone"
-                      dataKey="earnings"
-                      stroke="#3B4CCA"
-                      strokeWidth={2}
-                      fill="url(#earningsGradient)"
+                      dataKey="sales"
+                      stroke="#2563eb"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#retailSalesGrad)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
-              ) : (
-                <EmptyState icon={FileBarChart2} title="No earnings data" />
-              )}
-            </div>
-          </div>
-
-          {/* NOTICE BOARD */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Notice board</h3>
-              <button
-                className={styles.addInlineBtn}
-                onClick={() => setShowNoticeModal(true)}
-              >
-                <Plus size={13} /> Add
-              </button>
-            </div>
-
-            <div className={styles.noticeList}>
-              {notices.length > 0 ? (
-                notices.map((notice) => (
-                  <div key={notice.id} className={styles.noticeItem}>
-                    <div>
-                      <p className={styles.noticeTitle}>{notice.title}</p>
-                      <p className={styles.noticeDate}>Added on: {notice.added}</p>
-                    </div>
-                    <span className={styles.noticeChip}>{notice.chip}</span>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  icon={Inbox}
-                  title="No active notices"
-                  subtitle="Add announcements for staff and branch members"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* OUTSTANDING / SHRINKAGE */}
-          <div className={styles.outstandingStack}>
-            <div className={styles.outstandingCard}>
-              <div>
-                <p className={styles.smallLabel}>Total outstanding</p>
-                <p className={styles.outstandingValue}>{summary.totalOutstandingFormatted}</p>
               </div>
-              <span className={`${styles.outstandingChange} ${styles.danger}`}>
-                Unpaid Invoices
-              </span>
-            </div>
-
-            <div className={styles.outstandingCard}>
-              <div>
-                <p className={styles.smallLabel}>Damage / Shrinkage loss</p>
-                <p className={styles.outstandingValue}>
-                  {summary.currency}
-                  {(summary.shrinkageCost || 0).toLocaleString("en-IN")}
-                </p>
+            ) : (
+              <div className={styles.emptyState}>
+                <Inbox size={32} />
+                <p className={styles.emptyText}>No sales data available for the selected period.</p>
               </div>
-              <span className={`${styles.outstandingChange} ${styles.success}`}>
-                {summary.shrinkageCost > 0 ? "Recorded" : "Zero Loss"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 6. TOP CATEGORIES / RECENT ACTIVITY / TODO */}
-        <div className={styles.threeColumnGrid}>
-          {/* CATEGORIES */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Top categories</h3>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>Units Sold Share</span>
-            </div>
-
-            <div className={styles.categoryInfo}>
-              Share of total units sold in the selected period.
-            </div>
-
-            <div className={styles.categoryList}>
-              {topCategories.length > 0 ? (
-                topCategories.map((category) => (
-                  <div key={category.name} className={styles.categoryRow}>
-                    <div className={styles.categoryLabel}>
-                      <span>{category.name}</span>
-                      <span>
-                        {category.units} units ({category.pct}%)
-                      </span>
-                    </div>
-
-                    <div className={styles.categoryProgress}>
-                      <div
-                        className={styles.categoryBar}
-                        style={{
-                          width: `${category.pct}%`,
-                          background: category.color,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  icon={Inbox}
-                  title="No category sales data available"
-                  subtitle="Category volume will calculate upon sales completion"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* RECENT ACTIVITY */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Recent activity</h3>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>Live Audit Log</span>
-            </div>
-
-            <div className={styles.activityList}>
-              {recentActivities.length > 0 ? (
-                recentActivities.map((item, index) => (
-                  <div key={item.id || index} className={styles.activityItem}>
-                    <span className={styles.activityIcon}>{item.icon}</span>
-                    <div>
-                      <p className={styles.activityTitle}>{item.title}</p>
-                      <p className={styles.activitySubtitle}>{item.sub}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  icon={Inbox}
-                  title="No recent activity"
-                  subtitle="System actions will log here in real-time"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* TODO LIST */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>To-do list</h3>
-              <button
-                className={styles.addInlineBtn}
-                onClick={() => setShowTodoModal(true)}
-              >
-                <Plus size={13} /> Add
-              </button>
-            </div>
-
-            <div className={styles.todoList}>
-              {todos.length > 0 ? (
-                todos.map((todo) => (
-                  <div key={todo.id} className={styles.todoItem}>
-                    <div className={styles.todoLeft}>
-                      <input
-                        type="checkbox"
-                        checked={todo.done}
-                        onChange={() => handleToggleTodo(todo.id, todo.status)}
-                        className={styles.todoCheckbox}
-                        aria-label={`Mark ${todo.title} as completed`}
-                      />
-
-                      <div>
-                        <p
-                          className={`${styles.todoTitle} ${
-                            todo.done ? styles.todoCompleted : ""
-                          }`}
-                        >
-                          {todo.title}
-                        </p>
-                        <p className={styles.todoTime}>{todo.time}</p>
-                      </div>
-                    </div>
-
-                    <span
-                      className={`${styles.todoStatus} ${
-                        todo.done
-                          ? styles.statusCompleted
-                          : todo.status === "In progress"
-                          ? styles.statusProgress
-                          : styles.statusPending
-                      }`}
-                    >
-                      {todo.status}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  icon={CheckSquare}
-                  title="No tasks for today"
-                  subtitle="Add operational tasks and reminders above"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* MODAL: ADD NOTICE */}
-        {showNoticeModal && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              backgroundColor: "rgba(15, 23, 42, 0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 100,
-              padding: "16px",
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: "16px",
-                padding: "24px",
-                maxWidth: "480px",
-                width: "100%",
-                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
-              }}
-            >
-              <h3 style={{ margin: "0 0 16px 0", fontSize: "18px", color: "#0f172a" }}>
-                Add Company Notice
-              </h3>
-              <form onSubmit={handleCreateNotice}>
-                <div style={{ marginBottom: "12px" }}>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
-                    Notice Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. New pricing policy rollout"
-                    value={newNoticeTitle}
-                    onChange={(e) => setNewNoticeTitle(e.target.value)}
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: "12px" }}>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
-                    Description
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Notice details..."
-                    value={newNoticeDesc}
-                    onChange={(e) => setNewNoticeDesc(e.target.value)}
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
-                    Expires In (Days)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={newNoticeDays}
-                    onChange={(e) => setNewNoticeDays(e.target.value)}
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                  />
-                </div>
-
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowNoticeModal(false)}
-                    style={{ padding: "8px 16px", background: "#f1f5f9", border: "none", borderRadius: "8px", cursor: "pointer" }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    style={{ padding: "8px 16px", background: "#3b4cca", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
-                  >
-                    Post Notice
-                  </button>
-                </div>
-              </form>
-            </div>
+            )}
           </div>
         )}
 
-        {/* MODAL: ADD TODO */}
-        {showTodoModal && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              backgroundColor: "rgba(15, 23, 42, 0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 100,
-              padding: "16px",
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: "16px",
-                padding: "24px",
-                maxWidth: "440px",
-                width: "100%",
-                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
-              }}
-            >
-              <h3 style={{ margin: "0 0 16px 0", fontSize: "18px", color: "#0f172a" }}>
-                Add New Task / To-Do
-              </h3>
-              <form onSubmit={handleCreateTodo}>
-                <div style={{ marginBottom: "12px" }}>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
-                    Task Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Review supplier inventory restock"
-                    value={newTodoTitle}
-                    onChange={(e) => setNewTodoTitle(e.target.value)}
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                  />
-                </div>
+        {/* =========================================================
+           4. DATA TABLES: LOW STOCK ALERTS & RECENT SALES
+        ========================================================= */}
+        <div className={styles.tablesGrid}>
+          {/* Low Stock Alerts Table */}
+          {(!isCashier && !isAccountant) && (
+            <div className={styles.tableCard}>
+              <div className={styles.tableHeader}>
+                <h3>Low Stock Alerts</h3>
+                <Link href="/warehouse/stock" className={styles.viewAllLink}>
+                  Manage Stock <ChevronRight size={14} />
+                </Link>
+              </div>
 
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
-                    Priority
-                  </label>
-                  <select
-                    value={newTodoPriority}
-                    onChange={(e) => setNewTodoPriority(e.target.value)}
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                  >
-                    <option value="Low">Low Priority</option>
-                    <option value="Medium">Medium Priority</option>
-                    <option value="High">High Priority</option>
-                  </select>
+              {lowStockAlerts.length > 0 ? (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.dataTable}>
+                    <thead>
+                      <tr>
+                        <th>Product Name</th>
+                        <th>SKU</th>
+                        <th>Current Stock</th>
+                        <th>Min Stock</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lowStockAlerts.slice(0, 6).map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <strong>{item.name}</strong>
+                          </td>
+                          <td style={{ color: "#64748b", fontFamily: "monospace" }}>{item.sku}</td>
+                          <td>
+                            <span style={{ color: item.currentStock <= 0 ? "#dc2626" : "#d97706", fontWeight: "700" }}>
+                              {item.currentStock} {item.unit || "Pcs"}
+                            </span>
+                          </td>
+                          <td>{item.minStock}</td>
+                          <td>
+                            <span
+                              className={`${styles.statusBadge} ${
+                                item.currentStock <= 0 ? styles.badgeDanger : styles.badgeWarning
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowTodoModal(false)}
-                    style={{ padding: "8px 16px", background: "#f1f5f9", border: "none", borderRadius: "8px", cursor: "pointer" }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    style={{ padding: "8px 16px", background: "#3b4cca", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
-                  >
-                    Create Task
-                  </button>
+              ) : (
+                <div className={styles.emptyState}>
+                  <CheckCircle2 size={32} style={{ color: "#16a34a" }} />
+                  <p className={styles.emptyText}>All products are sufficiently stocked.</p>
                 </div>
-              </form>
+              )}
             </div>
+          )}
+
+          {/* Recent Sales Table */}
+          {(!isInventoryManager && !isPurchaseManager) && (
+            <div className={styles.tableCard}>
+              <div className={styles.tableHeader}>
+                <h3>Recent Sales</h3>
+                <Link href="/pos/history" className={styles.viewAllLink}>
+                  View All <ChevronRight size={14} />
+                </Link>
+              </div>
+
+              {recentSales.length > 0 ? (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.dataTable}>
+                    <thead>
+                      <tr>
+                        <th>Invoice #</th>
+                        <th>Customer</th>
+                        <th>Date & Time</th>
+                        <th>Payment</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentSales.slice(0, 6).map((sale) => (
+                        <tr key={sale.id}>
+                          <td>
+                            <strong style={{ color: "#2563eb" }}>{sale.invoiceNumber}</strong>
+                          </td>
+                          <td>{sale.customerName}</td>
+                          <td style={{ color: "#64748b", fontSize: "12.5px" }}>{formatDateTime(sale.dateTime)}</td>
+                          <td>
+                            <span className={`${styles.statusBadge} ${styles.badgeNeutral}`}>
+                              {sale.paymentMethod}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{sale.totalAmountFormatted || formatCurrency(sale.totalAmount)}</strong>
+                          </td>
+                          <td>
+                            <span className={`${styles.statusBadge} ${styles.badgeSuccess}`}>
+                              {sale.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className={styles.emptyState}>
+                  <Inbox size={32} />
+                  <p className={styles.emptyText}>No recent sales found.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* =========================================================
+           5. QUICK ACTIONS SECTION
+        ========================================================= */}
+        <div className={styles.quickActionsCard}>
+          <h3>Quick Actions</h3>
+          <div className={styles.actionsGrid}>
+            {/* New Sale: Cashier, Store Manager, Admin */}
+            {(isAdmin || isManager || isCashier) && (
+              <Link href="/pos" className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}>
+                <PlusCircle size={16} /> New Sale (POS)
+              </Link>
+            )}
+
+            {/* Add Product: Inventory Manager, Store Manager, Admin */}
+            {(isAdmin || isManager || isInventoryManager) && (
+              <Link href="/admin/products/add" className={styles.actionBtn}>
+                <Plus size={16} /> Add Product
+              </Link>
+            )}
+
+            {/* Add Purchase: Purchase Manager, Store Manager, Admin */}
+            {(isAdmin || isManager || isPurchaseManager) && (
+              <Link href="/purchases/add" className={styles.actionBtn}>
+                <Plus size={16} /> Add Purchase
+              </Link>
+            )}
+
+            {/* Add Supplier: Purchase Manager, Admin */}
+            {(isAdmin || isPurchaseManager) && (
+              <Link href="/admin/suppliers" className={styles.actionBtn}>
+                <Truck size={16} /> Add Supplier
+              </Link>
+            )}
+
+            {/* Manage Stock: Inventory Manager, Store Manager, Admin */}
+            {(isAdmin || isManager || isInventoryManager) && (
+              <Link href="/warehouse/stock" className={styles.actionBtn}>
+                <Layers size={16} /> Manage Inventory
+              </Link>
+            )}
           </div>
-        )}
+        </div>
+
       </div>
     </div>
   );

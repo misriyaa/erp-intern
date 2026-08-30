@@ -1,38 +1,40 @@
-import * as tableRepo from "./restaurantTable.repository.js";
+import * as tableRepository from "./restaurantTable.repository.js";
 
-export const createTable = async (data) => {
-  if (!data.tableNumber || !data.restaurantId || !data.areaId) {
-    throw new Error("Table number, restaurant ID, and area ID are required.");
+export const createTable = async (companyId, data) => {
+  if (!data.tableNumber) {
+    throw new Error("Table number is required.");
   }
-  return await tableRepo.createTable(data);
+  if (!data.restaurantId) {
+    throw new Error("Restaurant ID is required.");
+  }
+  if (!data.areaId) {
+    throw new Error("Area/Floor ID is required.");
+  }
+  return await tableRepository.createTable(companyId, data);
 };
 
-export const getTables = async (restaurantId, areaId) => {
-  return await tableRepo.getTables(restaurantId, areaId);
+export const getTables = async (companyId, restaurantId, areaId) => {
+  return await tableRepository.getTables(companyId, restaurantId, areaId);
 };
 
-export const getTableById = async (id) => {
-  const table = await tableRepo.getTableById(id);
-  if (!table) throw new Error("Table not found.");
+export const getTableById = async (id, companyId) => {
+  const table = await tableRepository.getTableById(id, companyId);
+  if (!table) {
+    const error = new Error("Table not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
   return table;
 };
 
-export const updateTable = async (id, data) => {
-  const existing = await tableRepo.getTableById(id);
-  if (!existing) throw new Error("Table not found.");
-  return await tableRepo.updateTable(id, data);
+export const updateTable = async (id, companyId, data) => {
+  return await tableRepository.updateTable(id, companyId, data);
 };
 
-export const updateTableStatus = async (id, status) => {
-  const validStatuses = ["AVAILABLE", "OCCUPIED", "RESERVED", "CLEANING", "BLOCKED"];
-  if (!validStatuses.includes(status)) {
-    throw new Error(`Invalid status. Must be one of: ${validStatuses.join(", ")}`);
-  }
-  return await tableRepo.updateTableStatus(id, status);
+export const updateTableStatus = async (id, companyId, status) => {
+  return await tableRepository.updateTableStatus(id, companyId, status);
 };
 
-export const deleteTable = async (id) => {
-  const existing = await tableRepo.getTableById(id);
-  if (!existing) throw new Error("Table not found.");
-  return await tableRepo.deleteTable(id);
+export const deleteTable = async (id, companyId) => {
+  return await tableRepository.deleteTable(id, companyId);
 };
