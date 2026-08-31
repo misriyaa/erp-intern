@@ -28,7 +28,9 @@ import {
   FiMail,
   FiBarChart2,
   FiUser,
+  FiSettings,
 } from "react-icons/fi";
+
 
 import styles from "./Sidebar.module.css";
 
@@ -288,8 +290,18 @@ export default function Sidebar({ isOpen, onClose }) {
               <FiUserCheck />
               <span>Add Client / Admin</span>
             </Link>
+
+            <Link
+              href="/admin/settings"
+              className={isActivePath("/admin/settings") ? styles.active : ""}
+              onClick={handleLinkClick}
+            >
+              <FiSettings />
+              <span>System Settings</span>
+            </Link>
           </>
         )}
+
 
         <h4 className={styles.title}>
           {isRetailCashier

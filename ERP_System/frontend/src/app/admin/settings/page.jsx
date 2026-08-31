@@ -22,21 +22,25 @@ import {
   FiPlus,
   FiLayers,
   FiPrinter,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import { getSettings, updateSettings, resetSettings } from "@/services/settingsService";
 import { getLandingPage, updateLandingPage } from "@/services/landingAdmin.service";
 import { useSettings } from "@/context/SettingsContext";
+import { useCompany } from "@/context/CompanyContext";
 import styles from "./settings.module.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function SettingsPage() {
   const { refreshSettings } = useSettings();
+  const { user, loading: contextLoading } = useCompany();
   const [activeTab, setActiveTab] = useState("business");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+
 
   const [toast, setToast] = useState({ type: null, message: "" });
   const [logoFile, setLogoFile] = useState(null);
@@ -323,6 +327,59 @@ export default function SettingsPage() {
     }
   };
 
+  const roleUpper = (user?.role || user?.roleRef?.name || user?.type || "").toUpperCase();
+  const isSuperAdmin = roleUpper.includes("SUPER");
+
+  if (contextLoading) {
+    return (
+      <div className={styles.container}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px", gap: "12px", color: "#64748b" }}>
+          <FiRefreshCw className="animate-spin" style={{ fontSize: "1.5rem" }} />
+          <span>Verifying Super Admin privileges...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Access Control: Super Admin Only
+  if (!isSuperAdmin) {
+    return (
+      <div style={{
+        minHeight: "80vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        fontFamily: "Inter, sans-serif"
+      }}>
+        <FiAlertTriangle size={48} style={{ color: "#ef4444", marginBottom: "16px" }} />
+        <h2 style={{ margin: "0 0 8px", color: "#0f172a", fontSize: "22px", fontWeight: "700" }}>Access Denied</h2>
+        <p style={{ margin: "0 0 24px", color: "#64748b", fontSize: "14px", textAlign: "center", maxWidth: "420px" }}>
+          You do not have the required Super Admin privileges to access System Settings. This control center is restricted exclusively to Super Administrators.
+        </p>
+        <Link 
+          href="/dashboard"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "#0f172a",
+            color: "#ffffff",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            textDecoration: "none",
+            fontSize: "14px",
+            fontWeight: "600",
+            transition: "all 0.2s ease"
+          }}
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -335,6 +392,7 @@ export default function SettingsPage() {
   }
 
   return (
+
     <div className={styles.container}>
       {/* Top Header */}
       <div className={styles.header}>
