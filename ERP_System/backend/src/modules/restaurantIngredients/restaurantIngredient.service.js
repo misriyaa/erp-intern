@@ -22,6 +22,11 @@ export const updateIngredient = async (id, companyId, data) => {
   return await ingredientRepo.updateIngredient(id, companyId, data);
 };
 
+export const addIngredientStock = async (id, companyId, data) => {
+  return await ingredientRepo.addIngredientStock(id, companyId, data);
+};
+
 export const deleteIngredient = async (id, companyId) => {
   return await ingredientRepo.deleteIngredient(id, companyId);
 };
+

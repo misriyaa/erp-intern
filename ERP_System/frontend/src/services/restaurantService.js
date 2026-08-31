@@ -263,8 +263,13 @@ export const restaurantService = {
     });
     return res.data;
   },
+  addIngredientStock: async (id, data) => {
+    const res = await apiClient.post(`/restaurant/ingredients/${id}/add-stock`, data);
+    return res.data;
+  },
   deleteIngredient: async (id) => {
     const res = await apiClient.delete(`/restaurant/ingredients/${id}`);
     return res.data;
   },
 };
+

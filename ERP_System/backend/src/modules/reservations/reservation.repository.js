@@ -1,4 +1,6 @@
 import prisma from "../../config/prisma.js";
+import { emitTableStatusUpdated } from "../../config/socket.js";
+
 
 export const createReservation = async (companyId, data) => {
   if (!companyId) {
@@ -124,8 +126,11 @@ export const updateReservationStatus = async (id, companyId, status) => {
     throw error;
   }
 
-  return await prisma.$transaction(async (tx) => {
-    const reservation = await tx.reservation.update({
+  let targetTableStatus = null;
+  let targetTableId = null;
+
+  const reservation = await prisma.$transaction(async (tx) => {
+    const resv = await tx.reservation.update({
       where: { id },
       data: { status },
       include: {
@@ -133,26 +138,48 @@ export const updateReservationStatus = async (id, companyId, status) => {
       },
     });
 
-    if (status === "CONFIRMED" && reservation.tableId) {
+    if (status === "CONFIRMED" && resv.tableId) {
+      targetTableStatus = "RESERVED";
+      targetTableId = resv.tableId;
       await tx.restaurantTable.update({
-        where: { id: reservation.tableId },
+        where: { id: resv.tableId },
         data: { status: "RESERVED" },
       });
-    } else if (status === "SEATED" && reservation.tableId) {
+    } else if (status === "SEATED" && resv.tableId) {
+      targetTableStatus = "OCCUPIED";
+      targetTableId = resv.tableId;
       await tx.restaurantTable.update({
-        where: { id: reservation.tableId },
+        where: { id: resv.tableId },
         data: { status: "OCCUPIED" },
       });
-    } else if (["COMPLETED", "CANCELLED", "NO_SHOW"].includes(status) && reservation.tableId) {
+    } else if (["COMPLETED", "CANCELLED", "NO_SHOW"].includes(status) && resv.tableId) {
+      targetTableStatus = "AVAILABLE";
+      targetTableId = resv.tableId;
       await tx.restaurantTable.update({
-        where: { id: reservation.tableId },
+        where: { id: resv.tableId },
         data: { status: "AVAILABLE" },
       });
     }
 
-    return reservation;
+    return resv;
   });
+
+  if (targetTableId && targetTableStatus) {
+    try {
+      emitTableStatusUpdated({
+        id: targetTableId,
+        tableNumber: reservation.table?.tableNumber,
+        status: targetTableStatus,
+        restaurantId: reservation.restaurantId,
+      }, companyId);
+    } catch (err) {
+      console.error("Socket emit error on reservation update:", err);
+    }
+  }
+
+  return reservation;
 };
+
 
 export const deleteReservation = async (id, companyId) => {
   const existing = await getReservationById(id, companyId);

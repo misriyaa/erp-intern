@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma.js";
+import { convertUnit } from "../../utils/unitConverter.js";
 
 export const upsertRecipe = async (companyId, menuItemId, data) => {
   if (!companyId) {
@@ -52,10 +53,14 @@ export const upsertRecipe = async (companyId, menuItemId, data) => {
         // Validate ingredient product belongs to company
         const product = await tx.product.findFirst({
           where: { id: ing.productId, companyId },
+          include: { unit: true },
         });
 
         const unitCost = product ? parseFloat(product.costPrice) || 0 : 0;
-        const ingCost = unitCost * parseFloat(ing.quantity || 0);
+        const recipeUnit = ing.unit || product?.stockUnit || product?.unit?.code || product?.unit?.name || "unit";
+        const stockUnit = product?.stockUnit || product?.unit?.code || product?.unit?.name || "unit";
+        const convertedQty = convertUnit(parseFloat(ing.quantity || 0), recipeUnit, stockUnit);
+        const ingCost = unitCost * convertedQty;
         calculatedTotalCost += ingCost;
 
         await tx.recipeIngredient.create({
@@ -63,7 +68,7 @@ export const upsertRecipe = async (companyId, menuItemId, data) => {
             recipeId: recipe.id,
             productId: ing.productId,
             quantity: parseFloat(ing.quantity),
-            unit: ing.unit || product?.stockUnit || "unit",
+            unit: ing.unit || product?.stockUnit || product?.unit?.code || "unit",
             cost: ingCost,
           },
         });

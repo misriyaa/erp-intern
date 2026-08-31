@@ -294,7 +294,6 @@ export const getIngredientById = async (id, companyId) => {
   const item = await prisma.product.findFirst({
     where: {
       id,
-      productType: "RAW_MATERIAL",
       ...(companyId && { companyId }),
     },
     include: ingredientInclude,
@@ -400,6 +399,92 @@ export const updateIngredient = async (id, companyId, payload) => {
 };
 
 /**
+ * Add stock to an existing restaurant ingredient
+ */
+export const addIngredientStock = async (id, companyId, data) => {
+  const existing = await getIngredientById(id, companyId);
+  if (!existing) {
+    const error = new Error("Ingredient not found or access denied.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const quantityToAdd = parseFloat(data.quantity || data.addQuantity || 0);
+  if (quantityToAdd <= 0) {
+    const error = new Error("Valid positive quantity is required to add stock.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const unitCost = parseFloat(data.unitCost !== undefined ? data.unitCost : existing.costPrice) || 0;
+  const remarks = data.remarks || data.notes || "Direct Stock In / Purchase Receipt";
+  const warehouseId = data.warehouseId || await getDefaultWarehouseId(companyId);
+
+  return await prisma.$transaction(async (tx) => {
+    // 1. Locate or create inventory record
+    let inventory = await tx.inventory.findFirst({
+      where: {
+        productId: id,
+        warehouseId,
+      },
+    });
+
+    const currentInvQty = inventory ? parseFloat(inventory.quantity) : (parseFloat(existing.initialStock) || 0);
+    const newInvQty = currentInvQty + quantityToAdd;
+
+    if (inventory) {
+      await tx.inventory.update({
+        where: { id: inventory.id },
+        data: { quantity: newInvQty },
+      });
+    } else if (warehouseId) {
+      await tx.inventory.create({
+        data: {
+          productId: id,
+          warehouseId,
+          quantity: newInvQty,
+          minimumStock: existing.minimumStock || 0,
+        },
+      });
+    }
+
+    // 2. Update product lastPurchaseCost and averageCost if unitCost is provided
+    if (unitCost > 0) {
+      const prevCost = parseFloat(existing.costPrice) || 0;
+      const newAverage = currentInvQty > 0
+        ? ((currentInvQty * prevCost) + (quantityToAdd * unitCost)) / newInvQty
+        : unitCost;
+
+      await tx.product.update({
+        where: { id },
+        data: {
+          lastPurchaseCost: unitCost,
+          averageCost: newAverage,
+          costPrice: unitCost,
+        },
+      });
+    }
+
+    // 3. Create Stock Movement entry
+    if (warehouseId) {
+      await tx.stockMovement.create({
+        data: {
+          companyId,
+          productId: id,
+          warehouseId,
+          type: "PURCHASE",
+          quantity: quantityToAdd,
+          referenceNo: `STK-IN-${Date.now().toString().slice(-6)}`,
+          remarks: `Added ${quantityToAdd} stock to ${existing.name} - ${remarks}`,
+        },
+      });
+    }
+
+    return await getIngredientById(id, companyId);
+  });
+};
+
+/**
  * Delete ingredient
  */
 export const deleteIngredient = async (id, companyId) => {
@@ -419,3 +504,4 @@ export const deleteIngredient = async (id, companyId) => {
     });
   });
 };
+

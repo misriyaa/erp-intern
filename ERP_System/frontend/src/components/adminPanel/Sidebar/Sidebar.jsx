@@ -172,7 +172,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
     if (isCashier && !isAdmin && !isManager) {
       if (isRestaurant) {
-        const cashierHrefs = ["/restaurant/pos", "/restaurant/orders"];
+        const cashierHrefs = ["/restaurant/pos", "/restaurant/tables", "/restaurant/orders"];
         if (!cashierHrefs.includes(item.href)) {
           return false;
         }
@@ -183,6 +183,7 @@ export default function Sidebar({ isOpen, onClose }) {
         }
       }
     }
+
     if (isWaiter && !isAdmin && !isManager) {
       const waiterHrefs = ["/restaurant/pos", "/restaurant/tables", "/restaurant/reservations", "/restaurant/orders"];
       if (!waiterHrefs.includes(item.href)) {

@@ -1,6 +1,8 @@
 import prisma from "../../config/prisma.js";
 import { convertUnit } from "../../utils/unitConverter.js";
-import { emitOrderStatusUpdate } from "../../config/socket.js";
+import { emitOrderStatusUpdate, emitKitchenOrderCreated, emitKitchenOrderUpdated, emitTableStatusUpdated } from "../../config/socket.js";
+
+
 
 const orderInclude = {
   restaurant: true,
@@ -18,7 +20,16 @@ const orderInclude = {
             include: {
               ingredients: {
                 include: {
-                  product: true,
+                  product: {
+                    include: {
+                      unit: true,
+                      inventories: {
+                        include: {
+                          warehouse: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -37,6 +48,80 @@ const orderInclude = {
     },
   },
   payments: true,
+};
+
+/**
+ * Helper to determine the product's base inventory unit.
+ */
+export const getProductStockUnit = (product) => {
+  if (!product) return "pcs";
+  return product.stockUnit || product.unit?.code || product.unit?.name || "pcs";
+};
+
+/**
+ * Helper to get or create a default active warehouse for a company.
+ */
+export const getOrCreateCompanyWarehouse = async (companyId, tx) => {
+  const db = tx || prisma;
+  if (!companyId) return null;
+
+  let wh = await db.warehouse.findFirst({
+    where: { companyId, status: "ACTIVE" },
+  });
+  if (!wh) {
+    wh = await db.warehouse.findFirst({
+      where: { companyId },
+    });
+  }
+  if (!wh) {
+    wh = await db.warehouse.create({
+      data: {
+        name: "Main Kitchen Store",
+        code: "WH-KITCHEN",
+        companyId,
+        status: "ACTIVE",
+      },
+    });
+  }
+  return wh;
+};
+
+/**
+ * Helper to get available inventory stock for a product within the company.
+ * Exactly matches the stock logic from the Raw Materials / Ingredients page.
+ */
+export const getAvailableStockForProduct = async (productId, companyId, warehouseId = null, tx) => {
+  const db = tx || prisma;
+  if (!productId || !companyId) return 0;
+
+  if (warehouseId) {
+    const inv = await db.inventory.findFirst({
+      where: {
+        productId,
+        warehouseId,
+        warehouse: { companyId },
+      },
+    });
+    if (inv) return parseFloat(inv.quantity) || 0;
+  }
+
+  // Calculate sum of all inventory records for this product across warehouses belonging to this company
+  const inventories = await db.inventory.findMany({
+    where: {
+      productId,
+      warehouse: { companyId },
+    },
+  });
+
+  if (inventories && inventories.length > 0) {
+    return inventories.reduce((sum, inv) => sum + (parseFloat(inv.quantity) || 0), 0);
+  }
+
+  // Fallback to product.initialStock if no inventory record exists yet
+  const product = await db.product.findFirst({
+    where: { id: productId, companyId },
+  });
+  return parseFloat(product?.initialStock) || 0;
 };
 
 export const createOrder = async (companyId, data) => {
@@ -306,16 +391,35 @@ export const updateOrder = async (id, companyId, data) => {
         data: { status: "SERVED" },
       });
       await processStockDeductionOnServed(id, tx);
+      // NOTE: Table MUST STILL REMAIN OCCUPIED when food is SERVED. Table becomes AVAILABLE ONLY AFTER successful payment!
+      if (existing.tableId && existing.orderType === "DINE_IN") {
+        await tx.restaurantTable.update({
+          where: { id: existing.tableId },
+          data: { status: "OCCUPIED" },
+        });
+      }
     } else if (updated.status === "CANCELLED") {
       await tx.kitchenOrder.updateMany({
         where: { orderId: id },
         data: { status: "CANCELLED" },
       });
+      if (existing.tableId) {
+        await tx.restaurantTable.update({
+          where: { id: existing.tableId },
+          data: { status: "AVAILABLE" },
+        });
+      }
     } else if (updated.status === "COMPLETED") {
       await tx.kitchenOrder.updateMany({
         where: { orderId: id },
         data: { status: "COMPLETED" },
       });
+      if (existing.tableId) {
+        await tx.restaurantTable.update({
+          where: { id: existing.tableId },
+          data: { status: "AVAILABLE" },
+        });
+      }
     }
 
     return await tx.restaurantOrder.findUnique({
@@ -327,13 +431,30 @@ export const updateOrder = async (id, companyId, data) => {
   if (resOrder) {
     try {
       emitOrderStatusUpdate(resOrder);
+      if (resOrder.tableId && (resOrder.status === "COMPLETED" || resOrder.status === "CANCELLED")) {
+        emitTableStatusUpdated({
+          id: resOrder.tableId,
+          tableNumber: resOrder.table?.tableNumber,
+          status: "AVAILABLE",
+          restaurantId: resOrder.restaurantId,
+        }, companyId);
+      } else if (resOrder.tableId && (resOrder.status === "SERVED" || resOrder.status === "CONFIRMED" || resOrder.status === "PREPARING" || resOrder.status === "READY")) {
+        emitTableStatusUpdated({
+          id: resOrder.tableId,
+          tableNumber: resOrder.table?.tableNumber,
+          status: "OCCUPIED",
+          restaurantId: resOrder.restaurantId,
+        }, companyId);
+      }
     } catch (err) {
       console.error("Socket emit error:", err);
     }
   }
 
+
   return resOrder;
 };
+
 
 export const processStockDeductionOnServed = async (orderId, tx) => {
   const db = tx || prisma;
@@ -349,7 +470,16 @@ export const processStockDeductionOnServed = async (orderId, tx) => {
                 include: {
                   ingredients: {
                     include: {
-                      product: true,
+                      product: {
+                        include: {
+                          unit: true,
+                          inventories: {
+                            include: {
+                              warehouse: true,
+                            },
+                          },
+                        },
+                      },
                     },
                   },
                 },
@@ -363,35 +493,22 @@ export const processStockDeductionOnServed = async (orderId, tx) => {
 
   if (!order || order.stockDeducted) return;
 
-  const defaultWh = await db.warehouse.findFirst({
-    where: {
-      companyId: order.companyId,
-      status: "ACTIVE",
-    },
-  });
-
-  const warehouseId = defaultWh?.id;
-  if (!warehouseId) {
-    await db.restaurantOrder.update({
-      where: { id: orderId },
-      data: { stockDeducted: true },
-    });
-    return;
-  }
+  const defaultWh = await getOrCreateCompanyWarehouse(order.companyId, db);
+  const fallbackWarehouseId = defaultWh?.id;
 
   const ingredientTotals = {};
 
-  for (const item of order.items) {
+  for (const item of order.items || []) {
     const recipe = item.menuItem?.recipe;
-    if (recipe && recipe.ingredients) {
+    if (recipe && recipe.ingredients && recipe.ingredients.length > 0) {
       for (const ing of recipe.ingredients) {
         if (!ing.product) continue;
         const itemQty = parseFloat(item.quantity) || 1;
         const ingQty = parseFloat(ing.quantity) || 0;
         const rawRequired = itemQty * ingQty;
 
-        const recipeUnit = ing.unit || ing.product.stockUnit || ing.product.unit || "";
-        const stockUnit = ing.product.stockUnit || ing.product.unit || "";
+        const recipeUnit = ing.unit || getProductStockUnit(ing.product);
+        const stockUnit = getProductStockUnit(ing.product);
         const convertedQty = convertUnit(rawRequired, recipeUnit, stockUnit);
 
         if (!ingredientTotals[ing.productId]) {
@@ -417,59 +534,49 @@ export const processStockDeductionOnServed = async (orderId, tx) => {
     return;
   }
 
-  const shortages = [];
   for (const prodId of prodIds) {
     const info = ingredientTotals[prodId];
-    const inventory = await db.inventory.findFirst({
-      where: { productId: prodId, warehouseId },
-    });
-    const currentStock = inventory ? parseFloat(inventory.quantity) : 0;
-    if (currentStock < info.requiredQty) {
-      shortages.push(
-        `${info.productName}: Required ${info.requiredQty.toFixed(3)} ${info.stockUnit || "units"}, Available ${currentStock.toFixed(3)} ${info.stockUnit || "units"}`
-      );
-    }
-  }
 
-  if (shortages.length > 0) {
-    throw new Error(`Insufficient kitchen stock to serve order: ${shortages.join("; ")}`);
-  }
-
-  for (const prodId of prodIds) {
-    const info = ingredientTotals[prodId];
-    const inventory = await db.inventory.findFirst({
-      where: { productId: prodId, warehouseId },
+    // Find existing inventory record for this product under the company
+    let inventory = await db.inventory.findFirst({
+      where: {
+        productId: prodId,
+        warehouse: { companyId: order.companyId },
+      },
     });
 
+    const targetWhId = inventory?.warehouseId || fallbackWarehouseId;
     const currentStock = inventory ? parseFloat(inventory.quantity) : 0;
-    const newStock = currentStock - info.requiredQty;
+    const newStock = Math.max(0, currentStock - info.requiredQty);
 
     if (inventory) {
       await db.inventory.update({
         where: { id: inventory.id },
         data: { quantity: newStock },
       });
-    } else {
+    } else if (targetWhId) {
       await db.inventory.create({
         data: {
           productId: prodId,
-          warehouseId,
+          warehouseId: targetWhId,
           quantity: newStock,
         },
       });
     }
 
-    await db.stockMovement.create({
-      data: {
-        companyId: order.companyId,
-        productId: prodId,
-        warehouseId,
-        type: "RECIPE_CONSUMPTION",
-        quantity: -info.requiredQty,
-        referenceNo: order.orderNumber,
-        remarks: `Recipe stock deduction for Restaurant Order ${order.orderNumber} (Served) - ${info.productName}`,
-      },
-    });
+    if (targetWhId) {
+      await db.stockMovement.create({
+        data: {
+          companyId: order.companyId,
+          productId: prodId,
+          warehouseId: targetWhId,
+          type: "RECIPE_CONSUMPTION",
+          quantity: -info.requiredQty,
+          referenceNo: order.orderNumber,
+          remarks: `Recipe stock deduction for Restaurant Order ${order.orderNumber} (Served) - ${info.productName}`,
+        },
+      });
+    }
   }
 
   await db.restaurantOrder.update({
@@ -482,61 +589,49 @@ export const checkStockAvailability = async (orderId, companyId, warehouseId) =>
   const order = await getOrderById(orderId, companyId);
   if (!order) throw new Error("Order not found or access denied.");
 
-  let targetWarehouseId = warehouseId;
-  if (!targetWarehouseId) {
-    const defaultWh = await prisma.warehouse.findFirst({
-      where: {
-        companyId: order.companyId,
-        status: "ACTIVE",
-      },
-    });
-    targetWarehouseId = defaultWh?.id;
-  }
-
-  if (!targetWarehouseId) {
-    return { available: true, shortages: [], message: "No warehouse specified for stock tracking." };
-  }
-
   const ingredientTotals = {};
 
-  for (const item of order.items) {
+  for (const item of order.items || []) {
     const recipe = item.menuItem?.recipe;
-    if (recipe && recipe.ingredients) {
+    if (recipe && recipe.ingredients && recipe.ingredients.length > 0) {
       for (const ing of recipe.ingredients) {
-        const requiredQty = (parseFloat(ing.quantity) || 0) * (parseFloat(item.quantity) || 1);
+        if (!ing.product) continue;
+        const itemQty = parseFloat(item.quantity) || 1;
+        const ingQty = parseFloat(ing.quantity) || 0;
+        const rawRequired = itemQty * ingQty;
+
+        const recipeUnit = ing.unit || getProductStockUnit(ing.product);
+        const stockUnit = getProductStockUnit(ing.product);
+        const convertedRequired = convertUnit(rawRequired, recipeUnit, stockUnit);
+
         if (!ingredientTotals[ing.productId]) {
           ingredientTotals[ing.productId] = {
             productId: ing.productId,
-            productName: ing.product?.name || "Ingredient",
-            required: 0,
-            unit: ing.unit || ing.product?.stockUnit || "unit",
+            productName: ing.product.name || "Ingredient",
+            stockUnit,
+            recipeUnit,
+            requiredQty: 0,
           };
         }
-        ingredientTotals[ing.productId].required += requiredQty;
+        ingredientTotals[ing.productId].requiredQty += convertedRequired;
       }
     }
   }
 
   const shortages = [];
-
   for (const prodId of Object.keys(ingredientTotals)) {
     const info = ingredientTotals[prodId];
-    const inventory = await prisma.inventory.findFirst({
-      where: {
-        productId: prodId,
-        warehouseId: targetWarehouseId,
-      },
-    });
+    const availableStock = await getAvailableStockForProduct(prodId, order.companyId, warehouseId);
 
-    const currentQty = inventory ? parseFloat(inventory.quantity) : 0;
-    if (currentQty < info.required) {
+    if (availableStock < info.requiredQty) {
+      const shortageQty = info.requiredQty - availableStock;
       shortages.push({
         productId: prodId,
         productName: info.productName,
-        required: info.required,
-        available: currentQty,
-        shortage: info.required - currentQty,
-        unit: info.unit,
+        required: Number(info.requiredQty.toFixed(4)),
+        available: Number(availableStock.toFixed(4)),
+        shortage: Number(shortageQty.toFixed(4)),
+        unit: info.stockUnit,
       });
     }
   }
@@ -544,7 +639,7 @@ export const checkStockAvailability = async (orderId, companyId, warehouseId) =>
   return {
     available: shortages.length === 0,
     shortages,
-    warehouseId: targetWarehouseId,
+    warehouseId: warehouseId || null,
   };
 };
 
@@ -570,7 +665,16 @@ export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, al
                   include: {
                     ingredients: {
                       include: {
-                        product: true,
+                        product: {
+                          include: {
+                            unit: true,
+                            inventories: {
+                              include: {
+                                warehouse: true,
+                              },
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -590,31 +694,31 @@ export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, al
       throw err;
     }
 
-    let targetWarehouseId = warehouseId;
-    if (!targetWarehouseId) {
-      const defaultWh = await tx.warehouse.findFirst({
-        where: {
-          companyId: order.companyId,
-          status: "ACTIVE",
-        },
-      });
-      targetWarehouseId = defaultWh?.id;
-    }
-
-    if (targetWarehouseId && !allowStockOverride) {
+    if (!allowStockOverride) {
       const ingredientTotals = {};
-      for (const item of order.items) {
+      for (const item of order.items || []) {
         const recipe = item.menuItem?.recipe;
-        if (recipe && recipe.ingredients) {
+        if (recipe && recipe.ingredients && recipe.ingredients.length > 0) {
           for (const ing of recipe.ingredients) {
-            const requiredQty = (parseFloat(ing.quantity) || 0) * (parseFloat(item.quantity) || 1);
+            if (!ing.product) continue;
+            const itemQty = parseFloat(item.quantity) || 1;
+            const ingQty = parseFloat(ing.quantity) || 0;
+            const rawRequired = itemQty * ingQty;
+
+            const recipeUnit = ing.unit || getProductStockUnit(ing.product);
+            const stockUnit = getProductStockUnit(ing.product);
+            const convertedRequired = convertUnit(rawRequired, recipeUnit, stockUnit);
+
             if (!ingredientTotals[ing.productId]) {
               ingredientTotals[ing.productId] = {
-                productName: ing.product?.name || "Ingredient",
-                required: 0,
+                productId: ing.productId,
+                productName: ing.product.name || "Ingredient",
+                stockUnit,
+                recipeUnit,
+                requiredQty: 0,
               };
             }
-            ingredientTotals[ing.productId].required += requiredQty;
+            ingredientTotals[ing.productId].requiredQty += convertedRequired;
           }
         }
       }
@@ -622,17 +726,23 @@ export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, al
       const shortages = [];
       for (const prodId of Object.keys(ingredientTotals)) {
         const info = ingredientTotals[prodId];
-        const inventory = await tx.inventory.findFirst({
-          where: { productId: prodId, warehouseId: targetWarehouseId },
-        });
-        const currentStock = inventory ? parseFloat(inventory.quantity) : 0;
-        if (currentStock < info.required) {
-          shortages.push(`${info.productName}: Required ${info.required}, Available ${currentStock}`);
+        const availableStock = await getAvailableStockForProduct(prodId, order.companyId, warehouseId, tx);
+
+        // Backend debugging log for tracing stock flow
+        console.log(`[Restaurant Stock Validation] Tenant: ${order.companyId} | Ingredient: ${info.productName} (${prodId}) | Required: ${info.requiredQty} ${info.stockUnit} | Available: ${availableStock} ${info.stockUnit} | Result: ${availableStock >= info.requiredQty ? "PASS" : "FAIL"}`);
+
+        if (availableStock < info.requiredQty) {
+          const reqStr = Number(info.requiredQty.toFixed(3));
+          const availStr = Number(availableStock.toFixed(3));
+          const unitStr = info.stockUnit ? ` ${info.stockUnit}` : "";
+          shortages.push(`${info.productName}: Required ${reqStr}${unitStr}, Available ${availStr}${unitStr}`);
         }
       }
 
       if (shortages.length > 0) {
-        throw new Error(`Insufficient stock for preparation: ${shortages.join("; ")}`);
+        const error = new Error(`Insufficient stock for preparation:\n${shortages.join("\n")}`);
+        error.statusCode = 400;
+        throw error;
       }
     }
 
@@ -689,7 +799,34 @@ export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, al
       where: { id: orderId, companyId },
       include: orderInclude,
     });
-    if (fullOrder) {
+    const fullKot = await prisma.kitchenOrder.findUnique({
+      where: { id: result.kot.id },
+      include: {
+        items: {
+          include: {
+            menuItem: true,
+          },
+        },
+        order: {
+          include: {
+            table: true,
+            customer: true,
+          },
+        },
+        restaurant: true,
+      },
+    });
+    if (fullOrder && fullKot) {
+      emitKitchenOrderCreated(fullKot, fullOrder);
+      if (fullOrder.tableId) {
+        emitTableStatusUpdated({
+          id: fullOrder.tableId,
+          tableNumber: fullOrder.table?.tableNumber,
+          status: "OCCUPIED",
+          restaurantId: fullOrder.restaurantId,
+        }, companyId);
+      }
+    } else if (fullOrder) {
       emitOrderStatusUpdate({ ...fullOrder, kot: result.kot });
     }
   } catch (err) {
@@ -698,6 +835,7 @@ export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, al
 
   return result;
 };
+
 
 export const completeOrderAndPay = async (orderId, companyId, paymentData) => {
   const existing = await getOrderById(orderId, companyId);
@@ -768,6 +906,14 @@ export const completeOrderAndPay = async (orderId, companyId, paymentData) => {
     });
     if (fullOrder) {
       emitOrderStatusUpdate(fullOrder);
+      if (fullOrder.tableId) {
+        emitTableStatusUpdated({
+          id: fullOrder.tableId,
+          tableNumber: fullOrder.table?.tableNumber,
+          status: "AVAILABLE",
+          restaurantId: fullOrder.restaurantId,
+        }, companyId);
+      }
     }
   } catch (err) {
     console.error("Socket emit error on completeOrder:", err);
@@ -775,6 +921,7 @@ export const completeOrderAndPay = async (orderId, companyId, paymentData) => {
 
   return result;
 };
+
 
 export const cancelOrder = async (orderId, companyId, reason) => {
   const existing = await getOrderById(orderId, companyId);
@@ -821,6 +968,14 @@ export const cancelOrder = async (orderId, companyId, reason) => {
     });
     if (fullOrder) {
       emitOrderStatusUpdate(fullOrder);
+      if (fullOrder.tableId) {
+        emitTableStatusUpdated({
+          id: fullOrder.tableId,
+          tableNumber: fullOrder.table?.tableNumber,
+          status: "AVAILABLE",
+          restaurantId: fullOrder.restaurantId,
+        }, companyId);
+      }
     }
   } catch (err) {
     console.error("Socket emit error on cancelOrder:", err);
@@ -828,3 +983,4 @@ export const cancelOrder = async (orderId, companyId, reason) => {
 
   return result;
 };
+

@@ -1,6 +1,7 @@
 import prisma from "../../config/prisma.js";
 import { processStockDeductionOnServed } from "../restaurantOrders/restaurantOrder.repository.js";
-import { emitOrderStatusUpdate } from "../../config/socket.js";
+import { emitOrderStatusUpdate, emitKitchenOrderUpdated } from "../../config/socket.js";
+
 
 const kotInclude = {
   restaurant: true,
@@ -38,9 +39,10 @@ export const getKitchenOrders = async (companyId, restaurantId, status) => {
     where.status = status;
   } else if (!status || status === "ACTIVE") {
     where.status = {
-      in: ["NEW", "CONFIRMED", "PREPARING", "READY", "PENDING"],
+      in: ["NEW", "CONFIRMED", "PREPARING", "PENDING"],
     };
   }
+
 
   return await prisma.kitchenOrder.findMany({
     where,
@@ -123,7 +125,7 @@ export const updateKOTStatus = async (id, companyId, status) => {
         },
       });
       if (fullOrder) {
-        emitOrderStatusUpdate({ ...fullOrder, kot });
+        emitKitchenOrderUpdated(kot, fullOrder);
       }
     } catch (emitErr) {
       console.error("Failed to emit socket event after KOT update:", emitErr);
@@ -132,3 +134,4 @@ export const updateKOTStatus = async (id, companyId, status) => {
 
   return kot;
 };
+

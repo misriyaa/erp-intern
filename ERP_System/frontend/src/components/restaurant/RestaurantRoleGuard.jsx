@@ -41,12 +41,13 @@ export default function RestaurantRoleGuard({ children }) {
     }
 
     if (isCashier) {
-      const allowed = ["/restaurant/pos", "/restaurant/orders"];
+      const allowed = ["/restaurant/pos", "/restaurant/tables", "/restaurant/orders"];
       const isAllowed = allowed.some((prefix) => pathname.startsWith(prefix));
       setAuthorized(isAllowed);
       setDefaultLanding("/restaurant/pos");
       return;
     }
+
 
     if (isWaiter) {
       const allowed = ["/restaurant/pos", "/restaurant/tables", "/restaurant/reservations", "/restaurant/orders"];

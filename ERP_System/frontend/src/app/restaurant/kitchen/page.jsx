@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { restaurantService } from "@/services/restaurantService";
-import { joinOutletRoom, leaveOutletRoom, subscribeToOrderStatus, subscribeToReconnect } from "@/services/socketService";
-import { FiTv, FiClock, FiCheck, FiPlay, FiRefreshCw, FiCheckCircle, FiAlertCircle } from "react-icons/fi";
+import {
+  joinCompanyRoom,
+  joinOutletRoom,
+  leaveOutletRoom,
+  subscribeToKitchenOrderCreated,
+  subscribeToKitchenOrderUpdated,
+  subscribeToOrderStatus,
+  subscribeToReconnect,
+} from "@/services/socketService";
+import { FiTv, FiClock, FiCheck, FiPlay, FiRefreshCw } from "react-icons/fi";
 import { showError } from "@/utils/swal";
-
 import { useCompany } from "@/context/CompanyContext";
 
 export default function KitchenDisplayPage() {
-  const { user } = useCompany();
+  const { user, company } = useCompany();
   const roleUpper = (user?.role || user?.roleRef?.name || user?.type || "").toUpperCase();
   const isAdmin = roleUpper.includes("SUPER") || roleUpper.includes("ADMIN") || roleUpper.includes("OWNER");
 
@@ -17,6 +24,18 @@ export default function KitchenDisplayPage() {
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
   const [kotOrders, setKotOrders] = useState([]);
+  const [liveSyncActive, setLiveSyncActive] = useState(true);
+
+  const selectedRestIdRef = useRef(selectedRestaurantId);
+  const companyIdRef = useRef(company?.id || user?.companyId);
+
+  useEffect(() => {
+    selectedRestIdRef.current = selectedRestaurantId;
+  }, [selectedRestaurantId]);
+
+  useEffect(() => {
+    companyIdRef.current = company?.id || user?.companyId;
+  }, [company?.id, user?.companyId]);
 
   useEffect(() => {
     fetchInitialData();
@@ -25,59 +44,154 @@ export default function KitchenDisplayPage() {
   useEffect(() => {
     if (!selectedRestaurantId) return;
 
+    const currentCompId = company?.id || user?.companyId;
+    joinCompanyRoom(currentCompId);
+    joinOutletRoom(selectedRestaurantId, currentCompId);
+
     fetchKOTs();
-    joinOutletRoom(selectedRestaurantId);
 
-    const unsubscribeStatus = subscribeToOrderStatus((data) => {
-      if (data.restaurantId && data.restaurantId !== selectedRestaurantId) return;
+    // 1. Handle Real-Time Kitchen Order Creation (Waiter clicks "Send to Kitchen")
+    const unsubscribeCreated = subscribeToKitchenOrderCreated((data) => {
+      console.log("⚡ [KDS] Real-time KOT creation received:", data);
 
-      // Real-time instant in-memory update for zero latency
+      // Multi-tenant check
+      if (data.companyId && currentCompId && data.companyId !== currentCompId) {
+        return;
+      }
+      // Outlet filter check
       if (
-        data.status === "SERVED" ||
-        data.status === "COMPLETED" ||
-        data.status === "CANCELLED"
+        selectedRestIdRef.current &&
+        selectedRestIdRef.current !== "ALL" &&
+        data.restaurantId &&
+        data.restaurantId !== selectedRestIdRef.current
       ) {
+        return;
+      }
+
+      // Immediate in-memory addition avoiding duplicates
+      if (data.kot) {
+        setKotOrders((prev) => {
+          const exists = prev.some(
+            (k) =>
+              k.id === data.kot.id ||
+              k.id === data.kitchenOrderId ||
+              (k.orderId && k.orderId === data.orderId)
+          );
+          if (exists) {
+            return prev.map((k) =>
+              k.id === data.kot.id || k.id === data.kitchenOrderId || k.orderId === data.orderId
+                ? { ...k, ...data.kot, status: data.status || data.kot.status || "NEW" }
+                : k
+            );
+          }
+          return [data.kot, ...prev];
+        });
+      }
+
+      // Background synchronization from DB
+      fetchKOTs();
+    });
+
+    // 2. Handle Real-Time Kitchen Order Updates (PREPARING, READY, SERVED, etc.)
+    const handleOrderUpdate = (data) => {
+      console.log("⚡ [KDS] Real-time KOT update received:", data);
+
+      // Multi-tenant check
+      if (data.companyId && currentCompId && data.companyId !== currentCompId) {
+        return;
+      }
+      // Outlet filter check
+      if (
+        selectedRestIdRef.current &&
+        selectedRestIdRef.current !== "ALL" &&
+        data.restaurantId &&
+        data.restaurantId !== selectedRestIdRef.current
+      ) {
+        return;
+      }
+
+      const targetStatus = data.status || data.orderStatus;
+
+      if (
+        targetStatus === "READY" ||
+        targetStatus === "SERVED" ||
+        targetStatus === "COMPLETED" ||
+        targetStatus === "CANCELLED"
+      ) {
+        // Kitchen Staff responsibility ends when marked READY or completed; remove immediately from KDS queue
         setKotOrders((prev) =>
           prev.filter(
             (kot) =>
               kot.orderId !== data.orderId &&
+              kot.id !== data.kitchenOrderId &&
               kot.id !== data.kot?.id &&
               kot.order?.id !== data.orderId
           )
         );
-      } else if (data.status === "PREPARING" || data.status === "READY") {
+      } else if (targetStatus === "PREPARING") {
+        // Update in-memory status to PREPARING
         setKotOrders((prev) =>
           prev.map((kot) => {
             if (
               kot.orderId === data.orderId ||
+              kot.id === data.kitchenOrderId ||
               kot.id === data.kot?.id ||
               kot.order?.id === data.orderId
             ) {
-              return { ...kot, status: data.status };
+              return { ...kot, status: "PREPARING" };
             }
             return kot;
           })
         );
+      } else if (targetStatus === "NEW" || targetStatus === "CONFIRMED") {
+        if (data.kot) {
+          setKotOrders((prev) => {
+            const exists = prev.some(
+              (k) =>
+                k.id === data.kot.id ||
+                k.id === data.kitchenOrderId ||
+                (k.orderId && k.orderId === data.orderId)
+            );
+            if (exists) {
+              return prev.map((k) =>
+                k.id === data.kot.id || k.id === data.kitchenOrderId || k.orderId === data.orderId
+                  ? { ...k, ...data.kot, status: "NEW" }
+                  : k
+              );
+            }
+            return [data.kot, ...prev];
+          });
+        }
       }
 
-      // Sync latest queue from database
+      // Background synchronization from DB
       fetchKOTs();
-    });
+    };
 
+    const unsubscribeUpdated = subscribeToKitchenOrderUpdated(handleOrderUpdate);
+    const unsubscribeStatus = subscribeToOrderStatus(handleOrderUpdate);
+
+    // 3. Handle Auto-Reconnection
     const unsubscribeReconnect = subscribeToReconnect(() => {
-      joinOutletRoom(selectedRestaurantId);
+      console.log("🔄 [KDS] Socket reconnected - resynchronizing queue...");
+      const compId = companyIdRef.current;
+      joinCompanyRoom(compId);
+      joinOutletRoom(selectedRestIdRef.current, compId);
       fetchKOTs();
     });
 
-    const interval = setInterval(fetchKOTs, 5000);
+    // Fallback sync interval (10s)
+    const interval = setInterval(fetchKOTs, 10000);
 
     return () => {
       clearInterval(interval);
+      unsubscribeCreated();
+      unsubscribeUpdated();
       unsubscribeStatus();
       unsubscribeReconnect();
       leaveOutletRoom(selectedRestaurantId);
     };
-  }, [selectedRestaurantId]);
+  }, [selectedRestaurantId, company?.id]);
 
   const fetchInitialData = async () => {
     try {
@@ -105,10 +219,17 @@ export default function KitchenDisplayPage() {
 
   const fetchKOTs = async () => {
     try {
-      const res = await restaurantService.getKitchenOrders(
-        selectedRestaurantId && selectedRestaurantId !== "ALL" ? selectedRestaurantId : undefined
+      const outletId =
+        selectedRestaurantId && selectedRestaurantId !== "ALL"
+          ? selectedRestaurantId
+          : undefined;
+      const res = await restaurantService.getKitchenOrders(outletId);
+      // Kitchen Display only manages active preparation tickets (NEW, CONFIRMED, PENDING, PREPARING)
+      const activeTickets = (res.data || []).filter(
+        (k) => k.status !== "READY" && k.status !== "SERVED" && k.status !== "COMPLETED" && k.status !== "CANCELLED"
       );
-      setKotOrders(res.data || []);
+      setKotOrders(activeTickets);
+      setLiveSyncActive(true);
     } catch (err) {
       console.warn("KOT fetch transient error (will retry):", err?.message || err);
     }
@@ -116,51 +237,128 @@ export default function KitchenDisplayPage() {
 
   const handleStartPreparing = async (id) => {
     try {
+      // Optimistic in-memory update
+      setKotOrders((prev) =>
+        prev.map((k) => (k.id === id ? { ...k, status: "PREPARING" } : k))
+      );
       await restaurantService.startPreparation(id);
       fetchKOTs();
-    } catch (err) { showError("KDS Action Failed", err.message); }
+    } catch (err) {
+      showError("KDS Action Failed", err.message);
+      fetchKOTs();
+    }
   };
 
   const handleMarkReady = async (id) => {
     try {
+      // Optimistic removal: order has finished cooking, leaves KDS and moves to Waiter's Ready Orders
+      setKotOrders((prev) => prev.filter((k) => k.id !== id));
       await restaurantService.markReady(id);
       fetchKOTs();
-    } catch (err) { showError("KDS Action Failed", err.message); }
-  };
-
-  const handleMarkServed = async (id) => {
-    try {
-      await restaurantService.markServed(id);
+    } catch (err) {
+      showError("KDS Action Failed", err.message);
       fetchKOTs();
-    } catch (err) { showError("KDS Action Failed", err.message); }
+    }
   };
 
-  const newKOTs = kotOrders.filter((k) => k.status === "NEW" || k.status === "CONFIRMED" || k.status === "PENDING");
+  const newKOTs = kotOrders.filter(
+    (k) => k.status === "NEW" || k.status === "CONFIRMED" || k.status === "PENDING"
+  );
   const preparingKOTs = kotOrders.filter((k) => k.status === "PREPARING");
-  const readyKOTs = kotOrders.filter((k) => k.status === "READY");
 
   if (loading) {
     return (
-      <div style={{ padding: "60px", textAlign: "center", color: "#64748b", fontFamily: "Inter, sans-serif" }}>
-        <FiRefreshCw className="animate-spin" size={32} style={{ marginBottom: "16px", color: "#2563eb" }} />
-        <h2 style={{ fontSize: "20px", color: "#0f172a", margin: "0 0 8px 0" }}>Loading Kitchen Display System...</h2>
+      <div
+        style={{
+          padding: "60px",
+          textAlign: "center",
+          color: "#64748b",
+          fontFamily: "Inter, sans-serif",
+        }}
+      >
+        <FiRefreshCw
+          className="animate-spin"
+          size={32}
+          style={{ marginBottom: "16px", color: "#2563eb" }}
+        />
+        <h2 style={{ fontSize: "20px", color: "#0f172a", margin: "0 0 8px 0" }}>
+          Loading Kitchen Display System...
+        </h2>
         <p style={{ margin: 0 }}>Fetching KOT Preparation Queue & Kitchen Tickets...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: "1600px", margin: "0 auto", backgroundColor: "#f8fafc", minHeight: "100vh", fontFamily: "Inter, sans-serif" }}>
-      
+    <div
+      style={{
+        padding: "24px",
+        maxWidth: "1600px",
+        margin: "0 auto",
+        backgroundColor: "#f8fafc",
+        minHeight: "100vh",
+        fontFamily: "Inter, sans-serif",
+      }}
+    >
       {/* Header Bar */}
-      <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px 24px", border: "1px solid #e2e8f0", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          borderRadius: "16px",
+          padding: "20px 24px",
+          border: "1px solid #e2e8f0",
+          marginBottom: "24px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <div style={{ background: "#d1fae5", padding: "12px", borderRadius: "12px", color: "#059669" }}>
+          <div
+            style={{
+              background: "#d1fae5",
+              padding: "12px",
+              borderRadius: "12px",
+              color: "#059669",
+            }}
+          >
             <FiTv size={26} />
           </div>
           <div>
-            <h1 style={{ fontSize: "24px", fontWeight: "800", margin: 0, color: "#0f172a" }}>Kitchen Display System (KDS)</h1>
-            <p style={{ color: "#64748b", margin: "3px 0 0 0", fontSize: "14px" }}>Live KOT preparation queue & kitchen order ticket management.</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <h1 style={{ fontSize: "24px", fontWeight: "800", margin: 0, color: "#0f172a" }}>
+                Kitchen Display System (KDS)
+              </h1>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  color: liveSyncActive ? "#16a34a" : "#ca8a04",
+                  backgroundColor: liveSyncActive ? "#dcfce7" : "#fef9c3",
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                }}
+              >
+                <span
+                  style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    backgroundColor: liveSyncActive ? "#16a34a" : "#ca8a04",
+                  }}
+                />
+                Live Real-Time
+              </span>
+            </div>
+            <p style={{ color: "#64748b", margin: "3px 0 0 0", fontSize: "14px" }}>
+              Kitchen preparation queue. Mark ready when cooking is complete to notify Waiter for serving.
+            </p>
           </div>
         </div>
 
@@ -181,7 +379,9 @@ export default function KitchenDisplayPage() {
             >
               {restaurants.length > 1 && <option value="ALL">🏬 All Kitchen Outlets</option>}
               {restaurants.map((r) => (
-                <option key={r.id} value={r.id}>🏬 {r.name}</option>
+                <option key={r.id} value={r.id}>
+                  🏬 {r.name}
+                </option>
               ))}
             </select>
           )}
@@ -209,107 +409,224 @@ export default function KitchenDisplayPage() {
 
       {/* Empty State when zero active orders */}
       {kotOrders.length === 0 ? (
-        <div style={{ backgroundColor: "#ffffff", padding: "64px 20px", borderRadius: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            padding: "64px 20px",
+            borderRadius: "16px",
+            border: "1px solid #e2e8f0",
+            textAlign: "center",
+          }}
+        >
           <FiTv size={48} color="#94a3b8" style={{ marginBottom: "16px" }} />
-          <h3 style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", margin: "0 0 6px 0" }}>No active kitchen orders</h3>
-          <p style={{ color: "#64748b", fontSize: "14px", margin: 0 }}>New orders confirmed from Restaurant POS will automatically appear here on the KDS display.</p>
+          <h3 style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", margin: "0 0 6px 0" }}>
+            No active kitchen orders
+          </h3>
+          <p style={{ color: "#64748b", fontSize: "14px", margin: 0 }}>
+            New orders confirmed from Restaurant POS will automatically appear here on the KDS display without page refresh.
+          </p>
         </div>
       ) : (
-        /* KOT Queue Columns Grid (Light Theme) */
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", alignItems: "start" }}>
-          
+        /* KOT Queue 2-Column Grid: 1. NEW KOT, 2. PREPARING */
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
+            gap: "24px",
+            alignItems: "start",
+          }}
+        >
           {/* COLUMN 1: NEW KOTs */}
-          <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", borderTop: "4px solid #2563eb", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "16px",
+              padding: "20px",
+              border: "1px solid #e2e8f0",
+              borderTop: "4px solid #2563eb",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                paddingBottom: "12px",
+                borderBottom: "1px solid #f1f5f9",
+              }}
+            >
               <div>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#2563eb" }}>NEW KOT ({newKOTs.length})</h3>
-                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Pending preparation start</span>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#2563eb" }}>
+                  NEW KOT ({newKOTs.length})
+                </h3>
+                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                  Pending preparation start
+                </span>
               </div>
-              <span style={{ background: "#dbeafe", color: "#1e40af", padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "700" }}>NEW</span>
+              <span
+                style={{
+                  background: "#dbeafe",
+                  color: "#1e40af",
+                  padding: "4px 10px",
+                  borderRadius: "12px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                }}
+              >
+                NEW
+              </span>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {newKOTs.length === 0 ? (
-                <p style={{ color: "#94a3b8", fontSize: "13px", margin: 0, textAlign: "center", padding: "20px 0" }}>No new incoming orders.</p>
+                <p
+                  style={{
+                    color: "#94a3b8",
+                    fontSize: "13px",
+                    margin: 0,
+                    textAlign: "center",
+                    padding: "32px 0",
+                  }}
+                >
+                  No new incoming orders.
+                </p>
               ) : (
                 newKOTs.map((kot) => (
-                  <KOTCard key={kot.id} kot={kot} onAction={() => handleStartPreparing(kot.id)} actionText="Start Preparing" actionColor="#2563eb" icon={FiPlay} />
+                  <KOTCard
+                    key={kot.id}
+                    kot={kot}
+                    onAction={() => handleStartPreparing(kot.id)}
+                    actionText="Start Preparing"
+                    actionColor="#2563eb"
+                    icon={FiPlay}
+                  />
                 ))
               )}
             </div>
           </div>
 
           {/* COLUMN 2: PREPARING KOTs */}
-          <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", borderTop: "4px solid #f59e0b", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "16px",
+              padding: "20px",
+              border: "1px solid #e2e8f0",
+              borderTop: "4px solid #f59e0b",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                paddingBottom: "12px",
+                borderBottom: "1px solid #f1f5f9",
+              }}
+            >
               <div>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#d97706" }}>PREPARING ({preparingKOTs.length})</h3>
-                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Cooking in kitchen</span>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#d97706" }}>
+                  PREPARING ({preparingKOTs.length})
+                </h3>
+                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                  Cooking in kitchen
+                </span>
               </div>
-              <span style={{ background: "#fef3c7", color: "#92400e", padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "700" }}>COOKING</span>
+              <span
+                style={{
+                  background: "#fef3c7",
+                  color: "#92400e",
+                  padding: "4px 10px",
+                  borderRadius: "12px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                }}
+              >
+                COOKING
+              </span>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {preparingKOTs.length === 0 ? (
-                <p style={{ color: "#94a3b8", fontSize: "13px", margin: 0, textAlign: "center", padding: "20px 0" }}>No orders currently preparing.</p>
+                <p
+                  style={{
+                    color: "#94a3b8",
+                    fontSize: "13px",
+                    margin: 0,
+                    textAlign: "center",
+                    padding: "32px 0",
+                  }}
+                >
+                  No orders currently preparing.
+                </p>
               ) : (
                 preparingKOTs.map((kot) => (
-                  <KOTCard key={kot.id} kot={kot} onAction={() => handleMarkReady(kot.id)} actionText="Mark Ready" actionColor="#d97706" icon={FiCheck} />
+                  <KOTCard
+                    key={kot.id}
+                    kot={kot}
+                    onAction={() => handleMarkReady(kot.id)}
+                    actionText="Mark Ready (Send to Waiter)"
+                    actionColor="#16a34a"
+                    icon={FiCheck}
+                  />
                 ))
               )}
             </div>
           </div>
-
-          {/* COLUMN 3: READY KOTs */}
-          <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "20px", border: "1px solid #e2e8f0", borderTop: "4px solid #10b981", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#059669" }}>READY TO SERVE ({readyKOTs.length})</h3>
-                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Plated & ready for waiter</span>
-              </div>
-              <span style={{ background: "#d1fae5", color: "#065f46", padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "700" }}>READY</span>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {readyKOTs.length === 0 ? (
-                <p style={{ color: "#94a3b8", fontSize: "13px", margin: 0, textAlign: "center", padding: "20px 0" }}>No orders waiting to be served.</p>
-              ) : (
-                readyKOTs.map((kot) => (
-                  <KOTCard key={kot.id} kot={kot} onAction={() => handleMarkServed(kot.id)} actionText="Serve Order" actionColor="#059669" icon={FiCheckCircle} />
-                ))
-              )}
-            </div>
-          </div>
-
         </div>
       )}
-
     </div>
   );
 }
 
 function KOTCard({ kot, onAction, actionText, actionColor, icon: Icon }) {
-  const createdTime = kot.createdAt ? new Date(kot.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+  const createdTime = kot.createdAt
+    ? new Date(kot.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "";
 
   return (
     <div
       style={{
         backgroundColor: "#f8fafc",
-        borderRadius: "12px",
-        padding: "16px",
+        borderRadius: "14px",
+        padding: "18px",
         border: "1px solid #e2e8f0",
-        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
       }}
     >
       {/* KOT Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", paddingBottom: "10px", borderBottom: "1px solid #e2e8f0" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "12px",
+          paddingBottom: "10px",
+          borderBottom: "1px solid #e2e8f0",
+        }}
+      >
         <div>
-          <span style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>{kot.kotNumber}</span>
+          <span style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>
+            {kot.kotNumber}
+          </span>
           <div style={{ fontSize: "13px", fontWeight: "700", color: "#2563eb", marginTop: "2px" }}>
             {kot.tableNumber ? `Table ${kot.tableNumber}` : `(${kot.orderType})`}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "12px",
+            color: "#64748b",
+            fontWeight: "600",
+          }}
+        >
           <FiClock size={14} />
           <span>{createdTime}</span>
         </div>
@@ -318,7 +635,18 @@ function KOTCard({ kot, onAction, actionText, actionColor, icon: Icon }) {
       {/* Items List */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
         {kot.items?.map((i) => (
-          <div key={i.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", padding: "6px 10px", borderRadius: "6px", border: "1px solid #f1f5f9" }}>
+          <div
+            key={i.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#ffffff",
+              padding: "8px 12px",
+              borderRadius: "8px",
+              border: "1px solid #f1f5f9",
+            }}
+          >
             <span style={{ fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
               {i.quantity}x {i.menuItem?.name || "Dish"}
             </span>
@@ -328,7 +656,18 @@ function KOTCard({ kot, onAction, actionText, actionColor, icon: Icon }) {
 
       {/* Special Kitchen Notes */}
       {kot.notes && (
-        <div style={{ backgroundColor: "#fef3c7", border: "1px solid #fde68a", padding: "8px 12px", borderRadius: "6px", fontSize: "12px", color: "#92400e", fontWeight: "600", marginBottom: "16px" }}>
+        <div
+          style={{
+            backgroundColor: "#fef3c7",
+            border: "1px solid #fde68a",
+            padding: "8px 12px",
+            borderRadius: "8px",
+            fontSize: "12px",
+            color: "#92400e",
+            fontWeight: "600",
+            marginBottom: "16px",
+          }}
+        >
           Note: {kot.notes}
         </div>
       )}
@@ -338,7 +677,7 @@ function KOTCard({ kot, onAction, actionText, actionColor, icon: Icon }) {
         onClick={onAction}
         style={{
           width: "100%",
-          padding: "10px",
+          padding: "11px",
           backgroundColor: actionColor,
           color: "#ffffff",
           border: "none",
@@ -351,6 +690,7 @@ function KOTCard({ kot, onAction, actionText, actionColor, icon: Icon }) {
           justifyContent: "center",
           gap: "8px",
           boxShadow: `0 4px 6px -1px ${actionColor}33`,
+          transition: "transform 0.1s ease, box-shadow 0.1s ease",
         }}
       >
         <Icon size={16} />

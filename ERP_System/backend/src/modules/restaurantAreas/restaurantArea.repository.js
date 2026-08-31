@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma.js";
+import { emitAreaCreated, emitAreaUpdated, emitAreaDeleted } from "../../config/socket.js";
 
 export const createArea = async (companyId, data) => {
   if (!companyId) {
@@ -18,13 +19,21 @@ export const createArea = async (companyId, data) => {
     throw error;
   }
 
-  return await prisma.restaurantArea.create({
+  const createdArea = await prisma.restaurantArea.create({
     data,
     include: {
       restaurant: true,
       tables: true,
     },
   });
+
+  try {
+    emitAreaCreated(createdArea, companyId);
+  } catch (err) {
+    console.error("Socket emit error on createArea:", err);
+  }
+
+  return createdArea;
 };
 
 export const getAreasByRestaurant = async (companyId, restaurantId) => {
@@ -88,13 +97,22 @@ export const updateArea = async (id, companyId, data) => {
     }
   }
 
-  return await prisma.restaurantArea.update({
+  const updatedArea = await prisma.restaurantArea.update({
     where: { id },
     data,
     include: {
+      restaurant: true,
       tables: true,
     },
   });
+
+  try {
+    emitAreaUpdated(updatedArea, companyId);
+  } catch (err) {
+    console.error("Socket emit error on updateArea:", err);
+  }
+
+  return updatedArea;
 };
 
 export const deleteArea = async (id, companyId) => {
@@ -105,7 +123,16 @@ export const deleteArea = async (id, companyId) => {
     throw error;
   }
 
-  return await prisma.restaurantArea.delete({
+  const deletedArea = await prisma.restaurantArea.delete({
     where: { id },
   });
+
+  try {
+    emitAreaDeleted(id, existing.restaurantId, companyId);
+  } catch (err) {
+    console.error("Socket emit error on deleteArea:", err);
+  }
+
+  return deletedArea;
 };
+

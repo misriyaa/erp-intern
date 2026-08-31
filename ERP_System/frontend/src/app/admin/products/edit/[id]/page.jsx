@@ -25,6 +25,7 @@ import apiClient from "@/services/apiClient";
 import { useCompany } from "@/context/CompanyContext";
 import { restaurantService } from "@/services/restaurantService";
 import { showSuccess, showError } from "@/utils/swal";
+import RestaurantIngredientEdit from "@/components/restaurant/RestaurantIngredientEdit";
 
 const DEFAULT_UNITS = [
   { id: "pcs", name: "Piece / Pcs", code: "pcs" },
@@ -54,6 +55,10 @@ export default function EditProductPage({ params }) {
   const router = useRouter();
   const { showWarning } = useAlert();
   const { isRestaurant, isTextile, company } = useCompany();
+
+  if (isRestaurant) {
+    return <RestaurantIngredientEdit ingredientId={id} />;
+  }
 
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);

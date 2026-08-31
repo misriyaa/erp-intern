@@ -105,6 +105,27 @@ export const updateIngredient = async (req, res, next) => {
   }
 };
 
+export const addIngredientStock = async (req, res, next) => {
+  try {
+    const companyId = req.companyId || req.user?.companyId;
+    if (!companyId) {
+      return res.status(403).json({ success: false, message: "Tenant context required." });
+    }
+    const ingredient = await ingredientService.addIngredientStock(req.params.id, companyId, req.body);
+    return res.status(200).json({
+      success: true,
+      message: "Stock added successfully",
+      data: ingredient,
+    });
+  } catch (error) {
+    console.error("Add Ingredient Stock Error:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to add stock",
+    });
+  }
+};
+
 export const deleteIngredient = async (req, res, next) => {
   try {
     const companyId = req.companyId || req.user?.companyId;
@@ -121,3 +142,4 @@ export const deleteIngredient = async (req, res, next) => {
     });
   }
 };
+

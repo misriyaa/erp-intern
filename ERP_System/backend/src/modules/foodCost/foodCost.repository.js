@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma.js";
+import { convertUnit } from "../../utils/unitConverter.js";
 
 export const getFoodCostingReport = async (companyId, restaurantId) => {
   if (!companyId) return [];
@@ -21,7 +22,11 @@ export const getFoodCostingReport = async (companyId, restaurantId) => {
         include: {
           ingredients: {
             include: {
-              product: true,
+              product: {
+                include: {
+                  unit: true,
+                },
+              },
             },
           },
         },
@@ -37,7 +42,10 @@ export const getFoodCostingReport = async (companyId, restaurantId) => {
     if (item.recipe && item.recipe.ingredients) {
       calculatedCost = item.recipe.ingredients.reduce((sum, ing) => {
         const prodCost = parseFloat(ing.product?.costPrice) || 0;
-        return sum + prodCost * (ing.quantity || 0);
+        const recipeUnit = ing.unit || ing.product?.stockUnit || ing.product?.unit?.code || ing.product?.unit?.name || "unit";
+        const stockUnit = ing.product?.stockUnit || ing.product?.unit?.code || ing.product?.unit?.name || "unit";
+        const convertedQty = convertUnit(ing.quantity || 0, recipeUnit, stockUnit);
+        return sum + prodCost * convertedQty;
       }, 0);
     } else {
       calculatedCost = parseFloat(item.costPrice) || 0;

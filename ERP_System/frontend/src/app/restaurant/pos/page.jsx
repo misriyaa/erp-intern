@@ -1,13 +1,38 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
+
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./RestaurantPOS.module.css";
 import { restaurantService } from "@/services/restaurantService";
 import { getCustomers } from "@/services/customerService";
 import { useCompany } from "@/context/CompanyContext";
 import Swal, { showSuccess, showError, showWarning, showConfirm, showToastNotification } from "@/utils/swal";
-import { joinOutletRoom, leaveOutletRoom, subscribeToOrderStatus, subscribeToReconnect } from "@/services/socketService";
+import {
+  joinCompanyRoom,
+  joinOutletRoom,
+  leaveOutletRoom,
+  subscribeToKitchenOrderCreated,
+  subscribeToKitchenOrderUpdated,
+  subscribeToOrderStatus,
+  subscribeToTableStatusUpdated,
+  subscribeToTableCreated,
+  subscribeToTableDeleted,
+  subscribeToTableUpdated,
+  subscribeToReconnect,
+} from "@/services/socketService";
+
+const ACTIVE_ORDER_STATUSES = [
+  "NEW",
+  "PENDING",
+  "CONFIRMED",
+  "PREPARING",
+  "READY",
+  "HELD",
+  "DRAFT",
+];
+
+
 import {
   FiCoffee,
   FiShoppingBag,
@@ -32,19 +57,25 @@ import {
 function RestaurantPOSContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialTableId = searchParams.get("tableId") || "";
+  const queryTableId = searchParams.get("tableId") || "";
+  const queryOrderId = searchParams.get("orderId") || "";
+  const queryOutletId = searchParams.get("outletId") || searchParams.get("restaurantId") || "";
+  const queryMode = searchParams.get("mode") || "";
 
-  const { user } = useCompany();
+  const { user, company } = useCompany();
   const roleStr = String(user?.role || user?.roleRef?.name || user?.type || "").toUpperCase();
+
   const isWaiter = roleStr.includes("WAITER") || roleStr.includes("STEWARD") || roleStr.includes("SERVER");
   const isCashier = roleStr.includes("CASHIER") || roleStr.includes("BILLING") || roleStr.includes("COUNTER");
   const isAdmin = roleStr.includes("SUPER") || roleStr.includes("ADMIN") || roleStr.includes("OWNER") || roleStr.includes("MANAGER");
 
   const canDoBilling = (isCashier || isAdmin) && !isWaiter;
+  const isBillingMode = queryMode === "billing" || canDoBilling;
+
 
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState([]);
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState(queryOutletId);
 
   const [tables, setTables] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -53,10 +84,11 @@ function RestaurantPOSContent() {
 
   // POS State
   const [orderType, setOrderType] = useState("DINE_IN");
-  const [selectedTableId, setSelectedTableId] = useState(initialTableId);
+  const [selectedTableId, setSelectedTableId] = useState(queryTableId);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
 
   const [cart, setCart] = useState([]);
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -64,6 +96,16 @@ function RestaurantPOSContent() {
 
   // Active Order State
   const [activeOrder, setActiveOrder] = useState(null);
+  const activeOrderRef = useRef(activeOrder);
+  const selectedTableIdRef = useRef(selectedTableId);
+
+  useEffect(() => {
+    activeOrderRef.current = activeOrder;
+  }, [activeOrder]);
+
+  useEffect(() => {
+    selectedTableIdRef.current = selectedTableId;
+  }, [selectedTableId]);
 
   // Modals & Held Orders / Bills
   const [showPayModal, setShowPayModal] = useState(false);
@@ -95,60 +137,225 @@ function RestaurantPOSContent() {
     }
   }, [selectedRestaurantId]);
 
-  // Real-Time Order Status Update Listener (Socket.IO)
+  // Real-Time Order & Table Status Update Listener (Socket.IO)
   useEffect(() => {
     if (!selectedRestaurantId) return;
 
-    // Join authorized outlet room
-    joinOutletRoom(selectedRestaurantId);
+    const currentCompId = company?.id || user?.companyId;
+    joinCompanyRoom(currentCompId);
+    joinOutletRoom(selectedRestaurantId, currentCompId);
 
-    // Listen for real-time status changes emitted by Kitchen Staff or Backend
-    const unsubscribeStatus = subscribeToOrderStatus((data) => {
+    const handleRealTimeUpdate = (data) => {
       console.log("⚡ [Waiter POS] Real-time order update received:", data);
 
+      // Verify company isolation
+      if (data.companyId && currentCompId && data.companyId !== currentCompId) {
+        return;
+      }
       // Verify outlet matches assigned restaurant
-      if (data.restaurantId && data.restaurantId !== selectedRestaurantId) {
+      if (
+        data.restaurantId &&
+        selectedRestaurantId !== "ALL" &&
+        data.restaurantId !== selectedRestaurantId
+      ) {
         return;
       }
 
-      // Automatically sync POS state (tables & active orders) without page refresh
-      loadMenuData(selectedRestaurantId);
+      const targetStatus = data.status || data.orderStatus;
 
-      // Update active order state dynamically if open
-      if (data.orderId) {
+      // 1. When payment is completed or order is cancelled -> Table becomes AVAILABLE
+      if (
+        targetStatus === "COMPLETED" ||
+        targetStatus === "CANCELLED" ||
+        targetStatus === "PAID" ||
+        targetStatus === "CLOSED"
+      ) {
+        // If this order is currently loaded in cart/activeOrder, clear cart immediately
+        if (
+          data.orderId &&
+          (activeOrderRef.current?.id === data.orderId ||
+            activeOrderRef.current?.orderNumber === data.orderNumber)
+        ) {
+          setActiveOrder(null);
+          setCart([]);
+          setDiscountAmount(0);
+          setNotes("");
+        }
+
+        // If the order belonged to the currently selected table, clear cart
+        if (data.tableId && selectedTableIdRef.current === data.tableId) {
+          setActiveOrder(null);
+          setCart([]);
+          setDiscountAmount(0);
+          setNotes("");
+        }
+
+        // Update table in-memory: clear active order & set status to AVAILABLE
+        if (data.tableId) {
+          setTables((prev) =>
+            prev.map((t) =>
+              t.id === data.tableId
+                ? {
+                    ...t,
+                    status: "AVAILABLE",
+                    orders: (t.orders || []).filter(
+                      (o) => o.id !== data.orderId && o.orderNumber !== data.orderNumber
+                    ),
+                  }
+                : t
+            )
+          );
+        }
+      } else if (targetStatus === "SERVED") {
+        // 2. When order is SERVED -> Table MUST REMAIN OCCUPIED!
+        if (
+          isWaiter &&
+          data.orderId &&
+          (activeOrderRef.current?.id === data.orderId ||
+            activeOrderRef.current?.orderNumber === data.orderNumber)
+        ) {
+          setActiveOrder(null);
+          setCart([]);
+          setDiscountAmount(0);
+          setNotes("");
+        }
+
+        // Update table in-memory: status remains OCCUPIED, update order status to SERVED
+        if (data.tableId) {
+          setTables((prev) =>
+            prev.map((t) =>
+              t.id === data.tableId
+                ? {
+                    ...t,
+                    status: "OCCUPIED",
+                    orders: (t.orders || []).map((o) =>
+                      o.id === data.orderId || o.orderNumber === data.orderNumber
+                        ? { ...o, status: "SERVED" }
+                        : o
+                    ),
+                  }
+                : t
+            )
+          );
+        }
+      } else if (data.orderId) {
+        // 3. For NEW, CONFIRMED, PREPARING, READY -> Table is OCCUPIED
+        if (data.tableId) {
+          setTables((prev) =>
+            prev.map((t) =>
+              t.id === data.tableId
+                ? {
+                    ...t,
+                    status: "OCCUPIED",
+                    orders: (t.orders || []).map((o) =>
+                      o.id === data.orderId || o.orderNumber === data.orderNumber
+                        ? { ...o, status: targetStatus }
+                        : o
+                    ),
+                  }
+                : t
+            )
+          );
+        }
+
+        // Update active order state dynamically if open
         setActiveOrder((prev) => {
           if (prev && (prev.id === data.orderId || prev.orderNumber === data.orderNumber)) {
-            return { ...prev, status: data.status };
+            return { ...prev, status: targetStatus };
           }
           return prev;
         });
       }
 
-      // Trigger non-blocking SweetAlert2 toast notification when order becomes READY
-      if (data.status === "READY") {
+
+      // Automatically sync POS state in background without full reload
+      loadMenuData(selectedRestaurantId);
+
+      // Trigger non-blocking SweetAlert2 toast notification ONLY for Waiters when order becomes READY
+      if (targetStatus === "READY" && !isCashier && isWaiter) {
         const tblNum = data.tableNumber || (data.table ? data.table.tableNumber : "");
-        const tableText = tblNum ? `Table ${tblNum}` : "Takeaway Order";
-        showToastNotification(
-          "🔔 Order Ready to Serve!",
-          `${tableText} - Order #${data.orderNumber || ""} is ready to serve!`,
-          "success"
-        );
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "info",
+          title: `Order Ready for Table ${tblNum || ""}`,
+          text: `Order #${data.orderNumber || ""} is ready to serve!`,
+          showConfirmButton: false,
+          timer: 4000,
+          timerProgressBar: true,
+        });
       }
-    });
+    };
+
+    // Table Real-Time Updates from Table Management
+    const handleTableStatusUpdate = (data) => {
+      console.log("⚡ [Waiter POS] Real-time table status update received:", data);
+      if (data.companyId && currentCompId && data.companyId !== currentCompId) return;
+      if (
+        data.restaurantId &&
+        selectedRestaurantId !== "ALL" &&
+        data.restaurantId !== selectedRestaurantId
+      ) {
+        return;
+      }
+
+      const tblId = data.tableId || data.table?.id || data.id;
+      const targetStatus = data.status || data.table?.status;
+
+      if (tblId && targetStatus) {
+        setTables((prev) =>
+          prev.map((t) =>
+            t.id === tblId || (data.tableNumber && t.tableNumber === data.tableNumber)
+              ? { ...t, status: targetStatus }
+              : t
+          )
+        );
+
+        if (
+          targetStatus === "AVAILABLE" &&
+          (selectedTableIdRef.current === tblId || (data.tableNumber && tables.find(t => t.id === selectedTableIdRef.current)?.tableNumber === data.tableNumber))
+        ) {
+          // If table becomes AVAILABLE and had a non-active order in view, clear cart
+          if (activeOrderRef.current && !ACTIVE_ORDER_STATUSES.includes(activeOrderRef.current.status)) {
+            setActiveOrder(null);
+            setCart([]);
+            setDiscountAmount(0);
+            setNotes("");
+          }
+        }
+      }
+    };
+
+    const unsubscribeUpdated = subscribeToKitchenOrderUpdated(handleRealTimeUpdate);
+    const unsubscribeCreated = subscribeToKitchenOrderCreated(handleRealTimeUpdate);
+    const unsubscribeStatus = subscribeToOrderStatus(handleRealTimeUpdate);
+    const unsubscribeTableStatus = subscribeToTableStatusUpdated(handleTableStatusUpdate);
+    const unsubscribeTableCreated = subscribeToTableCreated(() => loadMenuData(selectedRestaurantId));
+    const unsubscribeTableDeleted = subscribeToTableDeleted(() => loadMenuData(selectedRestaurantId));
+    const unsubscribeTableUpdated = subscribeToTableUpdated(() => loadMenuData(selectedRestaurantId));
 
     // Handle auto-reconnection synchronization
     const unsubscribeReconnect = subscribeToReconnect(() => {
-      console.log("🔄 Socket reconnected - resynchronizing active orders...");
-      joinOutletRoom(selectedRestaurantId);
+      console.log("🔄 [Waiter POS] Socket reconnected - resynchronizing active orders...");
+      const compId = company?.id || user?.companyId;
+      joinCompanyRoom(compId);
+      joinOutletRoom(selectedRestaurantId, compId);
       loadMenuData(selectedRestaurantId);
     });
 
     return () => {
+      unsubscribeUpdated();
+      unsubscribeCreated();
       unsubscribeStatus();
+      unsubscribeTableStatus();
+      unsubscribeTableCreated();
+      unsubscribeTableDeleted();
+      unsubscribeTableUpdated();
       unsubscribeReconnect();
       leaveOutletRoom(selectedRestaurantId);
     };
-  }, [selectedRestaurantId]);
+  }, [selectedRestaurantId, company?.id]);
+
 
   // Check whether current table order has unsaved changes
   const isCartDirty = () => {
@@ -216,52 +423,85 @@ function RestaurantPOSContent() {
     }
   };
 
-  // Load Table Order: Clears previous table state and loads only the target table's active order or empty cart
-  const loadTableOrder = (targetTableId, tableList = tables) => {
-    // 1. Immediately reset current order state safely so no old cart items linger
-    setSelectedTableId(targetTableId);
-    setActiveOrder(null);
-    setCart([]);
-    setDiscountAmount(0);
-    setNotes("");
+  // Open / Load Table Active Order (Handles both orderId from Floor & Tables and table active order lookup)
+  const openTableActiveOrder = async (targetTableId, orderId = null, tableList = tables, restaurantId = selectedRestaurantId) => {
+    if (!targetTableId) return;
 
-    if (!targetTableId || orderType !== "DINE_IN") {
-      return;
+    setSelectedTableId(targetTableId);
+    setOrderType("DINE_IN");
+
+    // 1. If explicit orderId is provided from Floor & Tables, fetch the exact order directly
+    if (orderId) {
+      try {
+        const orderRes = await restaurantService.getOrderById(orderId);
+        const order = orderRes?.data || orderRes;
+        const isValidForMode = isBillingMode
+          ? (order && order.status !== "COMPLETED" && order.status !== "CANCELLED")
+          : (order && ACTIVE_ORDER_STATUSES.includes(order.status));
+
+        if (
+          order &&
+          isValidForMode &&
+          (order.tableId === targetTableId || !order.tableId)
+        ) {
+          setActiveOrder(order);
+          const rawItems = order.items || order.orderItems || order.restaurantOrderItems || [];
+          const mappedItems = rawItems.map((i) => ({
+            menuItemId: i.menuItemId || i.productId || i.id,
+            name: i.menuItem?.name || i.product?.name || i.productName || i.name || "Item",
+            unitPrice: parseFloat(i.unitPrice || i.price || i.sellingPrice || 0),
+            quantity: Number(i.quantity || 1),
+            notes: i.notes || "",
+          }));
+          setCart(mappedItems);
+          setDiscountAmount(parseFloat(order.discountAmount || 0));
+          setNotes(order.notes || "");
+          if (order.customerId) setSelectedCustomerId(order.customerId);
+          return;
+        }
+      } catch (err) {
+        console.warn("Could not fetch order by orderId, falling back to table active orders:", err);
+      }
     }
 
-    // 2. Look for existing active order for target table
+    // 2. Otherwise find the active order within the table's orders (distinguishes Waiter vs Cashier Billing)
     const tbl = (tableList || []).find((t) => t.id === targetTableId);
+    const validStatuses = isBillingMode
+      ? ["CONFIRMED", "PREPARING", "READY", "SERVED", "DRAFT", "HELD"]
+      : ACTIVE_ORDER_STATUSES;
+
     const activeTableOrder = tbl?.orders?.find(
       (o) =>
-        (!o.restaurantId || o.restaurantId === selectedRestaurantId) &&
-        ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"].includes(o.status)
+        (!o.restaurantId || !restaurantId || o.restaurantId === restaurantId) &&
+        validStatuses.includes(o.status)
     );
 
     if (activeTableOrder) {
-      // YES -> Load ONLY that table's existing active order/cart
       setActiveOrder(activeTableOrder);
-      if (activeTableOrder.items && activeTableOrder.items.length > 0) {
-        setCart(
-          activeTableOrder.items.map((i) => ({
-            menuItemId: i.menuItemId,
-            name: i.menuItem?.name || "Item",
-            unitPrice: parseFloat(i.unitPrice),
-            quantity: i.quantity,
-            notes: i.notes || "",
-          }))
-        );
-      } else {
-        setCart([]);
-      }
+      const rawItems = activeTableOrder.items || activeTableOrder.orderItems || activeTableOrder.restaurantOrderItems || [];
+      const mappedItems = rawItems.map((i) => ({
+        menuItemId: i.menuItemId || i.productId || i.id,
+        name: i.menuItem?.name || i.product?.name || i.productName || i.name || "Item",
+        unitPrice: parseFloat(i.unitPrice || i.price || i.sellingPrice || 0),
+        quantity: Number(i.quantity || 1),
+        notes: i.notes || "",
+      }));
+      setCart(mappedItems);
       setDiscountAmount(parseFloat(activeTableOrder.discountAmount || 0));
       setNotes(activeTableOrder.notes || "");
+      if (activeTableOrder.customerId) setSelectedCustomerId(activeTableOrder.customerId);
     } else {
-      // NO -> Show empty cart
+      // Clean empty cart for table with no active order
       setActiveOrder(null);
       setCart([]);
       setDiscountAmount(0);
       setNotes("");
     }
+  };
+
+
+  const loadTableOrder = (targetTableId, tableList = tables) => {
+    openTableActiveOrder(targetTableId, null, tableList, selectedRestaurantId);
   };
 
   // Table Switching with Unsaved Cart Protection
@@ -296,7 +536,7 @@ function RestaurantPOSContent() {
       }
     }
 
-    loadTableOrder(newTableId);
+    openTableActiveOrder(newTableId, null, tables, selectedRestaurantId);
   };
 
   // Order Type Switching with Unsaved Cart Protection
@@ -339,13 +579,6 @@ function RestaurantPOSContent() {
     }
   };
 
-  // Load initial table order if tableId was provided via query param on mount
-  useEffect(() => {
-    if (initialTableId && tables.length > 0 && selectedTableId === initialTableId && !activeOrder && cart.length === 0) {
-      loadTableOrder(initialTableId, tables);
-    }
-  }, [tables, initialTableId]);
-
   const fetchPOSData = async () => {
     try {
       setLoading(true);
@@ -357,21 +590,29 @@ function RestaurantPOSContent() {
       const restList = restRes.data || [];
       setRestaurants(restList);
 
-      // Auto Outlet Assignment based on user logged in outlet or default
-      if (restList.length > 0) {
-        let assigned = restList[0].id;
+      // Prioritize URL outlet parameter or user assigned outlet
+      let targetRestId = "";
+      if (queryOutletId && restList.some((r) => r.id === queryOutletId)) {
+        targetRestId = queryOutletId;
+      } else if (restList.length > 0) {
+        targetRestId = restList[0].id;
         if (user?.restaurantId) {
           const match = restList.find((r) => r.id === user.restaurantId);
-          if (match) assigned = match.id;
+          if (match) targetRestId = match.id;
         } else if (user?.branchId) {
           const match = restList.find((r) => r.branchId === user.branchId);
-          if (match) assigned = match.id;
+          if (match) targetRestId = match.id;
         }
-        setSelectedRestaurantId(assigned);
       }
+
+      setSelectedRestaurantId(targetRestId);
 
       const rawCustList = custRes.data || custRes || [];
       setCustomers(rawCustList);
+
+      if (targetRestId) {
+        await loadMenuData(targetRestId);
+      }
     } catch (err) {
       console.error("Error loading POS data:", err);
     } finally {
@@ -388,11 +629,19 @@ function RestaurantPOSContent() {
       ]);
       setCategories(catRes.data || []);
       setMenuItems(itemRes.data || []);
-      setTables(tblRes.data || []);
+      const tblList = tblRes.data || [];
+      setTables(tblList);
+
+      // Automatically load active table order if navigating from Floor & Tables
+      const targetTableId = queryTableId || selectedTableIdRef.current;
+      if (targetTableId) {
+        await openTableActiveOrder(targetTableId, queryOrderId, tblList, restaurantId);
+      }
     } catch (err) {
       console.error("Error loading menu data:", err);
     }
   };
+
 
   // Fetch Waiter Held Draft Orders
   const loadHeldOrders = async () => {
@@ -598,14 +847,18 @@ function RestaurantPOSContent() {
     try {
       await restaurantService.updateOrder(orderId, { status: "SERVED" });
       showSuccess("Order Marked as Served", "Order status updated to SERVED. Stock deducted successfully.");
-      loadMenuData(selectedRestaurantId);
-      if (activeOrder && activeOrder.id === orderId) {
-        setActiveOrder((prev) => (prev ? { ...prev, status: "SERVED" } : null));
+      if (activeOrder && (activeOrder.id === orderId || activeOrder.orderNumber === orderId)) {
+        setActiveOrder(null);
+        setCart([]);
+        setDiscountAmount(0);
+        setNotes("");
       }
+      await loadMenuData(selectedRestaurantId);
     } catch (err) {
       showError("Failed to Mark Served", err.response?.data?.message || err.message || "Failed to mark order as served");
     }
   };
+
 
   // Cancel Held Order
   const handleCancelHeldOrder = async (orderId) => {
@@ -680,9 +933,88 @@ function RestaurantPOSContent() {
       setSelectedTableId("");
       loadMenuData(selectedRestaurantId);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message;
-      showError("Failed to Send Order", errorMsg);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to send order";
+      if (errorMsg.includes("Insufficient stock for preparation")) {
+        const lines = errorMsg.replace("Insufficient stock for preparation:", "").trim();
+        const formattedList = lines
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .map((l) => `<li style="margin-bottom: 6px; color: #1e293b; font-weight: 500;">${l}</li>`)
+          .join("");
+
+        Swal.fire({
+          icon: "error",
+          title: "Insufficient Stock",
+          html: `<div style="text-align: left; font-size: 14px; padding: 4px 8px;">
+            <p style="margin-bottom: 12px; color: #64748b; font-size: 13px;">The following recipe raw materials / ingredients do not have enough stock in inventory:</p>
+            <ul style="padding-left: 20px; margin: 0; line-height: 1.5;">
+              ${formattedList}
+            </ul>
+          </div>`,
+          confirmButtonColor: "#ef4444",
+          confirmButtonText: "Understood",
+        });
+      } else {
+        showError("Failed to Send Order", errorMsg);
+      }
     }
+  };
+
+  // Print Handlers for Cashier
+  const handlePrintProvisionalBill = () => {
+    if (!activeOrder && cart.length === 0) {
+      showWarning("No Order", "No active bill/order to print.");
+      return;
+    }
+    const currentRest = restaurants.find((r) => r.id === selectedRestaurantId);
+    const currentTbl = tables.find((t) => t.id === selectedTableId);
+    const provisionalOrder = {
+      id: activeOrder?.id || `TEMP-${Date.now()}`,
+      orderNumber: activeOrder?.orderNumber || `PROV-${Date.now().toString().slice(-6)}`,
+      orderType: orderType || "DINE_IN",
+      status: activeOrder?.status || "CONFIRMED",
+      isProvisional: true,
+      paymentStatus: "UNPAID",
+      table: currentTbl || activeOrder?.table,
+      tableId: selectedTableId,
+      restaurant: currentRest,
+      restaurantId: selectedRestaurantId,
+      items: cart.map((i, idx) => ({
+        id: `item-${idx}`,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        total: i.unitPrice * i.quantity,
+        menuItem: { name: i.name },
+        notes: i.notes,
+      })),
+      subtotal: subtotal,
+      discountAmount: parseFloat(discountAmount || 0),
+      taxAmount: taxAmount,
+      totalAmount: totalAmount,
+      createdAt: activeOrder?.createdAt || new Date(),
+    };
+    setSelectedPrintOrder(provisionalOrder);
+  };
+
+  const handlePrintPaidReceipt = (order = activeOrder) => {
+    const targetOrder = order || activeOrder;
+    if (!targetOrder) return;
+    const currentRest = restaurants.find((r) => r.id === selectedRestaurantId);
+    const currentTbl = tables.find((t) => t.id === (targetOrder.tableId || selectedTableId));
+    setSelectedPrintOrder({
+      ...targetOrder,
+      isProvisional: false,
+      paymentStatus: "PAID",
+      paymentMethod: paymentMethod || targetOrder.payments?.[0]?.method || "CASH",
+      restaurant: targetOrder.restaurant || currentRest,
+      table: targetOrder.table || currentTbl,
+      totalAmount: targetOrder.totalAmount || totalAmount,
+    });
+  };
+
+  const handleReprintReceipt = (order = activeOrder) => {
+    handlePrintPaidReceipt(order);
   };
 
   // 3. CASHIER: Complete Order & Process Payment Action
@@ -728,8 +1060,39 @@ function RestaurantPOSContent() {
         method: paymentMethod,
       });
 
+      const currentRest = restaurants.find((r) => r.id === selectedRestaurantId);
+      const currentTbl = tables.find((t) => t.id === selectedTableId);
+
+      const paidOrderReceipt = {
+        ...(activeOrder || {}),
+        id: orderId,
+        orderNumber: activeOrder?.orderNumber || `ORD-${Date.now().toString().slice(-6)}`,
+        orderType: orderType || "DINE_IN",
+        table: currentTbl || activeOrder?.table,
+        restaurant: currentRest,
+        items: cart.map((i, idx) => ({
+          id: `item-${idx}`,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          total: i.unitPrice * i.quantity,
+          menuItem: { name: i.name },
+          notes: i.notes,
+        })),
+        subtotal: subtotal,
+        discountAmount: parseFloat(discountAmount || 0),
+        taxAmount: taxAmount,
+        totalAmount: totalAmount || parseFloat(activeOrder?.totalAmount || 0),
+        status: "COMPLETED",
+        paymentStatus: "PAID",
+        paymentMethod: paymentMethod,
+        isProvisional: false,
+        createdAt: activeOrder?.createdAt || new Date(),
+      };
+
       showSuccess("Payment Confirmed!", "Payment Confirmed! Order status updated to COMPLETED. Table is now AVAILABLE.");
       setShowPayModal(false);
+      setSelectedPrintOrder(paidOrderReceipt);
+
       setCart([]);
       setActiveOrder(null);
       setSelectedTableId("");
@@ -742,21 +1105,23 @@ function RestaurantPOSContent() {
     }
   };
 
-  // Extract all READY TO SERVE orders for current outlet
+  // Extract all READY TO SERVE orders for current outlet (WAITER ONLY - completely hidden from Cashier)
   const readyOrders = [];
-  tables.forEach((t) => {
-    if (t.orders && t.orders.length > 0) {
-      t.orders.forEach((o) => {
-        if (o.status === "READY") {
-          readyOrders.push({
-            ...o,
-            tableNumber: t.tableNumber,
-            areaName: t.area?.name,
-          });
-        }
-      });
-    }
-  });
+  if (!isCashier && isWaiter) {
+    tables.forEach((t) => {
+      if (t.orders && t.orders.length > 0) {
+        t.orders.forEach((o) => {
+          if (o.status === "READY") {
+            readyOrders.push({
+              ...o,
+              tableNumber: t.tableNumber,
+              areaName: t.area?.name,
+            });
+          }
+        });
+      }
+    });
+  }
 
   const filteredMenuItems = menuItems.filter((i) => {
     const matchesCat = activeCategoryId === "ALL" || i.categoryId === activeCategoryId;
@@ -804,15 +1169,18 @@ function RestaurantPOSContent() {
               <option value="">Select Table...</option>
               {tables.map((t) => {
                 const activeTblOrder = t.orders?.find(
-                  (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED"
+                  (o) => ACTIVE_ORDER_STATUSES.includes(o.status)
                 );
-                const statusBadge = activeTblOrder ? `Active Order (${activeTblOrder.status})` : t.status;
+                const statusBadge = activeTblOrder
+                  ? `Active Order (${activeTblOrder.status})`
+                  : t.status || "AVAILABLE";
                 return (
                   <option key={t.id} value={t.id}>
                     {t.tableNumber} {t.area?.name ? `(${t.area.name})` : ""} — {statusBadge}
                   </option>
                 );
               })}
+
             </select>
           )}
 
@@ -827,12 +1195,15 @@ function RestaurantPOSContent() {
 
           {/* TOP RIGHT TOOLBAR BUTTONS */}
           <div className={styles.toolBarGroup}>
-            <button
-              onClick={() => setShowReadyModal(true)}
-              className={`${styles.actionBtn} ${readyOrders.length > 0 ? styles.readyBtnActive : ""}`}
-            >
-              <FiBell size={14} /> Ready ({readyOrders.length})
-            </button>
+            {/* WAITER ONLY: Ready Orders Bell button */}
+            {!isCashier && isWaiter && (
+              <button
+                onClick={() => setShowReadyModal(true)}
+                className={`${styles.actionBtn} ${readyOrders.length > 0 ? styles.readyBtnActive : ""}`}
+              >
+                <FiBell size={14} /> Ready ({readyOrders.length})
+              </button>
+            )}
 
             <button
               onClick={() => {
@@ -870,8 +1241,8 @@ function RestaurantPOSContent() {
           </div>
         </div>
 
-        {/* INLINE READY TO SERVE SECTION */}
-        {readyOrders.length > 0 && (
+        {/* INLINE READY TO SERVE SECTION (WAITER ONLY - COMPLETELY HIDDEN FROM CASHIER) */}
+        {!isCashier && isWaiter && readyOrders.length > 0 && (
           <div style={{ padding: "14px 20px", backgroundColor: "#eff6ff", borderBottom: "2px solid #2563eb", display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: "800", color: "#1e40af", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -982,6 +1353,21 @@ function RestaurantPOSContent() {
 
       {/* RIGHT PANEL: Current Cart & Checkout */}
       <div className={styles.rightPanel}>
+        {/* Billing Mode Banner for Cashier */}
+        {isBillingMode && activeOrder && (
+          <div style={{ backgroundColor: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "8px", padding: "10px 14px", marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <span style={{ fontSize: "12px", fontWeight: "800", color: "#065f46" }}>🧾 BILLING MODE</span>
+              <div style={{ fontSize: "11px", color: "#047857", marginTop: "2px" }}>
+                Table: {tables.find((t) => t.id === selectedTableId)?.tableNumber || "Selected"} • Order #{activeOrder.orderNumber}
+              </div>
+            </div>
+            <span style={{ fontSize: "11px", fontWeight: "800", backgroundColor: "#10b981", color: "#fff", padding: "3px 8px", borderRadius: "8px", textTransform: "uppercase" }}>
+              {activeOrder.status}
+            </span>
+          </div>
+        )}
+
         {/* Cart Header */}
         <div className={styles.cartHeader}>
           <div>
@@ -1066,6 +1452,16 @@ function RestaurantPOSContent() {
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
               <div className={styles.calcRow}>
+                <span>Discount (₹)</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                  style={{ width: "80px", textAlign: "right", padding: "2px 6px", borderRadius: "4px", border: "1px solid #cbd5e1", fontSize: "12px", fontWeight: "700" }}
+                />
+              </div>
+              <div className={styles.calcRow}>
                 <span>Tax (5%)</span>
                 <span>₹{taxAmount.toFixed(2)}</span>
               </div>
@@ -1090,7 +1486,7 @@ function RestaurantPOSContent() {
             )}
 
             {/* CASHIER: HOLD BILL BUTTON */}
-            {canDoBilling && (
+            {canDoBilling && activeOrder?.status !== "COMPLETED" && (
               <button
                 onClick={handleHoldBill}
                 disabled={cart.length === 0 && !activeOrder}
@@ -1100,28 +1496,63 @@ function RestaurantPOSContent() {
               </button>
             )}
 
-            {/* WAITER: SEND TO KITCHEN BUTTON */}
-            <button
-              onClick={handleSendKOT}
-              disabled={cart.length === 0}
-              className={`${styles.posFooterBtn} ${styles.sendBtn}`}
-            >
-              <FiSend size={14} /> Send to Kitchen
-            </button>
+            {/* CASHIER: PRINT PROVISIONAL BILL BUTTON (BEFORE PAYMENT) */}
+            {canDoBilling && activeOrder?.status !== "COMPLETED" && (
+              <button
+                onClick={handlePrintProvisionalBill}
+                disabled={cart.length === 0 && !activeOrder}
+                className={styles.posFooterBtn}
+                style={{ backgroundColor: "#334155", color: "#fff", borderColor: "#334155" }}
+              >
+                <FiPrinter size={14} /> Print Bill
+              </button>
+            )}
 
-            {/* CASHIER: PAY & BILL BUTTON */}
-            {canDoBilling && (
+            {/* WAITER: SEND TO KITCHEN BUTTON */}
+            {isWaiter && (
+              <button
+                onClick={handleSendKOT}
+                disabled={cart.length === 0}
+                className={`${styles.posFooterBtn} ${styles.sendBtn}`}
+              >
+                <FiSend size={14} /> Send to Kitchen
+              </button>
+            )}
+
+            {/* CASHIER: COMPLETE PAYMENT BUTTON */}
+            {canDoBilling && activeOrder?.status !== "COMPLETED" && (
               <button
                 onClick={() => setShowPayModal(true)}
                 disabled={cart.length === 0 && !activeOrder}
                 className={`${styles.posFooterBtn} ${styles.payBtn}`}
               >
-                <FiCreditCard size={14} /> Pay & Bill
+                <FiCreditCard size={14} /> Complete Payment
               </button>
+            )}
+
+            {/* CASHIER: AFTER PAYMENT ACTIONS */}
+            {canDoBilling && activeOrder?.status === "COMPLETED" && (
+              <>
+                <button
+                  onClick={() => handlePrintPaidReceipt(activeOrder)}
+                  className={styles.posFooterBtn}
+                  style={{ backgroundColor: "#16a34a", color: "#fff", borderColor: "#16a34a" }}
+                >
+                  <FiPrinter size={14} /> Print Receipt
+                </button>
+                <button
+                  onClick={() => handleReprintReceipt(activeOrder)}
+                  className={styles.posFooterBtn}
+                  style={{ backgroundColor: "#0f172a", color: "#fff", borderColor: "#0f172a" }}
+                >
+                  <FiRefreshCw size={14} /> Reprint Receipt
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
+
 
       {/* WAITER HELD ORDERS MODAL */}
       {showHeldModal && (
@@ -1281,9 +1712,9 @@ function RestaurantPOSContent() {
                       <td style={{ padding: "10px" }}>
                         <div style={{ display: "flex", gap: "6px" }}>
                           <button
-                            onClick={() => setSelectedPrintOrder(o)}
+                            onClick={() => handlePrintPaidReceipt(o)}
                             style={{ padding: "4px 8px", backgroundColor: "#0f172a", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                            title="Print Bill"
+                            title="Print / Reprint Bill"
                           >
                             <FiPrinter size={12} />
                           </button>
@@ -1309,47 +1740,190 @@ function RestaurantPOSContent() {
         </div>
       )}
 
-      {/* PRINT BILL MODAL */}
+      {/* COMPLETE DYNAMIC THERMAL BILL / RECEIPT MODAL */}
       {selectedPrintOrder && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "380px" }}>
-            <div style={{ textAlign: "center", marginBottom: "16px", borderBottom: "1px dashed #cbd5e1", paddingBottom: "12px" }}>
-              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800" }}>RESTO ERP BILL RECEIPT</h2>
-              <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>Order #{selectedPrintOrder.orderNumber}</p>
-              <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#64748b" }}>Type: {selectedPrintOrder.orderType}</p>
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15, 23, 42, 0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px" }}>
+          <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "14px", width: "100%", maxWidth: "420px", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
+            {/* Action Bar (Hidden in Print) */}
+            <div className={styles.printHide} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>
+                  {selectedPrintOrder.isProvisional ? "Provisional Bill Preview" : "Tax Invoice & Receipt"}
+                </h3>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>80mm Thermal & A4 Ready</span>
+              </div>
+              <button
+                onClick={() => setSelectedPrintOrder(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
+              >
+                <FiX size={20} />
+              </button>
             </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              {selectedPrintOrder.items?.map((item) => (
-                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "6px" }}>
-                  <span>{item.quantity} x {item.menuItem?.name || "Item"}</span>
-                  <span style={{ fontWeight: "700" }}>₹{parseFloat(item.total).toFixed(2)}</span>
+            {/* Printable Receipt Paper Container */}
+            <div
+              id="printableReceipt"
+              className={styles.printableReceiptArea}
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                backgroundColor: "#fff",
+                border: "1px dashed #cbd5e1",
+                padding: "16px",
+                borderRadius: "8px",
+                fontFamily: "'Courier New', Courier, monospace, sans-serif",
+                color: "#0f172a",
+                fontSize: "12px",
+                lineHeight: "1.4",
+              }}
+            >
+              {/* RESTAURANT HEADER */}
+              <div style={{ textAlign: "center", marginBottom: "12px" }}>
+                <h2 style={{ margin: "0 0 4px 0", fontSize: "18px", fontWeight: "800", letterSpacing: "-0.5px" }}>
+                  {selectedPrintOrder.restaurant?.name || restaurants.find((r) => r.id === selectedRestaurantId)?.name || company?.name || "RESTAURANT ERP"}
+                </h2>
+                <div style={{ fontSize: "11px", color: "#475569" }}>
+                  {selectedPrintOrder.restaurant?.address || "Main Dining Hall"}
                 </div>
-              ))}
+                {selectedPrintOrder.restaurant?.phone && (
+                  <div style={{ fontSize: "11px", color: "#475569" }}>
+                    Tel: {selectedPrintOrder.restaurant.phone}
+                  </div>
+                )}
+                {(selectedPrintOrder.restaurant?.gstin || company?.gstNumber) && (
+                  <div style={{ fontSize: "11px", fontWeight: "700", marginTop: "2px" }}>
+                    GSTIN: {selectedPrintOrder.restaurant?.gstin || company?.gstNumber}
+                  </div>
+                )}
+              </div>
+
+              {/* DIVIDER */}
+              <div style={{ borderTop: "1px dashed #64748b", margin: "10px 0" }}></div>
+
+              {/* INVOICE / BILL TYPE */}
+              <div style={{ textAlign: "center", fontWeight: "800", fontSize: "13px", margin: "4px 0", textTransform: "uppercase" }}>
+                {selectedPrintOrder.isProvisional ? "--- PROVISIONAL BILL (ESTIMATE) ---" : "--- TAX INVOICE / RECEIPT ---"}
+              </div>
+
+              <div style={{ borderTop: "1px dashed #64748b", margin: "10px 0" }}></div>
+
+              {/* ORDER & BILL META */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "11px", marginBottom: "8px" }}>
+                <div><strong>Invoice #:</strong> {selectedPrintOrder.isProvisional ? `EST-${selectedPrintOrder.orderNumber}` : `INV-${selectedPrintOrder.orderNumber}`}</div>
+                <div style={{ textAlign: "right" }}><strong>Order #:</strong> {selectedPrintOrder.orderNumber}</div>
+
+                <div><strong>Date:</strong> {new Date(selectedPrintOrder.createdAt || Date.now()).toLocaleDateString("en-IN")}</div>
+                <div style={{ textAlign: "right" }}><strong>Time:</strong> {new Date(selectedPrintOrder.createdAt || Date.now()).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</div>
+
+                <div><strong>Table:</strong> {selectedPrintOrder.table?.tableNumber || (tables.find((t) => t.id === selectedPrintOrder.tableId)?.tableNumber) || "Takeaway"}</div>
+                <div style={{ textAlign: "right" }}><strong>Area:</strong> {selectedPrintOrder.table?.area?.name || (tables.find((t) => t.id === selectedPrintOrder.tableId)?.area?.name) || "Dining"}</div>
+
+                <div><strong>Type:</strong> {selectedPrintOrder.orderType?.replace("_", " ") || "DINE IN"}</div>
+                <div style={{ textAlign: "right" }}><strong>Cashier:</strong> {user?.name || user?.username || "Cashier"}</div>
+              </div>
+
+              <div style={{ borderTop: "1px dashed #64748b", margin: "8px 0" }}></div>
+
+              {/* ITEMS LIST */}
+              <div style={{ marginBottom: "10px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "800", fontSize: "11px", borderBottom: "1px solid #cbd5e1", paddingBottom: "4px", marginBottom: "6px" }}>
+                  <span style={{ flex: 2 }}>ITEM</span>
+                  <span style={{ width: "35px", textAlign: "center" }}>QTY</span>
+                  <span style={{ width: "55px", textAlign: "right" }}>RATE</span>
+                  <span style={{ width: "65px", textAlign: "right" }}>AMOUNT</span>
+                </div>
+
+                {selectedPrintOrder.items?.map((item, idx) => {
+                  const qty = Number(item.quantity || 1);
+                  const price = parseFloat(item.unitPrice || item.price || 0);
+                  const total = parseFloat(item.total || (qty * price));
+                  const name = item.menuItem?.name || item.name || "Item";
+
+                  return (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginBottom: "4px" }}>
+                      <span style={{ flex: 2, fontWeight: "600" }}>{name}</span>
+                      <span style={{ width: "35px", textAlign: "center" }}>{qty}</span>
+                      <span style={{ width: "55px", textAlign: "right" }}>₹{price.toFixed(2)}</span>
+                      <span style={{ width: "65px", textAlign: "right", fontWeight: "700" }}>₹{total.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ borderTop: "1px dashed #64748b", margin: "8px 0" }}></div>
+
+              {/* SUMMARY TOTALS */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Subtotal:</span>
+                  <span>₹{parseFloat(selectedPrintOrder.subtotal || 0).toFixed(2)}</span>
+                </div>
+                {parseFloat(selectedPrintOrder.discountAmount || 0) > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#16a34a" }}>
+                    <span>Discount:</span>
+                    <span>-₹{parseFloat(selectedPrintOrder.discountAmount).toFixed(2)}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Tax / GST (5%):</span>
+                  <span>₹{parseFloat(selectedPrintOrder.taxAmount || 0).toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", fontWeight: "800", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", padding: "4px 0", marginTop: "4px" }}>
+                  <span>GRAND TOTAL:</span>
+                  <span>₹{parseFloat(selectedPrintOrder.totalAmount || 0).toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px dashed #64748b", margin: "10px 0" }}></div>
+
+              {/* PAYMENT DETAILS */}
+              <div style={{ fontSize: "11px", marginBottom: "10px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                  <span>Payment Status:</span>
+                  <span style={{ fontWeight: "800", color: selectedPrintOrder.isProvisional ? "#ca8a04" : "#16a34a" }}>
+                    {selectedPrintOrder.isProvisional ? "UNPAID (PROVISIONAL)" : "PAID"}
+                  </span>
+                </div>
+                {!selectedPrintOrder.isProvisional && (
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                    <span>Payment Method:</span>
+                    <span style={{ fontWeight: "700" }}>{selectedPrintOrder.paymentMethod || "CASH"}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Amount Paid:</span>
+                  <span>{selectedPrintOrder.isProvisional ? "₹0.00" : `₹${parseFloat(selectedPrintOrder.totalAmount || 0).toFixed(2)}`}</span>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px dashed #64748b", margin: "10px 0" }}></div>
+
+              {/* FOOTER */}
+              <div style={{ textAlign: "center", fontSize: "11px", color: "#475569" }}>
+                <div style={{ fontWeight: "700", marginBottom: "2px" }}>*** THANK YOU! VISIT AGAIN ***</div>
+                <div style={{ fontSize: "10px" }}>Software Powered by Resto ERP</div>
+              </div>
             </div>
 
-            <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: "10px", marginBottom: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px", fontWeight: "800" }}>
-                <span>Total Amount</span>
-                <span style={{ color: "#059669" }}>₹{parseFloat(selectedPrintOrder.totalAmount).toFixed(2)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-                <span>Status</span>
-                <span style={{ fontWeight: "700" }}>{selectedPrintOrder.status}</span>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={() => setSelectedPrintOrder(null)} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", background: "#fff" }}>
+            {/* Modal Actions (Hidden in Print) */}
+            <div className={styles.printHide} style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+              <button
+                onClick={() => setSelectedPrintOrder(null)}
+                style={{ flex: 1, padding: "11px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#fff", fontWeight: "600", cursor: "pointer" }}
+              >
                 Close
               </button>
-              <button onClick={() => window.print()} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "none", background: "#2563eb", color: "#fff", fontWeight: "700" }}>
-                Print Receipt
+              <button
+                onClick={() => window.print()}
+                style={{ flex: 2, padding: "11px", borderRadius: "8px", border: "none", background: "#2563eb", color: "#fff", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+              >
+                <FiPrinter size={16} /> Print Receipt (80mm / A4)
               </button>
             </div>
           </div>
         </div>
       )}
+
 
       {/* PAYMENT MODAL */}
       {showPayModal && (
@@ -1396,9 +1970,10 @@ function RestaurantPOSContent() {
           </div>
         </div>
       )}
-      {/* READY TO SERVE MODAL */}
-      {showReadyModal && (
+      {/* READY TO SERVE MODAL (WAITER ONLY - COMPLETELY HIDDEN FROM CASHIER) */}
+      {!isCashier && isWaiter && showReadyModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+
           <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "650px", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#065f46", display: "flex", alignItems: "center", gap: "8px" }}>

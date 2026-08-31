@@ -1,4 +1,16 @@
 import prisma from "../../config/prisma.js";
+import { emitTableCreated, emitTableUpdated, emitTableStatusUpdated, emitTableDeleted } from "../../config/socket.js";
+
+const ACTIVE_TABLE_ORDER_STATUSES = [
+  "DRAFT",
+  "HELD",
+  "CONFIRMED",
+  "PREPARING",
+  "READY",
+  "SERVED",
+];
+
+
 
 export const createTable = async (companyId, data) => {
   if (!companyId) {
@@ -34,13 +46,37 @@ export const createTable = async (companyId, data) => {
     }
   }
 
-  return await prisma.restaurantTable.create({
+  const createdTable = await prisma.restaurantTable.create({
     data,
     include: {
       area: true,
       restaurant: true,
+      orders: {
+        where: {
+          status: {
+            in: ACTIVE_TABLE_ORDER_STATUSES,
+          },
+        },
+        include: {
+          items: {
+            include: {
+              menuItem: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
+
+
+  try {
+    emitTableCreated(createdTable, companyId);
+  } catch (err) {
+    console.error("Socket emit error on createTable:", err);
+  }
+
+  return createdTable;
 };
 
 export const getTables = async (companyId, restaurantId, areaId) => {
@@ -66,7 +102,7 @@ export const getTables = async (companyId, restaurantId, areaId) => {
       orders: {
         where: {
           status: {
-            in: ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"],
+            in: ACTIVE_TABLE_ORDER_STATUSES,
           },
         },
         include: {
@@ -98,7 +134,7 @@ export const getTableById = async (id, companyId) => {
       orders: {
         where: {
           status: {
-            in: ["DRAFT", "HELD", "CONFIRMED", "PREPARING", "READY", "SERVED"],
+            in: ACTIVE_TABLE_ORDER_STATUSES,
           },
         },
         include: {
@@ -144,11 +180,36 @@ export const updateTable = async (id, companyId, data) => {
     }
   }
 
-  return await prisma.restaurantTable.update({
+  const updatedTable = await prisma.restaurantTable.update({
     where: { id },
     data,
-    include: { area: true },
+    include: {
+      area: true,
+      orders: {
+        where: {
+          status: {
+            in: ACTIVE_TABLE_ORDER_STATUSES,
+          },
+        },
+        include: {
+          items: {
+            include: {
+              menuItem: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
+
+  try {
+    emitTableUpdated(updatedTable, companyId);
+  } catch (err) {
+    console.error("Socket emit error on updateTable:", err);
+  }
+
+  return updatedTable;
 };
 
 export const updateTableStatus = async (id, companyId, status) => {
@@ -159,10 +220,36 @@ export const updateTableStatus = async (id, companyId, status) => {
     throw error;
   }
 
-  return await prisma.restaurantTable.update({
+  const updatedTable = await prisma.restaurantTable.update({
     where: { id },
     data: { status },
+    include: {
+      area: true,
+      orders: {
+        where: {
+          status: {
+            in: ACTIVE_TABLE_ORDER_STATUSES,
+          },
+        },
+        include: {
+          items: {
+            include: {
+              menuItem: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
+
+  try {
+    emitTableStatusUpdated(updatedTable, companyId);
+  } catch (err) {
+    console.error("Socket emit error on updateTableStatus:", err);
+  }
+
+  return updatedTable;
 };
 
 export const deleteTable = async (id, companyId) => {
@@ -173,7 +260,16 @@ export const deleteTable = async (id, companyId) => {
     throw error;
   }
 
-  return await prisma.restaurantTable.delete({
+  const deletedTable = await prisma.restaurantTable.delete({
     where: { id },
   });
+
+  try {
+    emitTableDeleted(id, existing.restaurantId, companyId);
+  } catch (err) {
+    console.error("Socket emit error on deleteTable:", err);
+  }
+
+  return deletedTable;
 };
+
