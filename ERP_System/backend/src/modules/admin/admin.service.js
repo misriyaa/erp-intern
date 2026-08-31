@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { sendAdminCredentialsEmail } from "../../config/mail.js";
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
 
 import {
   findUserByEmail,
@@ -24,6 +25,11 @@ export const createAdminService = async ({
   type,
   enabledModules,
 }) => {
+  const cleanedPhone = cleanPhoneNumber(phone);
+  if (!validatePhoneNumber(cleanedPhone, true)) {
+    throw new Error("Phone number must contain exactly 10 digits");
+  }
+
   // Check email
   const existingEmail = await findUserByEmail(email);
   if (existingEmail) {
@@ -31,10 +37,11 @@ export const createAdminService = async ({
   }
 
   // Check phone
-  const existingPhone = await findUserByPhone(phone);
+  const existingPhone = await findUserByPhone(cleanedPhone);
   if (existingPhone) {
     throw new Error("Phone number already exists");
   }
+
 
   // Find or create ADMIN role
   const adminRole = await findAdminRole();

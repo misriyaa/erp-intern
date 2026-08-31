@@ -26,15 +26,14 @@ export const createAdminSchema = Joi.object({
 
   phone: Joi.string()
     .trim()
-    .min(7)
-    .max(20)
+    .pattern(/^[0-9]{10}$/)
     .required()
     .messages({
       "string.empty": "Phone number is required",
-      "string.min": "Phone number must contain at least 7 characters",
-      "string.max": "Phone number cannot exceed 20 characters",
+      "string.pattern.base": "Phone number must contain exactly 10 digits",
       "any.required": "Phone number is required",
     }),
+
 
   password: Joi.string()
     .min(6)

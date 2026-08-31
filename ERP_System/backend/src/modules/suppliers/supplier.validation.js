@@ -43,8 +43,9 @@ export const createSupplierValidation = [
     .trim()
     .notEmpty()
     .withMessage("Phone number is required")
-    .isLength({ min: 3, max: 30 })
-    .withMessage("Phone number must be between 3 and 30 characters"),
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Phone number must contain exactly 10 digits"),
+
 
   body("address")
     .optional({ nullable: true, checkFalsy: true })
@@ -118,8 +119,9 @@ export const updateSupplierValidation = [
   body("phone")
     .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isLength({ min: 3, max: 30 })
-    .withMessage("Phone number must be between 3 and 30 characters"),
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Phone number must contain exactly 10 digits"),
+
 
   body("address")
     .optional({ nullable: true, checkFalsy: true })

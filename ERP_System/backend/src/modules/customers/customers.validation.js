@@ -11,7 +11,8 @@ export const createCustomerSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^\d{10}$/, "Phone number must be a valid 10-digit number"),
+    .regex(/^[0-9]{10}$/, "Phone number must contain exactly 10 digits"),
+
 
 
   email: z

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
+
+
 import {
   IconUser,
   IconSearch,
@@ -79,12 +82,14 @@ export default function OrderPanel({
     e.preventDefault();
     const errors = {};
     if (!newCustomerName.trim()) errors.name = "Name is required";
-    if (!newCustomerPhone.trim()) errors.phone = "Phone number is required";
+    const phoneErr = getPhoneValidationError(newCustomerPhone, true);
+    if (phoneErr) errors.phone = phoneErr;
 
     if (Object.keys(errors).length > 0) {
       setModalErrors(errors);
       return;
     }
+
 
     onAddCustomer?.({
       name: newCustomerName.trim(),
@@ -559,14 +564,21 @@ export default function OrderPanel({
                 <div className="pos-form-group">
                   <label>Phone Number <span>*</span></label>
                   <input
-                    type="text"
-                    placeholder="e.g. 9876543210"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="10-digit Phone Number"
                     value={newCustomerPhone}
-                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    onChange={(e) => {
+                      const sanitized = sanitizePhoneInput(e.target.value);
+                      setNewCustomerPhone(sanitized);
+                      if (modalErrors.phone) setModalErrors((prev) => ({ ...prev, phone: undefined }));
+                    }}
                     className={`pos-form-input ${modalErrors.phone ? "error" : ""}`}
                   />
                   {modalErrors.phone && <span className="pos-input-error-msg">{modalErrors.phone}</span>}
                 </div>
+
 
                 <div className="pos-form-group">
                   <label>Email Address <span>(Optional)</span></label>

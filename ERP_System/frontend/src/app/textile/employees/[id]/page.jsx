@@ -26,6 +26,7 @@ import {
   deleteTextileEmployee,
   updateTextileEmployee,
 } from "@/services/textileEmployeeService";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
 import { toast, Toaster } from "react-hot-toast";
@@ -105,6 +106,12 @@ export default function TextileEmployeeDetailsPage() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!employee) return;
+
+    if (!isValidPhoneNumber(editForm.phone, true)) {
+      toast.error("Phone number must contain exactly 10 digits");
+      return;
+    }
+
     try {
       setSubmitting(true);
       const res = await updateTextileEmployee(employee.id, editForm);
@@ -118,6 +125,7 @@ export default function TextileEmployeeDetailsPage() {
       setSubmitting(false);
     }
   };
+
 
   const getInitials = (name) => {
     if (!name) return "EM";
@@ -395,9 +403,12 @@ export default function TextileEmployeeDetailsPage() {
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   required
+                  placeholder="10-digit Phone Number"
                   value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  onChange={(e) => setEditForm({ ...editForm, phone: sanitizePhoneInput(e.target.value) })}
                   style={{
                     width: "100%",
                     padding: "10px 14px",
@@ -407,7 +418,13 @@ export default function TextileEmployeeDetailsPage() {
                     boxSizing: "border-box",
                   }}
                 />
+                {editForm.phone && getPhoneValidationError(editForm.phone, false) && (
+                  <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                    ⚠ {getPhoneValidationError(editForm.phone, false)}
+                  </span>
+                )}
               </div>
+
 
               <div style={{ marginBottom: "24px" }}>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>

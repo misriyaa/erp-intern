@@ -7,6 +7,9 @@ import { useCompany } from "@/context/CompanyContext";
 import { useRouter } from "next/navigation";
 import { FiPlus, FiEdit, FiTrash2, FiMapPin, FiPhone, FiCoffee, FiAlertCircle, FiShield } from "react-icons/fi";
 import { showSuccess, showError, showWarning, showConfirm } from "@/utils/swal";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
+
+
 
 export default function RestaurantManagePage() {
   const router = useRouter();
@@ -92,6 +95,12 @@ export default function RestaurantManagePage() {
       showWarning("Name Required", "Please enter a Restaurant Name.");
       return;
     }
+
+    if (form.phone && !isValidPhoneNumber(form.phone, false)) {
+      showWarning("Invalid Phone Number", "Phone number must contain exactly 10 digits.");
+      return;
+    }
+
 
     let targetBranchId = form.branchId || branches[0]?.id;
     if (!targetBranchId) {
@@ -366,13 +375,21 @@ export default function RestaurantManagePage() {
                   Phone Number
                 </label>
                 <input
-                  type="text"
-                  placeholder="e.g. +91 9876543210"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="10-digit Phone Number"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: sanitizePhoneInput(e.target.value) })}
                   style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                 />
+                {form.phone && getPhoneValidationError(form.phone, false) && (
+                  <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                    ⚠ {getPhoneValidationError(form.phone, false)}
+                  </span>
+                )}
               </div>
+
 
               {/* Address */}
               <div style={{ marginBottom: "24px" }}>

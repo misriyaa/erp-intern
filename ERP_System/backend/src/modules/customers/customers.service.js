@@ -1,9 +1,16 @@
 import repository from "./customers.repository.js";
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
 
 class CustomerService {
 
   async createCustomer(data) {
+    if (!validatePhoneNumber(data.phone, true)) {
+      throw new Error("Phone number must contain exactly 10 digits");
+    }
+    data.phone = cleanPhoneNumber(data.phone);
+
     const phone = await repository.findByPhone(data.phone);
+
 
     if (phone) {
       throw new Error("Phone number already exists");
@@ -40,11 +47,18 @@ class CustomerService {
   }
 
   async updateCustomer(id, data) {
-
     await this.getCustomer(id);
+
+    if (data.phone !== undefined) {
+      if (!validatePhoneNumber(data.phone, true)) {
+        throw new Error("Phone number must contain exactly 10 digits");
+      }
+      data.phone = cleanPhoneNumber(data.phone);
+    }
 
     return repository.update(id, data);
   }
+
 
   async deleteCustomer(id) {
 

@@ -1,4 +1,5 @@
 import settingsRepository from "./settings.repository.js";
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
 
 class SettingsService {
   // ==========================================
@@ -15,6 +16,15 @@ class SettingsService {
     const currentSettings = await settingsRepository.getSettings();
 
     const formattedData = {};
+
+    if (updateData.companyPhone !== undefined && updateData.companyPhone !== null && String(updateData.companyPhone).trim() !== "") {
+      const cleaned = cleanPhoneNumber(updateData.companyPhone);
+      if (!validatePhoneNumber(cleaned, true)) {
+        throw new Error("Phone number must contain exactly 10 digits");
+      }
+      formattedData.companyPhone = cleaned;
+    }
+
 
     // String fields
     const stringFields = [

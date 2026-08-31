@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { restaurantService } from "@/services/restaurantService";
 import { FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
 import { showSuccess, showError, showConfirm } from "@/utils/swal";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
+
 
 export default function RestaurantReservationsPage() {
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,12 @@ export default function RestaurantReservationsPage() {
   const handleCreateReservation = async (e) => {
     e.preventDefault();
     if (!selectedRestaurantId) return;
-    try {
+
+    if (!isValidPhoneNumber(form.customerPhone, true)) {
+      showError("Invalid Phone Number", "Phone number must contain exactly 10 digits.");
+      return;
+    }
+
       await restaurantService.createReservation({
         ...form,
         restaurantId: selectedRestaurantId,
@@ -296,13 +303,22 @@ export default function RestaurantReservationsPage() {
                 <div>
                   <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "4px" }}>Phone Number</label>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     required
+                    placeholder="10-digit Phone Number"
                     value={form.customerPhone}
-                    onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
+                    onChange={(e) => setForm({ ...form, customerPhone: sanitizePhoneInput(e.target.value) })}
                     style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
                   />
+                  {form.customerPhone && getPhoneValidationError(form.customerPhone, false) && (
+                    <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                      ⚠ {getPhoneValidationError(form.customerPhone, false)}
+                    </span>
+                  )}
                 </div>
+
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>

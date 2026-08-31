@@ -1,4 +1,5 @@
 import * as supplierService from "./supplier.service.js";
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
 
 export const createSupplier = async (req, res) => {
   try {
@@ -6,7 +7,15 @@ export const createSupplier = async (req, res) => {
     const companyName = (req.body.companyName || req.body.name || "").trim();
     const contactPerson = req.body.contactPerson ? String(req.body.contactPerson).trim() : null;
     const email = req.body.email && String(req.body.email).trim() !== "" ? String(req.body.email).trim() : null;
-    const phone = (req.body.phone || "").trim();
+    const phone = cleanPhoneNumber(req.body.phone || "");
+
+    if (!validatePhoneNumber(phone, true)) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number must contain exactly 10 digits",
+      });
+    }
+
     const address = req.body.address ? String(req.body.address).trim() : null;
     const city = req.body.city ? String(req.body.city).trim() : null;
     const state = req.body.state ? String(req.body.state).trim() : null;
@@ -119,6 +128,15 @@ export const updateSupplier = async (req, res) => {
       updateData.companyName = req.body.name;
       delete updateData.name;
     }
+    if (updateData.phone !== undefined) {
+      updateData.phone = cleanPhoneNumber(updateData.phone);
+      if (!validatePhoneNumber(updateData.phone, true)) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number must contain exactly 10 digits",
+        });
+      }
+    }
     if (updateData.email === "") updateData.email = null;
     if (updateData.contactPerson === "") updateData.contactPerson = null;
     if (updateData.address === "") updateData.address = null;
@@ -128,6 +146,7 @@ export const updateSupplier = async (req, res) => {
     if (updateData.taxNumber === "") updateData.taxNumber = null;
 
     const supplier = await supplierService.updateSupplier(id, updateData);
+
 
     return res.status(200).json({
       success: true,

@@ -15,6 +15,8 @@ import { createTextileEmployee } from "@/services/textileEmployeeService";
 import { useCompany } from "@/context/CompanyContext";
 import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
 import { TEXTILE_ROLE_ACCESS, normalizeTextileRole } from "@/config/textileRoles";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
+
 
 export default function AddEmployeePage() {
   const router = useRouter();
@@ -262,14 +264,11 @@ export default function AddEmployeePage() {
       }
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    } else {
-      const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/;
-      if (!phoneRegex.test(formData.phone.trim())) {
-        newErrors.phone = "Enter a valid phone number (7-20 digits)";
-      }
+    const phoneErr = getPhoneValidationError(formData.phone, true);
+    if (phoneErr) {
+      newErrors.phone = phoneErr;
     }
+
 
     if (!formData.role) {
       newErrors.role = "Role is required";
@@ -498,12 +497,13 @@ export default function AddEmployeePage() {
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
+
 
   const handleCancel = () => {
     router.push("/admin/employees/view");
@@ -730,13 +730,16 @@ export default function AddEmployeePage() {
 
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
                         name="phone"
                         value={formData.phone}
                         onChange={handleInputChange}
                         className={styles.input}
-                        placeholder="9876543210"
+                        placeholder="10-digit Phone Number"
                         style={errors.phone ? { borderColor: "#ef4444" } : {}}
                       />
+
                       {errors.phone && (
                         <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
                           {errors.phone}

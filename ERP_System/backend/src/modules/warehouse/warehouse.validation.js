@@ -36,10 +36,10 @@ export const createWarehouseValidation = [
     .trim(),
 
   body("phone")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isLength({ min: 8, max: 20 })
-    .withMessage("Phone number must be between 8 and 20 characters"),
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Phone number must contain exactly 10 digits"),
 
   body("status")
     .optional()
@@ -81,10 +81,11 @@ export const updateWarehouseValidation = [
     .trim(),
 
   body("phone")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isLength({ min: 8, max: 20 })
-    .withMessage("Phone number must be between 8 and 20 characters"),
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Phone number must contain exactly 10 digits"),
+
 
   body("status")
     .optional()

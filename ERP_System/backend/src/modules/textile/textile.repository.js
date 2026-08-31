@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcrypt";
 import { normalizeTextileRole, TEXTILE_ROLE_ACCESS } from "../../config/textileRoles.js";
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1458,9 +1459,9 @@ export const createTextileCustomerRepo = async (companyId, data) => {
   if (!name) {
     throw new Error("Customer / Buyer name is required.");
   }
-  const phone = (data.phone || "").trim();
-  if (!phone) {
-    throw new Error("Customer phone number is required.");
+  const phone = cleanPhoneNumber(data.phone || "");
+  if (!validatePhoneNumber(phone, true)) {
+    throw new Error("Phone number must contain exactly 10 digits");
   }
 
   const newCustomer = {
@@ -1514,12 +1515,20 @@ export const updateTextileCustomerRepo = async (companyId, id, data) => {
   const name = data.name !== undefined ? String(data.name).trim() : existing.name;
   if (!name) throw new Error("Customer name cannot be empty.");
 
+  let phone = existing.phone;
+  if (data.phone !== undefined) {
+    phone = cleanPhoneNumber(data.phone);
+    if (!validatePhoneNumber(phone, true)) {
+      throw new Error("Phone number must contain exactly 10 digits");
+    }
+  }
+
   customers[index] = {
     ...existing,
     name,
     companyName: data.companyName !== undefined ? String(data.companyName).trim() : (data.name || existing.companyName),
     contactPerson: data.contactPerson !== undefined ? String(data.contactPerson).trim() : existing.contactPerson,
-    phone: data.phone !== undefined ? String(data.phone).trim() : existing.phone,
+    phone,
     email: data.email !== undefined ? (String(data.email).trim() || null) : existing.email,
     customerType: data.customerType || existing.customerType,
     address: data.address !== undefined ? (String(data.address).trim() || null) : existing.address,
@@ -1730,7 +1739,7 @@ export const createTextileEmployeeRepo = async (companyId, data) => {
   const fullName = String(data.fullName || "").trim();
   const employeeId = String(data.employeeId || "").trim();
   const email = String(data.email || "").trim().toLowerCase();
-  const phone = String(data.phone || "").trim();
+  const phone = cleanPhoneNumber(data.phone || "");
   const role = String(data.role || "Weaver").trim();
   const password = String(data.password || "123456").trim();
   const branchId = data.manufacturingUnitId || data.branchId || null;
@@ -1739,7 +1748,11 @@ export const createTextileEmployeeRepo = async (companyId, data) => {
   if (!employeeId) throw new Error("Employee ID is required.");
   if (!email) throw new Error("Email address is required.");
   if (!phone) throw new Error("Phone number is required.");
+  if (!validatePhoneNumber(phone, true)) {
+    throw new Error("Phone number must contain exactly 10 digits");
+  }
   if (!role) throw new Error("Role / Designation is required.");
+
 
   const passwordHash = await bcrypt.hash(password, 12);
 
@@ -1851,8 +1864,15 @@ export const updateTextileEmployeeRepo = async (companyId, id, data) => {
 
   const updatePayload = {};
   if (data.fullName !== undefined) updatePayload.fullName = String(data.fullName).trim();
-  if (data.phone !== undefined) updatePayload.phone = String(data.phone).trim();
+  if (data.phone !== undefined) {
+    const cleaned = cleanPhoneNumber(data.phone);
+    if (!validatePhoneNumber(cleaned, true)) {
+      throw new Error("Phone number must contain exactly 10 digits");
+    }
+    updatePayload.phone = cleaned;
+  }
   if (data.email !== undefined) updatePayload.email = String(data.email).trim().toLowerCase();
+
   if (data.role !== undefined) updatePayload.role = String(data.role).trim();
   if (data.employeeId !== undefined) updatePayload.employeeId = String(data.employeeId).trim();
   if (data.manufacturingUnitId !== undefined || data.branchId !== undefined) {

@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import prisma from "../../config/prisma.js";
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
 
 import {
   sendEmployeeCredentialsEmail,
@@ -470,7 +471,10 @@ const modifyEmployee = async (
 
   // Phone check
   if (updateData.phone) {
-    const cleanPhone = updateData.phone.trim();
+    const cleanPhone = cleanPhoneNumber(updateData.phone);
+    if (!validatePhoneNumber(cleanPhone, true)) {
+      throw new Error("Phone number must contain exactly 10 digits");
+    }
 
     if (cleanPhone !== existingEmployee.phone) {
       const phoneExists = await findEmployeeByPhone(cleanPhone);
@@ -482,6 +486,7 @@ const modifyEmployee = async (
 
     safeUpdateData.phone = cleanPhone;
   }
+
 
 
   // Role handling (by roleId or role name string)

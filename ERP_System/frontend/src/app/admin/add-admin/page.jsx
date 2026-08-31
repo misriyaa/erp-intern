@@ -29,6 +29,7 @@ import {
   createAdmin,
   deleteAdmin,
 } from "@/services/adminService";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 
 import styles from "./addAdmin.module.css";
 import { useAlert } from "@/context/AlertContext";
@@ -66,7 +67,16 @@ export default function AddAdminPage() {
     type: "RETAIL",
   });
 
-
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
+    }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+  };
 
   // Fetch modules when business type changes
   useEffect(() => {
@@ -109,14 +119,11 @@ export default function AddAdminPage() {
       }
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    } else {
-      const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/;
-      if (!phoneRegex.test(formData.phone.trim())) {
-        newErrors.phone = "Enter a valid phone number (7-20 digits)";
-      }
+    const phoneErr = getPhoneValidationError(formData.phone, true);
+    if (phoneErr) {
+      newErrors.phone = phoneErr;
     }
+
 
     if (!formData.password) {
       newErrors.password = "Password is required";
@@ -180,18 +187,8 @@ export default function AddAdminPage() {
     return result;
   }, [admins, search, sortOrder]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
   const handleModuleToggle = (code) => {
+
     setSelectedModules((prev) =>
       prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
     );
@@ -386,12 +383,15 @@ export default function AddAdminPage() {
               </label>
               <input
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="9876543210"
+                placeholder="10-digit Phone Number"
                 style={errors.phone ? { borderColor: "#ef4444" } : {}}
               />
+
               {errors.phone && (
                 <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
                   {errors.phone}

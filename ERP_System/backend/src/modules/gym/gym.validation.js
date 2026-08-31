@@ -9,7 +9,9 @@ export const createGymMemberValidation = [
   body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
-    .trim(),
+    .trim()
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Phone number must contain exactly 10 digits"),
 
   body("email")
     .optional({ checkFalsy: true })
@@ -68,7 +70,9 @@ export const updateGymMemberValidation = [
     .optional()
     .notEmpty()
     .withMessage("Phone number cannot be empty")
-    .trim(),
+    .trim()
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Phone number must contain exactly 10 digits"),
 
   body("email")
     .optional({ checkFalsy: true })
@@ -144,8 +148,11 @@ export const createGymTrainerValidation = [
   body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
-    .trim(),
+    .trim()
+    .matches(/^[0-9]{10}$/)
+    .withMessage("Phone number must contain exactly 10 digits"),
 ];
+
 
 export const recordAttendanceValidation = [
   body("memberId")

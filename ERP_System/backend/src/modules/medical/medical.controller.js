@@ -1,5 +1,7 @@
 import prisma from "../../config/prisma.js";
 import * as medicalService from "./medical.service.js";
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
+
 
 // ==========================================
 // MEDICAL SHOPS (BRANCH OVERRIDES) CONTROLLER
@@ -22,7 +24,16 @@ export const getMedicalShopsController = async (req, res) => {
 
 export const createMedicalShopController = async (req, res) => {
   try {
+
     const companyId = req.user?.companyId;
+    let phone = null;
+    if (req.body.phone) {
+      phone = cleanPhoneNumber(req.body.phone);
+      if (!validatePhoneNumber(phone, true)) {
+        return res.status(400).json({ success: false, message: "Phone number must contain exactly 10 digits" });
+      }
+    }
+
     const shop = await prisma.branch.create({
       data: {
         companyId,
@@ -31,7 +42,7 @@ export const createMedicalShopController = async (req, res) => {
         address: req.body.address || null,
         city: req.body.city || null,
         state: req.body.state || null,
-        phone: req.body.phone || null,
+        phone,
         email: req.body.email || null,
         type: "MEDICAL_SHOP",
         isActive: true
@@ -42,6 +53,7 @@ export const createMedicalShopController = async (req, res) => {
     return res.status(400).json({ success: false, message: err.message });
   }
 };
+
 
 // ==========================================
 // MEDICINES CONTROLLER

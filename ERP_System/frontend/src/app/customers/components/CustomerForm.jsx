@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiSave } from "react-icons/fi";
 import { useAlert } from "@/context/AlertContext";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 import styles from "../customers.module.css";
 
 export default function CustomerForm({
@@ -79,10 +80,10 @@ export default function CustomerForm({
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "phone") {
-      const sanitized = value.replace(/[^\d+-\s]/g, "").slice(0, 16);
+      const sanitized = sanitizePhoneInput(value);
       setForm((prev) => ({ ...prev, phone: sanitized }));
-      if (sanitized && sanitized.replace(/\D/g, "").length < 7) {
-        setPhoneError("Phone number must have at least 7 digits");
+      if (sanitized) {
+        setPhoneError(getPhoneValidationError(sanitized, false) || "");
       } else {
         setPhoneError("");
       }
@@ -103,22 +104,13 @@ export default function CustomerForm({
       return;
     }
 
-    const cleanPhone = form.phone.trim();
-    if (!cleanPhone) {
-      setPhoneError("Phone number is required.");
-      showWarning("Invalid form data", "Phone number is required.");
+    if (!isValidPhoneNumber(form.phone, true)) {
+      const pErr = getPhoneValidationError(form.phone, true) || "Phone number must contain exactly 10 digits.";
+      setPhoneError(pErr);
+      showWarning("Invalid Phone Number", pErr);
       return;
     }
 
-    const digitsOnly = cleanPhone.replace(/\D/g, "");
-    if (digitsOnly.length < 7) {
-      setPhoneError("Phone number must contain at least 7 digits.");
-      showWarning(
-        "Invalid Phone Number",
-        "Please enter a valid phone number with at least 7 digits."
-      );
-      return;
-    }
 
     try {
       setSubmitting(true);
@@ -207,15 +199,18 @@ export default function CustomerForm({
         <input
           id="phone"
           type="tel"
+          inputMode="numeric"
+          maxLength={10}
           name="phone"
           value={form.phone}
           onChange={handleChange}
-          placeholder="e.g. 9876543210"
+          placeholder="10-digit Phone Number"
           required
           style={{
             borderColor: phoneError ? "#ef4444" : undefined,
           }}
         />
+
         {phoneError && (
           <span
             style={{

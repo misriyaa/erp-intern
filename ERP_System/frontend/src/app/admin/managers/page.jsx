@@ -27,7 +27,9 @@ import { getBranches } from "@/services/branchService";
 import { restaurantService } from "@/services/restaurantService";
 import { useCompany } from "@/context/CompanyContext";
 import { useAlert } from "@/context/AlertContext";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 import apiClient from "@/services/apiClient";
+
 import styles from "./managers.module.css";
 
 export default function ManagersPage() {
@@ -144,11 +146,8 @@ export default function ManagersPage() {
 
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else {
-      const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/;
-      if (!phoneRegex.test(formData.phone.trim())) {
-        newErrors.phone = "Enter a valid phone number (7-20 digits)";
-      }
+    } else if (!isValidPhoneNumber(formData.phone.trim(), true)) {
+      newErrors.phone = getPhoneValidationError(formData.phone.trim(), true) || "Phone number must contain exactly 10 digits";
     }
 
     if (!formData.branchId) {
@@ -167,6 +166,17 @@ export default function ManagersPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "phone") {
+      const sanitized = sanitizePhoneInput(value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: sanitized,
+      }));
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: undefined }));
+      }
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -175,6 +185,7 @@ export default function ManagersPage() {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
+
 
   const handleSaveManager = async (e) => {
     e.preventDefault();
@@ -359,15 +370,18 @@ export default function ManagersPage() {
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="e.g. +1 555-0192"
+                  placeholder="10-digit Phone Number"
                   className={styles.input}
                   style={errors.phone ? { borderColor: "#ef4444" } : {}}
                 />
                 {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
               </div>
+
 
               {/* Email Address */}
               <div className={styles.formGroup}>

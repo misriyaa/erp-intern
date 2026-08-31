@@ -14,9 +14,10 @@ import {
 } from "react-icons/fi";
 import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 import styles from "./RegisterForm.module.css";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function RegisterForm() {
   const { settings, logoUrl } = useSettings();
@@ -42,13 +43,18 @@ export default function RegisterForm() {
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!isValidPhoneNumber(formData.phone, true)) {
+      setError("Phone number must contain exactly 10 digits.");
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
@@ -176,14 +182,22 @@ export default function RegisterForm() {
 
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   name="phone"
-                  placeholder="Mobile Number"
+                  placeholder="10-digit Mobile Number"
                   value={formData.phone}
                   onChange={handleChange}
                   required
                 />
               </div>
+              {formData.phone && getPhoneValidationError(formData.phone, false) && (
+                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block", textAlign: "left" }}>
+                  ⚠ {getPhoneValidationError(formData.phone, false)}
+                </span>
+              )}
             </div>
+
 
 
             

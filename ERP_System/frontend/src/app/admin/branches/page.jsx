@@ -27,10 +27,12 @@ import {
   updateBranch,
   deleteBranch,
 } from "@/services/branchService";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 
 import styles from "./branches.module.css";
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
+
 
 export default function BranchesPage() {
   const { isGym, isTextile } = useCompany();
@@ -98,9 +100,9 @@ export default function BranchesPage() {
     }
 
     if (formData.phone.trim()) {
-      const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/;
-      if (!phoneRegex.test(formData.phone.trim())) {
-        newErrors.phone = "Enter a valid phone number (7-20 digits)";
+      const phoneErr = getPhoneValidationError(formData.phone, false);
+      if (phoneErr) {
+        newErrors.phone = phoneErr;
       }
     }
 
@@ -180,18 +182,20 @@ export default function BranchesPage() {
       );
     });
 
-    if (sortOrder === "asc") {
-      result.sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    if (sortOrder === "desc") {
-      result.sort((a, b) => b.name.localeCompare(a.name));
+    if (sortOrder === "az") {
+      result = [...result].sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "")
+      );
+    } else if (sortOrder === "za") {
+      result = [...result].sort((a, b) =>
+        (b.name || "").localeCompare(a.name || "")
+      );
     }
 
     return result;
   }, [branches, search, sortOrder]);
 
-  const handleOpenAddModal = () => {
+  const handleAddNew = () => {
     setEditingId(null);
     setErrors({});
     const prefix = isGym ? "GYM-" : isTextile ? "MILL-" : "BR-";
@@ -214,7 +218,7 @@ export default function BranchesPage() {
     setFormData((prev) => {
       const updated = {
         ...prev,
-        [name]: type === "checkbox" ? checked : value,
+        [name]: type === "checkbox" ? checked : name === "phone" ? sanitizePhoneInput(value) : value,
       };
 
       // Auto-update branch code if typing branch name and code was default
@@ -446,10 +450,12 @@ export default function BranchesPage() {
               <label>Phone Number</label>
               <input
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="9876543210"
+                placeholder="10-digit Phone Number"
                 style={errors.phone ? { borderColor: "#ef4444" } : {}}
               />
               {errors.phone && (
@@ -458,6 +464,7 @@ export default function BranchesPage() {
                 </span>
               )}
             </div>
+
 
             <div className={styles.formGroup}>
               <label>Email Address</label>

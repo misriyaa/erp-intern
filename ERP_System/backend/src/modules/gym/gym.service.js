@@ -39,12 +39,28 @@ export const getGymMemberByIdService = async (companyId, id) => {
   return member;
 };
 
+import { validatePhoneNumber, cleanPhoneNumber } from "../../utils/phoneValidator.js";
+
 export const createGymMemberService = async (companyId, data) => {
   if (!companyId) throw new Error("Company ID is required to create a member");
 
   const { branchId, ...restOfData } = data;
 
   const memberId = restOfData.memberId || `MEM-${Date.now().toString(36).toUpperCase()}`;
+
+  // Validate that phone is standard 10-digit number
+  if (!validatePhoneNumber(restOfData.phone, true)) {
+    throw new Error("Phone number must contain exactly 10 digits");
+  }
+  restOfData.phone = cleanPhoneNumber(restOfData.phone);
+
+  // Validate emergency phone if provided
+  if (restOfData.emergencyPhone) {
+    if (!validatePhoneNumber(restOfData.emergencyPhone, true)) {
+      throw new Error("Emergency phone number must contain exactly 10 digits");
+    }
+    restOfData.emergencyPhone = cleanPhoneNumber(restOfData.emergencyPhone);
+  }
 
   // Validate that phone is unique in User table
   if (restOfData.phone) {
@@ -55,6 +71,7 @@ export const createGymMemberService = async (companyId, data) => {
       throw new Error("Phone number is already registered to a user account");
     }
   }
+
 
   // Validate email uniqueness in User table
   const emailInput = restOfData.email ? restOfData.email.trim().toLowerCase() : null;
@@ -111,7 +128,19 @@ export const updateGymMemberService = async (companyId, id, data) => {
     throw new Error("Gym member not found");
   }
 
-  const { branchId, ...restOfData } = data;
+  if (restOfData.phone !== undefined) {
+    if (!validatePhoneNumber(restOfData.phone, true)) {
+      throw new Error("Phone number must contain exactly 10 digits");
+    }
+    restOfData.phone = cleanPhoneNumber(restOfData.phone);
+  }
+
+  if (restOfData.emergencyPhone !== undefined) {
+    if (!validatePhoneNumber(restOfData.emergencyPhone, false)) {
+      throw new Error("Emergency phone number must contain exactly 10 digits");
+    }
+    restOfData.emergencyPhone = cleanPhoneNumber(restOfData.emergencyPhone);
+  }
 
   const payload = { ...restOfData };
   if (restOfData.dob !== undefined) payload.dob = parseDate(restOfData.dob);
@@ -121,6 +150,7 @@ export const updateGymMemberService = async (companyId, id, data) => {
   if (restOfData.assignedTrainerId !== undefined) payload.assignedTrainerId = restOfData.assignedTrainerId || null;
 
   const updatedMember = await updateGymMemberRepo(id, companyId, payload);
+
 
   const emailInput = updatedMember.email ? updatedMember.email.trim().toLowerCase() : null;
   const userEmail = emailInput || `member_${updatedMember.memberId.toLowerCase()}@fitness.com`;
@@ -257,9 +287,13 @@ export const getGymTrainersService = async (companyId) => {
 
 export const createGymTrainerService = async (companyId, data) => {
   if (!companyId) throw new Error("Company ID is required");
+  if (!validatePhoneNumber(data.phone, true)) {
+    throw new Error("Phone number must contain exactly 10 digits");
+  }
   const trainerId = data.trainerId || `TRN-${Date.now().toString(36).toUpperCase()}`;
   return await createGymTrainerRepo({
     ...data,
+    phone: cleanPhoneNumber(data.phone),
     companyId,
     trainerId,
     salary: data.salary ? Number(data.salary) : null,
@@ -268,9 +302,16 @@ export const createGymTrainerService = async (companyId, data) => {
 
 export const updateGymTrainerService = async (companyId, id, data) => {
   const payload = { ...data };
+  if (data.phone !== undefined) {
+    if (!validatePhoneNumber(data.phone, true)) {
+      throw new Error("Phone number must contain exactly 10 digits");
+    }
+    payload.phone = cleanPhoneNumber(data.phone);
+  }
   if (data.salary !== undefined) payload.salary = data.salary ? Number(data.salary) : null;
   return await updateGymTrainerRepo(id, companyId, payload);
 };
+
 
 export const deleteGymTrainerService = async (companyId, id) => {
   return await deleteGymTrainerRepo(id, companyId);

@@ -33,6 +33,9 @@ import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
 import { RETAIL_ROLE_ACCESS, normalizeRetailRole } from "@/config/retailRoles";
 import { TEXTILE_ROLE_ACCESS, normalizeTextileRole } from "@/config/textileRoles";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
+
+
 
 
 export default function EmployeePage() {
@@ -481,72 +484,43 @@ export default function EmployeePage() {
     branchId: "",
   });
 
-
   /* =====================================================
      VALIDATE FORM
   ===================================================== */
 
+
   const validateEditEmployeeForm = () => {
     const newErrors = {};
 
-
     if (!formData.fullName.trim()) {
-      newErrors.fullName =
-        "Full name is required";
-    } else if (
-      formData.fullName.trim().length < 2
-    ) {
-      newErrors.fullName =
-        "Full name must be at least 2 characters";
+      newErrors.fullName = "Full name is required";
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Full name must be at least 2 characters";
     }
-
 
     if (!formData.employeeId.trim()) {
-      newErrors.employeeId =
-        "Employee ID is required";
+      newErrors.employeeId = "Employee ID is required";
     }
-
 
     if (!formData.role) {
-      newErrors.role =
-        "Role is required";
+      newErrors.role = "Role is required";
     }
-
 
     if (!formData.email.trim()) {
-      newErrors.email =
-        "Email address is required";
+      newErrors.email = "Email address is required";
     } else {
-      const emailRegex =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (
-        !emailRegex.test(
-          formData.email.trim()
-        )
-      ) {
-        newErrors.email =
-          "Enter a valid email address";
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = "Enter a valid email address";
       }
     }
-
 
     if (!formData.phone.trim()) {
-      newErrors.phone =
-        "Phone number is required";
-    } else {
-      const phoneRegex =
-        /^[\+\d\s\-\(\)]{7,20}$/;
-
-      if (
-        !phoneRegex.test(
-          formData.phone.trim()
-        )
-      ) {
-        newErrors.phone =
-          "Enter a valid phone number (7-20 digits)";
-      }
+      newErrors.phone = "Phone number is required";
+    } else if (!isValidPhoneNumber(formData.phone.trim(), true)) {
+      newErrors.phone = getPhoneValidationError(formData.phone.trim(), true) || "Phone number must contain exactly 10 digits";
     }
+
 
 
     if (!formData.branchId) {
@@ -1016,10 +990,13 @@ export default function EmployeePage() {
       value,
     } = e.target;
 
+    const finalVal = name === "phone" ? sanitizePhoneInput(value) : value;
+
     setFormData((previous) => ({
       ...previous,
-      [name]: value,
+      [name]: finalVal,
     }));
+
 
     if (name === "role" && isRetail) {
       const normalized = normalizeRetailRole(value);
@@ -2948,26 +2925,16 @@ export default function EmployeePage() {
                     <input
                       id="phone"
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       name="phone"
-                      value={
-                        formData.phone
-                      }
-                      onChange={
-                        handleInputChange
-                      }
-                      className={
-                        styles.input
-                      }
-                      placeholder="+91 9876543210"
-                      style={
-                        errors.phone
-                          ? {
-                              borderColor:
-                                "#ef4444",
-                            }
-                          : {}
-                      }
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className={styles.input}
+                      placeholder="10-digit Phone Number"
+                      style={errors.phone ? { borderColor: "#ef4444" } : {}}
                     />
+
 
 
                     {errors.phone && (

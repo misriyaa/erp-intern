@@ -1,5 +1,5 @@
 /**
- * Phone Number Validation and Sanitization Utility
+ * Backend Phone Number Validation Utility
  * Standard: 10-digit Indian Mobile Phone Numbers
  * - Numbers only (0-9)
  * - Exactly 10 digits
@@ -12,7 +12,7 @@
  * @param {boolean} isRequired 
  * @returns {boolean}
  */
-export const isValidPhoneNumber = (phone, isRequired = true) => {
+export const validatePhoneNumber = (phone, isRequired = true) => {
   if (phone === null || phone === undefined || String(phone).trim() === "") {
     return !isRequired;
   }
@@ -22,14 +22,13 @@ export const isValidPhoneNumber = (phone, isRequired = true) => {
 };
 
 /**
- * Sanitizes phone number by removing any non-digit character and truncating to max 10 digits.
- * Ideal for onChange / onPaste event handlers.
- * @param {string|number} value 
+ * Sanitizes phone number by removing any non-digit character and returning 10 digits.
+ * @param {string|number} phone 
  * @returns {string}
  */
-export const sanitizePhoneInput = (value) => {
-  if (value === null || value === undefined) return "";
-  return String(value).replace(/\D/g, "").slice(0, 10);
+export const cleanPhoneNumber = (phone) => {
+  if (!phone) return "";
+  return String(phone).replace(/\D/g, "").slice(0, 10);
 };
 
 /**
@@ -53,21 +52,4 @@ export const getPhoneValidationError = (phone, isRequired = true) => {
     return "Phone number cannot exceed 10 digits";
   }
   return null;
-};
-
-/**
- * Helper to handle standard input change events on phone fields.
- * Sanitizes input and updates state.
- * @param {Function} setter - State setter function (e.g. setPhone or setFormData)
- * @param {string} [fieldName] - Optional field name if setting an object state
- */
-export const handlePhoneChange = (e, setter, fieldName) => {
-  const rawValue = e.target ? e.target.value : e;
-  const sanitized = sanitizePhoneInput(rawValue);
-  
-  if (fieldName) {
-    setter((prev) => ({ ...prev, [fieldName]: sanitized }));
-  } else {
-    setter(sanitized);
-  }
 };

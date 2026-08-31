@@ -2,11 +2,12 @@ import { body } from "express-validator";
 
 export const createLaundryValidation = [
   body("name").notEmpty().withMessage("Laundry name is required").trim(),
-  body("phone").optional({ checkFalsy: true }).trim(),
+  body("phone").optional({ checkFalsy: true }).trim().matches(/^[0-9]{10}$/).withMessage("Phone number must contain exactly 10 digits"),
   body("email").optional({ checkFalsy: true }).isEmail().withMessage("Invalid email format").normalizeEmail(),
   body("address").optional({ checkFalsy: true }).trim(),
   body("branchId").optional({ checkFalsy: true }).isUUID().withMessage("Invalid branch ID"),
 ];
+
 
 export const createCategoryValidation = [
   body("laundryId").notEmpty().isUUID().withMessage("Laundry ID is required"),
@@ -53,7 +54,8 @@ export const createOrderValidation = [
   // Optional home delivery info
   body("delivery").optional({ nullable: true }),
   body("delivery.deliveryAddress").optional({ nullable: true }).notEmpty().withMessage("Delivery address is required"),
-  body("delivery.phone").optional({ nullable: true }).notEmpty().withMessage("Delivery phone is required"),
+  body("delivery.phone").optional({ nullable: true }).notEmpty().withMessage("Delivery phone is required").matches(/^[0-9]{10}$/).withMessage("Phone number must contain exactly 10 digits"),
+
   body("delivery.deliveryDate").optional({ nullable: true }).isISO8601().withMessage("Invalid delivery date"),
 ];
 

@@ -27,7 +27,9 @@ import {
 
 import { useAlert } from "@/context/AlertContext";
 import { useCompany } from "@/context/CompanyContext";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 import styles from "./viewSuppliers.module.css";
+
 
 const emptyForm = {
   companyName: "",
@@ -110,7 +112,7 @@ export default function SuppliersPage() {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "phone" ? sanitizePhoneInput(value) : value,
     }));
   };
 
@@ -135,10 +137,11 @@ export default function SuppliersPage() {
       return;
     }
 
-    if (!form.phone.trim()) {
-      showWarning("Invalid form data", "Phone number is required.");
+    if (!isValidPhoneNumber(form.phone, true)) {
+      showWarning("Invalid form data", "Phone number must contain exactly 10 digits.");
       return;
     }
+
 
     try {
       setSubmitting(true);
@@ -433,13 +436,22 @@ export default function SuppliersPage() {
               <label htmlFor="phone">Phone *</label>
               <input
                 id="phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                placeholder="+1 (555) 019-2834"
+                placeholder="10-digit Phone Number"
                 required
               />
+              {form.phone && getPhoneValidationError(form.phone, false) && (
+                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                  ⚠ {getPhoneValidationError(form.phone, false)}
+                </span>
+              )}
             </div>
+
 
             <div className={styles.formGroup}>
               <label htmlFor="country">Country</label>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { getCustomers, createCustomer } from "@/services/customerService";
 import { laundryService } from "@/services/laundryService";
+import { useAlert } from "@/context/AlertContext";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 import { showSuccess, showError, showWarning } from "@/utils/swal";
 import {
   FiUsers,
@@ -162,6 +164,11 @@ export default function LaundryPOS() {
       showWarning("Required Fields", "Please enter customer name and phone.");
       return;
     }
+    if (!isValidPhoneNumber(newCustPhone, true)) {
+      showWarning("Invalid Phone Number", "Customer phone number must contain exactly 10 digits.");
+      return;
+    }
+
 
     try {
       const res = await createCustomer({
@@ -297,11 +304,12 @@ export default function LaundryPOS() {
         showWarning("Address Required", "Please enter a delivery address.");
         return;
       }
-      if (!deliveryPhone.trim()) {
-        showWarning("Phone Required", "Please enter a contact phone number for delivery.");
+      if (!isValidPhoneNumber(deliveryPhone, true)) {
+        showWarning("Phone Required", "Please enter a valid 10-digit contact phone number for delivery.");
         return;
       }
     }
+
 
     const currentLaundry = laundries.find(l => l.id === selectedLaundryId);
     const numSubtotal = Number(subtotal.toFixed(2));
@@ -617,13 +625,16 @@ export default function LaundryPOS() {
                     <div>
                       <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>CONTACT PHONE *</label>
                       <input 
-                        type="text"
-                        placeholder="Phone number"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="10-digit Phone"
                         value={deliveryPhone}
-                        onChange={(e) => setDeliveryPhone(e.target.value)}
+                        onChange={(e) => setDeliveryPhone(sanitizePhoneInput(e.target.value))}
                         style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px" }}
                       />
                     </div>
+
                     <div>
                       <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>DELIVERY DATE</label>
                       <input 
@@ -793,12 +804,21 @@ export default function LaundryPOS() {
                 <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "6px" }}>PHONE NUMBER *</label>
                 <input 
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   required
+                  placeholder="10-digit Phone Number"
                   value={newCustPhone}
-                  onChange={(e) => setNewCustPhone(e.target.value)}
+                  onChange={(e) => setNewCustPhone(sanitizePhoneInput(e.target.value))}
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                 />
+                {newCustPhone && getPhoneValidationError(newCustPhone, false) && (
+                  <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                    ⚠ {getPhoneValidationError(newCustPhone, false)}
+                  </span>
+                )}
               </div>
+
 
               <div>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "6px" }}>EMAIL ADDRESS</label>

@@ -22,8 +22,10 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import { toast, Toaster } from "react-hot-toast";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 
 export default function GymMembers() {
+
   const [members, setMembers] = useState([]);
   const [plans, setPlans] = useState([]);
   const [trainers, setTrainers] = useState([]);
@@ -152,10 +154,15 @@ export default function GymMembers() {
       toast.error("Full name is required");
       return;
     }
-    if (!formData.phone.trim()) {
-      toast.error("Phone number is required");
+    if (!isValidPhoneNumber(formData.phone, true)) {
+      toast.error("Phone number must contain exactly 10 digits");
       return;
     }
+    if (formData.emergencyPhone && !isValidPhoneNumber(formData.emergencyPhone, false)) {
+      toast.error("Emergency phone number must contain exactly 10 digits");
+      return;
+    }
+
     if (!formData.membershipPlanId) {
       toast.error("Membership plan is required");
       return;
@@ -466,12 +473,21 @@ export default function GymMembers() {
                 <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>Phone Number *</label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   required
+                  placeholder="10-digit Phone Number"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: sanitizePhoneInput(e.target.value) })}
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", marginTop: "4px" }}
                 />
+                {formData.phone && getPhoneValidationError(formData.phone, false) && (
+                  <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                    ⚠ {getPhoneValidationError(formData.phone, false)}
+                  </span>
+                )}
               </div>
+
 
               <div>
                 <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>Email Address</label>

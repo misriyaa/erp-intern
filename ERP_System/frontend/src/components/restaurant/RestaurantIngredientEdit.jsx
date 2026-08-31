@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Toaster, toast } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
+import { sanitizePhoneInput, getPhoneValidationError, isValidPhoneNumber } from "@/utils/validation";
 import { Loader2 } from "lucide-react";
 import {
   FiArrowLeft,
@@ -224,7 +225,11 @@ export default function RestaurantIngredientEdit({ ingredientId }) {
   const handleCreateSupplier = async (e) => {
     e.preventDefault();
     if (!newSupplierForm.companyName.trim()) {
-      showWarning("Company Name Required", "Please enter supplier company name.");
+      toast.error("Supplier Company Name is required");
+      return;
+    }
+    if (newSupplierForm.phone && !isValidPhoneNumber(newSupplierForm.phone, true)) {
+      toast.error("Phone number must contain exactly 10 digits");
       return;
     }
     try {
@@ -232,7 +237,7 @@ export default function RestaurantIngredientEdit({ ingredientId }) {
       const res = await apiClient.post("/suppliers", {
         companyName: newSupplierForm.companyName.trim(),
         contactPerson: newSupplierForm.contactPerson.trim() || undefined,
-        phone: newSupplierForm.phone.trim() || undefined,
+        phone: newSupplierForm.phone ? newSupplierForm.phone.trim() : undefined,
         email: newSupplierForm.email.trim() || undefined,
       });
       const createdSup = res.data?.data || res.data;
@@ -1177,12 +1182,20 @@ export default function RestaurantIngredientEdit({ ingredientId }) {
                       Phone
                     </label>
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       value={newSupplierForm.phone}
-                      onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value })}
-                      placeholder="e.g. +91 9876543210"
+                      onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: sanitizePhoneInput(e.target.value) })}
+                      placeholder="10-digit Phone Number"
                       style={{ width: "100%", height: "42px", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", boxSizing: "border-box" }}
                     />
+                    {newSupplierForm.phone && getPhoneValidationError(newSupplierForm.phone, false) && (
+                      <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                        ⚠ {getPhoneValidationError(newSupplierForm.phone, false)}
+                      </span>
+                    )}
+
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
