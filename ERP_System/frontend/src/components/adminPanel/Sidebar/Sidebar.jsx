@@ -210,8 +210,8 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
-    // Exclude generic reports for Laundry module
-    if (codeUpper === "LAUNDRY") {
+    // Exclude generic reports for Laundry & Retail modules
+    if (codeUpper === "LAUNDRY" || codeUpper === "RETAIL") {
       if (!item.industry && item.moduleCode === "REPORTS") {
         return false;
       }

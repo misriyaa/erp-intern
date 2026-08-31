@@ -28,7 +28,7 @@ import { getLandingPage, updateLandingPage } from "@/services/landingAdmin.servi
 import { useSettings } from "@/context/SettingsContext";
 import styles from "./settings.module.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function SettingsPage() {
   const { refreshSettings } = useSettings();

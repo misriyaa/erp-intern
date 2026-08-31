@@ -36,7 +36,7 @@ export default function GymTrainers() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/gym/trainers", {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/trainers`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -96,13 +96,13 @@ export default function GymTrainers() {
 
       if (editingTrainer) {
         await axios.put(
-          `http://localhost:5000/api/gym/trainers/${editingTrainer.id}`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/trainers/${editingTrainer.id}`,
           formData,
           { headers }
         );
         toast.success("Trainer details updated");
       } else {
-        await axios.post("http://localhost:5000/api/gym/trainers", formData, { headers });
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/trainers`, formData, { headers });
         toast.success("Trainer profile created");
       }
 
@@ -124,7 +124,7 @@ export default function GymTrainers() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/gym/trainers/${id}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/trainers/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Trainer deleted");

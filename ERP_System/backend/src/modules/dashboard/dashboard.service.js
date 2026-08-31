@@ -655,7 +655,7 @@ export const getDashboardOverview = async ({
   // ----------------------------------------------------
   // 10. BRANCHES LIST FOR DROPDOWN
   // ----------------------------------------------------
-  const allBranches = await prisma.branch.findMany({
+  const branchOptions = await prisma.branch.findMany({
     where: {
       ...companyWhere,
       isActive: true,
