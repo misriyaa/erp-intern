@@ -15,7 +15,8 @@ class SalesRepository {
             name: "Main Branch",
             code: "MAIN-01",
             address: "Main Store",
-            status: "ACTIVE",
+            companyId: data.companyId || null,
+            isActive: true,
           },
         }).catch(() => null);
       }
@@ -86,12 +87,42 @@ class SalesRepository {
         customerEmail = customer.email || "";
       }
     }
+
+    // Look up associated invoice items to display real sold products
+    const invoice = await prisma.invoice.findFirst({
+      where: { salesOrderId: order.id },
+      include: { items: true },
+    }).catch(() => null);
+
+    let items = [];
+    if (invoice && invoice.items && invoice.items.length > 0) {
+      const productIds = [...new Set(invoice.items.map(item => item.productId))];
+      const products = productIds.length > 0 ? await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true }
+      }).catch(() => []) : [];
+
+      const productMap = products.reduce((acc, p) => {
+        acc[p.id] = p.name;
+        return acc;
+      }, {});
+
+      items = invoice.items.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        productName: productMap[item.productId] || "Walk-in Product",
+        product: productMap[item.productId] || "Walk-in Product",
+        qty: item.quantity,
+        price: Number(item.unitPrice),
+      }));
+    }
     
     return {
       ...order,
       customerName,
       customerPhone,
-      customerEmail
+      customerEmail,
+      items,
     };
   }
 

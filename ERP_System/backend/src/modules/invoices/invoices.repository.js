@@ -23,6 +23,18 @@ class InvoiceRepository {
       },
     }).catch(() => []);
 
+    // Collect all product IDs to resolve product names
+    const productIds = [...new Set(invoices.flatMap(inv => (inv.items || []).map(item => item.productId)))];
+    const products = productIds.length > 0 ? await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true }
+    }).catch(() => []) : [];
+    
+    const productMap = products.reduce((acc, p) => {
+      acc[p.id] = p.name;
+      return acc;
+    }, {});
+
     const enrichedInvoices = await Promise.all(
       invoices.map(async (inv) => {
         let customerName = "Walk-in Customer";
@@ -51,8 +63,14 @@ class InvoiceRepository {
           }
         }
 
+        const enrichedItems = (inv.items || []).map((item) => ({
+          ...item,
+          productName: productMap[item.productId] || "Walk-in Product",
+        }));
+
         return {
           ...inv,
+          items: enrichedItems,
           customerName,
           customer: customerName,
           customerPhone,
@@ -141,6 +159,23 @@ class InvoiceRepository {
 
     if (!inv) return null;
 
+    // Collect product IDs to resolve product names
+    const productIds = [...new Set((inv.items || []).map(item => item.productId))];
+    const products = productIds.length > 0 ? await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true }
+    }).catch(() => []) : [];
+    
+    const productMap = products.reduce((acc, p) => {
+      acc[p.id] = p.name;
+      return acc;
+    }, {});
+
+    const enrichedItems = (inv.items || []).map((item) => ({
+      ...item,
+      productName: productMap[item.productId] || "Walk-in Product",
+    }));
+
     let customerName = "Walk-in Customer";
     let customerPhone = "";
     let customerEmail = "";
@@ -169,6 +204,7 @@ class InvoiceRepository {
 
     return {
       ...inv,
+      items: enrichedItems,
       customerName,
       customer: customerName,
       customerPhone,

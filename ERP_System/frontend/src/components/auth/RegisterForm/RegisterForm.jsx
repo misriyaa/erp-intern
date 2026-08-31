@@ -16,7 +16,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { useAlert } from "@/context/AlertContext";
 import styles from "./RegisterForm.module.css";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function RegisterForm() {
   const { settings, logoUrl } = useSettings();

@@ -49,7 +49,7 @@ class SalesService {
             code: "MAIN-01",
             address: "Main Store",
             companyId: companyId || null,
-            status: "ACTIVE",
+            isActive: true,
           },
         }).catch(() => null);
       }
