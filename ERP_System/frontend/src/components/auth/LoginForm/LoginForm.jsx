@@ -17,7 +17,7 @@ import styles from "./LoginForm.module.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 
 export default function LoginForm() {
   const { settings, logoUrl } = useSettings();
@@ -263,12 +263,6 @@ export default function LoginForm() {
           window.location.href =
             "/restaurant/dashboard";
         }
-      }
-
-      // Normal ERP user
-      else {
-        window.location.href =
-          "/dashboard";
       } else if (userType.includes("LAUNDRY")) {
         if (userRole.includes("CASHIER") || userRole.includes("BILLING") || userRole.includes("COUNTER") || userRole.includes("POS")) {
           window.location.href = "/laundry/pos";
@@ -284,6 +278,7 @@ export default function LoginForm() {
       } else {
         window.location.href = "/dashboard";
       }
+
     } catch (err) {
       setError(
         err.response?.data?.message ||
