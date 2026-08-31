@@ -17,6 +17,7 @@ import styles from "./LoginForm.module.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function LoginForm() {
   const { settings, logoUrl } = useSettings();
@@ -268,6 +269,20 @@ export default function LoginForm() {
       else {
         window.location.href =
           "/dashboard";
+      } else if (userType.includes("LAUNDRY")) {
+        if (userRole.includes("CASHIER") || userRole.includes("BILLING") || userRole.includes("COUNTER") || userRole.includes("POS")) {
+          window.location.href = "/laundry/pos";
+        } else if (userRole.includes("DELIVERY") || userRole.includes("DRIVER") || userRole.includes("RIDER")) {
+          window.location.href = "/laundry/delivery";
+        } else if (userRole.includes("PROCESS") || userRole.includes("WASHER") || userRole.includes("STAFF") || userRole.includes("IRON")) {
+          window.location.href = "/laundry/orders";
+        } else {
+          window.location.href = "/laundry/dashboard";
+        }
+      } else if (userRole.includes("CASHIER")) {
+        window.location.href = "/pos";
+      } else {
+        window.location.href = "/dashboard";
       }
     } catch (err) {
       setError(

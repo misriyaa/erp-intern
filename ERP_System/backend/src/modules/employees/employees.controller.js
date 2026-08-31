@@ -15,17 +15,22 @@ const getEmployees = async (req, res, next) => {
 
     const result = await fetchAllEmployees(companyId, type);
 
-    // If caller is NOT Super Admin (e.g. Manager or Admin), remove Admin and Super Admin accounts
     const callerRole = (req.user?.role || "").toUpperCase();
-    if (callerRole !== "SUPER_ADMIN" && callerRole !== "SUPERADMIN" && result?.data) {
-      result.data = result.data.filter((emp) => {
-        const empRole = (emp.role || emp.roleRef?.name || "").toUpperCase();
-        return (
-          empRole !== "ADMIN" &&
-          empRole !== "SUPER_ADMIN" &&
-          empRole !== "SUPERADMIN"
-        );
-      });
+    const industryCode = (req.user?.company?.industry?.code || req.user?.type || req.query?.type || "").toUpperCase();
+
+    if (result?.data) {
+      if (industryCode.includes("LAUNDRY") || (callerRole !== "SUPER_ADMIN" && callerRole !== "SUPERADMIN")) {
+        result.data = result.data.filter((emp) => {
+          const empRole = (emp.role || emp.roleRef?.name || "").toUpperCase();
+          return (
+            empRole !== "ADMIN" &&
+            empRole !== "SUPER_ADMIN" &&
+            empRole !== "SUPERADMIN" &&
+            !empRole.includes("SUPER") &&
+            !empRole.includes("ADMIN")
+          );
+        });
+      }
     }
 
     return res.status(200).json(result);
@@ -65,9 +70,7 @@ const createEmployee = async (
   res,
   next
 ) => {
-
   try {
-
     const result =
       await addEmployee(
         req.body,
@@ -75,10 +78,12 @@ const createEmployee = async (
       );
 
     return res.status(201).json(result);
-
   } catch (error) {
-
-    next(error);
+    const status = error.status || error.statusCode || (error.message?.includes("403") ? 403 : 400);
+    return res.status(status).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -89,9 +94,7 @@ const updateEmployee = async (
   res,
   next
 ) => {
-
   try {
-
     const { id } =
       req.params;
 
@@ -103,10 +106,12 @@ const updateEmployee = async (
       );
 
     return res.status(200).json(result);
-
   } catch (error) {
-
-    next(error);
+    const status = error.status || error.statusCode || (error.message?.includes("403") ? 403 : 400);
+    return res.status(status).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 

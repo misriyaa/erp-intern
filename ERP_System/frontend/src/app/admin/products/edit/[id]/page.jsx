@@ -157,8 +157,10 @@ export default function EditProductPage({ params }) {
         if (suppRes.status === "fulfilled" && suppRes.value.data?.data) {
           setSuppliers(suppRes.value.data.data);
         }
+        let fetchedWarehouses = [];
         if (whRes.status === "fulfilled" && whRes.value.data?.data) {
-          setWarehouses(whRes.value.data.data);
+          fetchedWarehouses = whRes.value.data.data;
+          setWarehouses(fetchedWarehouses);
         }
 
         if (prodRes.status === "fulfilled" && prodRes.value.data) {
@@ -168,6 +170,15 @@ export default function EditProductPage({ params }) {
           if (p.sku?.startsWith("FAB-") && !isRestaurant) {
             router.replace(`/textile/products/edit/${id}`);
             return;
+          }
+
+          let existingWhId = p.inventories?.[0]?.warehouseId || p.warehouseId || "";
+          if (!existingWhId && p.warehouseLocation && fetchedWarehouses.length > 0) {
+            const matched = fetchedWarehouses.find((w) => w.name === p.warehouseLocation || w.id === p.warehouseLocation);
+            if (matched) existingWhId = matched.id;
+          }
+          if (!existingWhId && fetchedWarehouses.length > 0) {
+            existingWhId = fetchedWarehouses[0].id;
           }
 
           setProduct({
@@ -187,7 +198,8 @@ export default function EditProductPage({ params }) {
             reorderLevel: p.reorderLevel !== undefined && p.reorderLevel !== null ? String(p.reorderLevel) : "10",
             minimumStock: p.minimumStock !== undefined && p.minimumStock !== null ? String(p.minimumStock) : "5",
             maximumStock: p.maximumStock !== undefined && p.maximumStock !== null ? String(p.maximumStock) : "500",
-            warehouseLocation: p.warehouseLocation || "Main Store Warehouse",
+            warehouseId: existingWhId,
+            warehouseLocation: p.warehouseLocation || (fetchedWarehouses.find((w) => w.id === existingWhId)?.name || ""),
             rackLocation: p.rackLocation || "Shelf A-1",
 
             costPrice: p.costPrice !== undefined && p.costPrice !== null ? String(p.costPrice) : "",
@@ -217,7 +229,7 @@ export default function EditProductPage({ params }) {
             setImagePreview(
               p.image.startsWith("http")
                 ? p.image
-                : `http://localhost:5000${p.image.startsWith("/") ? "" : "/"}${p.image}`
+                : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${p.image.startsWith("/") ? "" : "/"}${p.image}`
             );
           }
         }
@@ -373,7 +385,8 @@ export default function EditProductPage({ params }) {
       formData.append("reorderLevel", product.reorderLevel || "10");
       formData.append("minimumStock", product.minimumStock || "5");
       formData.append("maximumStock", product.maximumStock || "500");
-      formData.append("warehouseLocation", product.warehouseLocation);
+      if (product.warehouseId) formData.append("warehouseId", product.warehouseId);
+      formData.append("warehouseLocation", product.warehouseLocation || "");
       formData.append("rackLocation", product.rackLocation);
 
       formData.append("costPrice", product.costPrice || "0");
@@ -769,19 +782,60 @@ export default function EditProductPage({ params }) {
 
               <div className={styles.row}>
                 <div className={styles.formGroup}>
-                  <label>Warehouse / Outlet</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>
+                      Warehouse <span className={styles.required}>*</span>
+                    </label>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                      <a
+                        href="/warehouse/add"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#4f46e5", fontSize: "12px", fontWeight: "700", textDecoration: "none" }}
+                      >
+                        + Add Warehouse
+                      </a>
+                      <a
+                        href="/warehouse"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", textDecoration: "underline" }}
+                      >
+                        Warehouses List ↗
+                      </a>
+                    </div>
+                  </div>
                   <select
-                    name="warehouseLocation"
-                    value={product.warehouseLocation}
-                    onChange={handleChange}
+                    name="warehouseId"
+                    value={product.warehouseId || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const selectedWh = warehouses.find((w) => w.id === val);
+                      setProduct((prev) => ({
+                        ...prev,
+                        warehouseId: val,
+                        warehouseLocation: selectedWh ? selectedWh.name : "",
+                      }));
+                    }}
+                    required
                   >
-                    <option value="Main Store Warehouse">Main Store Warehouse</option>
+                    <option value="">
+                      {warehouses.length === 0 ? "No warehouses available" : "Select Warehouse"}
+                    </option>
                     {warehouses.map((wh) => (
-                      <option key={wh.id} value={wh.name}>
-                        {wh.name} {wh.code ? `(${wh.code})` : ""}
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name} {wh.code ? `(${wh.code})` : ""} {wh.location ? `- ${wh.location}` : ""}
                       </option>
                     ))}
                   </select>
+                  {warehouses.length === 0 && (
+                    <div style={{ marginTop: "6px", fontSize: "12px", color: "#ef4444", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>No warehouses available. Please add a warehouse first.</span>
+                      <a href="/warehouse/add" style={{ color: "#2563eb", fontWeight: "700", textDecoration: "underline" }}>
+                        + Add Warehouse
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <div className={styles.formGroup}>

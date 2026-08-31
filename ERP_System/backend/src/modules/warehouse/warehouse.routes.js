@@ -11,7 +11,7 @@ import validateRequest from "../../middlewares/validateRequest.js";
 const router = Router();
 router.post(
   "/",
-  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER"]),
+  requireRoles(["ADMIN", "OWNER", "STORE_MANAGER", "STORE MANAGER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "MANAGER"]),
   createWarehouseValidation,
   validateRequest,
   warehouseController.createWarehouse
@@ -33,14 +33,14 @@ router.get(
 
 router.put(
   "/:id",
-  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER"]),
+  requireRoles(["ADMIN", "OWNER", "STORE_MANAGER", "STORE MANAGER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "MANAGER"]),
   updateWarehouseValidation,
   validateRequest,
   warehouseController.updateWarehouse
 );
 router.delete(
   "/:id",
-  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER"]),
+  requireRoles(["ADMIN", "OWNER", "STORE_MANAGER", "STORE MANAGER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "MANAGER"]),
   warehouseController.deleteWarehouse
 );
 

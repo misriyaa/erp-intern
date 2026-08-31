@@ -306,7 +306,7 @@ export default function AddEmployeePage() {
   useEffect(() => {
     fetchRoles();
     fetchBranches();
-  }, [industryCode]);
+  }, [industryCode, user?.role]);
 
   useEffect(() => {
     generateEmployeeId();
@@ -380,22 +380,48 @@ export default function AddEmployeePage() {
         { id: "Kitchen Staff", name: "Kitchen Staff" },
       ];
     } else if (isLndMode) {
-      combined = [
-        { id: "Manager", name: "Manager" },
-        { id: "Cashier", name: "Cashier" },
-        { id: "Processing Staff", name: "Processing Staff" },
-        { id: "Delivery Driver", name: "Delivery Driver" },
-      ];
+      const userRoleUpper = (user?.role || "").toUpperCase();
+      const isLaundryManager = userRoleUpper.includes("MANAGER") && !userRoleUpper.includes("SUPER") && !userRoleUpper.includes("ADMIN");
+
+      if (isLaundryManager) {
+        // Laundry Manager can only create subordinate staff
+        combined = [
+          { id: "Cashier", name: "Cashier" },
+          { id: "Processing Staff", name: "Processing Staff" },
+          { id: "Delivery Driver", name: "Delivery Driver" },
+        ];
+      } else {
+        // Admin / Super Admin can create Manager and subordinate staff
+        combined = [
+          { id: "Manager", name: "Manager" },
+          { id: "Cashier", name: "Cashier" },
+          { id: "Processing Staff", name: "Processing Staff" },
+          { id: "Delivery Driver", name: "Delivery Driver" },
+        ];
+      }
     } else {
       // Retail / default
-      combined = [
-        { id: "Store Manager", name: "Store Manager" },
-        { id: "Cashier", name: "Cashier" },
-        { id: "Inventory Manager", name: "Inventory Manager" },
-        { id: "Purchase Manager", name: "Purchase Manager" },
-        { id: "Accountant", name: "Accountant" },
-        { id: "Manager", name: "Manager" },
-      ];
+      const userRoleUpper = (user?.role || "").toUpperCase();
+      const isStoreManager = userRoleUpper.includes("MANAGER") && !userRoleUpper.includes("SUPER") && !userRoleUpper.includes("ADMIN");
+
+      if (isStoreManager) {
+        // Store Manager can only create subordinate staff
+        combined = [
+          { id: "Cashier", name: "Cashier" },
+          { id: "Inventory Manager", name: "Inventory Manager" },
+          { id: "Purchase Manager", name: "Purchase Manager" },
+          { id: "Accountant", name: "Accountant" },
+        ];
+      } else {
+        // Admin / Super Admin can create Store Manager and subordinate staff
+        combined = [
+          { id: "Store Manager", name: "Store Manager" },
+          { id: "Cashier", name: "Cashier" },
+          { id: "Inventory Manager", name: "Inventory Manager" },
+          { id: "Purchase Manager", name: "Purchase Manager" },
+          { id: "Accountant", name: "Accountant" },
+        ];
+      }
     }
 
     setRoles(combined);

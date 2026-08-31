@@ -234,7 +234,7 @@ export const requireTenant = (req, res, next) => {
   next();
 };
 
-export const requireRoles = (allowedRoles) => {
+export const requireRoles = (allowedRoles = []) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -243,17 +243,44 @@ export const requireRoles = (allowedRoles) => {
       });
     }
 
-    const roleUpper = (req.user.role || "").toUpperCase();
+    const rawRole = (req.user.role || req.user.roleRef?.name || req.user.type || "").trim();
+    const roleUpper = rawRole.toUpperCase().replace(/[\s_-]+/g, "_");
 
-    if (roleUpper === "SUPER_ADMIN" || roleUpper === "SUPERADMIN") {
+    // Super Admin, Admin, and Owner always have full unrestricted access across all modules
+    if (
+      roleUpper === "SUPER_ADMIN" ||
+      roleUpper === "SUPERADMIN" ||
+      roleUpper.includes("SUPER") ||
+      roleUpper === "ADMIN" ||
+      roleUpper === "ADMINISTRATOR" ||
+      roleUpper.includes("ADMIN") ||
+      roleUpper === "OWNER" ||
+      roleUpper.includes("OWNER")
+    ) {
       return next();
     }
 
-    const hasRole = allowedRoles.some(
-      (r) =>
-        roleUpper.includes(r.toUpperCase()) ||
-        r.toUpperCase() === roleUpper
+    const normalizedAllowed = (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]).map((r) =>
+      String(r).trim().toUpperCase().replace(/[\s_-]+/g, "_")
     );
+
+    const hasRole = normalizedAllowed.some((allowed) => {
+      return (
+        roleUpper === allowed ||
+        roleUpper.includes(allowed) ||
+        allowed.includes(roleUpper) ||
+        (allowed.includes("STAFF") &&
+          (roleUpper.includes("STAFF") ||
+            roleUpper.includes("PROCESS") ||
+            roleUpper.includes("WASHER") ||
+            roleUpper.includes("IRON") ||
+            roleUpper.includes("OPERATOR"))) ||
+        (allowed.includes("MANAGER") && roleUpper.includes("MANAGER")) ||
+        (allowed.includes("CASHIER") && roleUpper.includes("CASHIER")) ||
+        (allowed.includes("DRIVER") &&
+          (roleUpper.includes("DRIVER") || roleUpper.includes("DELIVERY")))
+      );
+    });
 
     if (!hasRole) {
       return res.status(403).json({

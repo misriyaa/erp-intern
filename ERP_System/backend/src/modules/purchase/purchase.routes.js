@@ -12,7 +12,7 @@ const router = Router();
 
 router.post(
   "/",
-  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER"]),
+  requireRoles(["ADMIN", "OWNER", "STORE_MANAGER", "STORE MANAGER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER", "PURCHASE_MANAGER", "MANAGER"]),
   createPurchaseValidation,
   validateRequest,
   purchaseController.createPurchase
@@ -30,7 +30,7 @@ router.get(
 
 router.put(
   "/:id",
-  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER"]),
+  requireRoles(["ADMIN", "OWNER", "STORE_MANAGER", "STORE MANAGER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER", "PURCHASE_MANAGER", "MANAGER"]),
   updatePurchaseValidation,
   validateRequest,
   purchaseController.updatePurchase
@@ -38,7 +38,7 @@ router.put(
 
 router.delete(
   "/:id",
-  requireRoles(["ADMIN", "OWNER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER"]),
+  requireRoles(["ADMIN", "OWNER", "STORE_MANAGER", "STORE MANAGER", "WAREHOUSE_MANAGER", "INVENTORY_MANAGER", "BRAND_MANAGER", "PURCHASE_MANAGER", "MANAGER"]),
   purchaseController.deletePurchase
 );
 

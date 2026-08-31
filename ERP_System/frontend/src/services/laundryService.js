@@ -96,6 +96,10 @@ export const laundryService = {
   },
 
   // Delivery Tracking
+  getDeliveries: async (params = {}) => {
+    const res = await apiClient.get("/laundry/deliveries", { params });
+    return res.data;
+  },
   updateDeliveryStatus: async (orderId, data) => {
     const res = await apiClient.put(`/laundry/orders/${orderId}/delivery`, data);
     return res.data;

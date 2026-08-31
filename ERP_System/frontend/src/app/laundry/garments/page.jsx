@@ -44,12 +44,25 @@ export default function LaundryGarmentsTracking() {
     try {
       setLoading(true);
       const res = await laundryService.getGarments();
-      if (res.success && res.data) {
-        setGarments(res.data);
+      if (res && res.success) {
+        setGarments(res.data || []);
+      } else if (Array.isArray(res)) {
+        setGarments(res);
+      } else {
+        setGarments([]);
       }
     } catch (err) {
-      console.error(err);
-      showError("Load Error", "Failed to retrieve garments list from server.");
+      console.error("Fetch garments error:", err);
+      const status = err.response?.status;
+      const message = err.response?.data?.message || err.message;
+      if (status === 401) {
+        showError("Authentication Required", "Your session has expired. Please log in again.");
+      } else if (status === 403) {
+        showError("Access Denied", message || "You do not have permission to view garments.");
+      } else {
+        showError("Load Error", message || "Failed to retrieve garments list from server.");
+      }
+      setGarments([]);
     } finally {
       setLoading(false);
     }

@@ -20,6 +20,7 @@ export default function StockModal({
 
   const [products, setProducts] = useState(initialProducts);
   const [warehouses, setWarehouses] = useState(initialWarehouses);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [form, setForm] = useState({
     productId: "",
@@ -46,33 +47,36 @@ export default function StockModal({
     }
   }, [initialWarehouses]);
 
-  // When modal opens in Textile ERP, fetch fresh active products directly
+  // When modal opens, fetch fresh active products & warehouses directly from backend
   useEffect(() => {
     if (isOpen) {
       async function fetchFreshData() {
         try {
-          if (isTextile) {
-            const [pRes, wRes] = await Promise.allSettled([
-              apiClient.get("/textile/products"),
-              apiClient.get("/warehouses"),
-            ]);
+          setLoadingProducts(true);
+          const [pRes, wRes] = await Promise.allSettled([
+            isTextile ? apiClient.get("/textile/products") : apiClient.get("/products"),
+            apiClient.get("/warehouses"),
+          ]);
 
-            if (pRes.status === "fulfilled") {
-              const pData = pRes.value.data?.data || pRes.value.data;
-              if (Array.isArray(pData) && pData.length > 0) {
-                setProducts(pData);
-              }
-            }
+          if (pRes.status === "fulfilled") {
+            const rawP = pRes.value.data?.data || pRes.value.data;
+            const pData = Array.isArray(rawP) ? rawP : [];
+            const filtered = pData.filter((p) => {
+              if (isTextile) return p.isTextile === true || p.category === "TEXTILE" || isTextile;
+              return !p.isTextile && !p.sku?.startsWith("TEX-") && !p.sku?.startsWith("GYM-");
+            });
+            setProducts(filtered);
+          }
 
-            if (wRes.status === "fulfilled") {
-              const wData = wRes.value.data?.data || wRes.value.data;
-              if (Array.isArray(wData) && wData.length > 0) {
-                setWarehouses(wData);
-              }
-            }
+          if (wRes.status === "fulfilled") {
+            const rawW = wRes.value.data?.data || wRes.value.data;
+            const wData = Array.isArray(rawW) ? rawW : [];
+            setWarehouses(wData);
           }
         } catch (e) {
-          console.warn("Could not refetch textile products on modal open:", e);
+          console.warn("Could not refetch products on modal open:", e);
+        } finally {
+          setLoadingProducts(false);
         }
       }
       fetchFreshData();
@@ -202,17 +206,39 @@ export default function StockModal({
                 className="form-control-pill"
                 required
               >
-                <option value="">{products.length === 0 ? (isTextile ? "No Textile products found. Please create a Textile Product first." : "No products available") : "Select a Product"}</option>
+                <option value="">
+                  {loadingProducts
+                    ? "Loading products..."
+                    : products.length === 0
+                    ? isTextile
+                      ? "No Textile products found. Please create a Textile Product first."
+                      : "No products available. Please add a product first."
+                    : "Select a Product"}
+                </option>
                 {products.map((p) => {
                   const pName = p.name || p.productName || "Product";
                   const pSku = p.sku || p.productCode || "No SKU";
+                  const currentStock = p.inventories?.reduce((acc, inv) => acc + Number(inv.quantity || 0), 0) ?? (p.initialStock !== undefined && p.initialStock !== null ? Number(p.initialStock) : 0);
                   return (
                     <option key={p.id} value={p.id}>
-                      {pName} — {pSku}
+                      {pName} ({pSku}) — Stock: {currentStock}
                     </option>
                   );
                 })}
               </select>
+              {products.length === 0 && !loadingProducts && (
+                <div style={{ marginTop: "6px", fontSize: "12px", color: "#ef4444" }}>
+                  <span>No products found for this company. </span>
+                  <a
+                    href={isTextile ? "/textile/products/add" : "/admin/products/add"}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: "#2563eb", fontWeight: "700", textDecoration: "underline" }}
+                  >
+                    + Add Product First
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Warehouse Select */}

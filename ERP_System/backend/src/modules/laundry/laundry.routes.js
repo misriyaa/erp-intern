@@ -14,47 +14,70 @@ import { requireRoles } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// Dashboard Stats (All active laundry staff)
+// ==========================================
+// 1. DASHBOARD & STATS
+// ==========================================
 router.get(
   "/dashboard/stats",
   requireModuleAccess("LAUNDRY"),
-  requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER", "PROCESSING_STAFF", "DELIVERY_DRIVER"]),
+  requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]),
   laundryController.getLaundryStatsController
 );
 
-// Laundry Profiles (Manager / Admin only)
-router.post("/", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createLaundryValidation, validateRequest, laundryController.createLaundryController);
-router.get("/", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.getLaundriesController);
-router.get("/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.getLaundryByIdController);
-router.put("/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createLaundryValidation, validateRequest, laundryController.updateLaundryController);
-router.delete("/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.deleteLaundryController);
-
-// Service Categories (Management: Manager/Admin; List: Manager/Admin/Cashier)
+// ==========================================
+// 2. SERVICE CATEGORIES
+// ==========================================
 router.post("/categories", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createCategoryValidation, validateRequest, laundryController.createCategoryController);
 router.get("/categories/list", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER"]), laundryController.getCategoriesController);
 router.get("/categories/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.getCategoryByIdController);
 router.put("/categories/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createCategoryValidation, validateRequest, laundryController.updateCategoryController);
 router.delete("/categories/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.deleteCategoryController);
 
-// Services (Management: Manager/Admin; List: Manager/Admin/Cashier)
+// ==========================================
+// 3. SERVICES
+// ==========================================
 router.post("/services", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createServiceValidation, validateRequest, laundryController.createServiceController);
 router.get("/services/list", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER"]), laundryController.getServicesController);
 router.get("/services/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.getServiceByIdController);
 router.put("/services/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createServiceValidation, validateRequest, laundryController.updateServiceController);
 router.delete("/services/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.deleteServiceController);
 
-// Orders (Create: Manager/Cashier; Read: Manager/Cashier/Processing/Delivery; Status: Manager/Cashier/Processing)
+// ==========================================
+// 4. ORDERS
+// ==========================================
 router.post("/orders", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER"]), createOrderValidation, validateRequest, laundryController.createOrderController);
 router.get("/orders/list", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER", "PROCESSING_STAFF", "DELIVERY_DRIVER"]), laundryController.getOrdersController);
 router.get("/orders/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER", "PROCESSING_STAFF", "DELIVERY_DRIVER"]), laundryController.getOrderByIdController);
 router.put("/orders/:id/status", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER", "PROCESSING_STAFF"]), updateOrderStatusValidation, validateRequest, laundryController.updateOrderStatusController);
 
-// Garment tracking (barcode scanning: Manager/Processing Staff)
-router.get("/garments/scan/:barcode", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "PROCESSING_STAFF"]), laundryController.getGarmentByBarcodeController);
-router.put("/garments/:id/status", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "PROCESSING_STAFF"]), laundryController.updateGarmentStatusController);
+// ==========================================
+// 5. GARMENT TRACKING
+// ==========================================
+router.get("/garments", laundryController.getGarmentsController);
+router.post("/garments", laundryController.createGarmentController);
+router.get("/garments/scan/:barcode", laundryController.getGarmentByBarcodeController);
+router.put("/garments/:id/status", laundryController.updateGarmentStatusController);
 
-// Delivery Tracking (Manager/Cashier/Delivery Driver)
-router.put("/orders/:orderId/delivery", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER", "CASHIER", "DELIVERY_DRIVER"]), updateDeliveryStatusValidation, validateRequest, laundryController.updateDeliveryStatusController);
+// ==========================================
+// 6. DELIVERY TRACKING
+// ==========================================
+router.get("/deliveries", laundryController.getDeliveriesController);
+router.put("/orders/:orderId/delivery", updateDeliveryStatusValidation, validateRequest, laundryController.updateDeliveryStatusController);
+
+// ==========================================
+// 7. LAUNDRY PROFILES & TENANT CONFIG
+// (Placed at bottom so /:id does not catch specific sub-routes)
+// ==========================================
+router.post("/", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createLaundryValidation, validateRequest, laundryController.createLaundryController);
+router.get("/", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.getLaundriesController);
+router.get("/profile/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.getLaundryByIdController);
+router.put("/profile/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createLaundryValidation, validateRequest, laundryController.updateLaundryController);
+router.delete("/profile/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.deleteLaundryController);
+
+// Fallback parameterized profile routes
+router.get("/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.getLaundryByIdController);
+router.put("/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), createLaundryValidation, validateRequest, laundryController.updateLaundryController);
+router.delete("/:id", requireModuleAccess("LAUNDRY"), requireRoles(["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"]), laundryController.deleteLaundryController);
 
 export default router;
 

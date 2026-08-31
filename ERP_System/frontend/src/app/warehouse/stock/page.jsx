@@ -10,6 +10,7 @@ import { getProducts } from "@/services/productService";
 import { getCategories } from "@/services/categoryService";
 import { getWarehouses } from "@/services/warehouseService";
 import { useCompany } from "@/context/CompanyContext";
+import apiClient from "@/services/apiClient";
 import "../warehouse.css";
 
 const ITEMS_PER_PAGE = 8;
@@ -78,7 +79,7 @@ export default function WarehouseStockPage() {
   }, [products, isTextile, isGym]);
 
   const filteredWarehousesByIndustry = useMemo(() => {
-    const filtered = warehouses.filter((w) => {
+    return warehouses.filter((w) => {
       const isTex = w.isTextile === true || w.code?.startsWith("TEX-") || w.name?.toLowerCase().includes("mill") || w.name?.toLowerCase().includes("fabric") || w.name?.toLowerCase().includes("dye") || w.name?.toLowerCase().includes("spinning") || w.name?.toLowerCase().includes("textile") || w.address?.includes("[TEXTILE]");
       const isGymMode = w.code?.startsWith("GYM-") || w.name?.toLowerCase().includes("fitness") || w.name?.toLowerCase().includes("gym") || w.address?.includes("[GYM]");
       
@@ -86,23 +87,6 @@ export default function WarehouseStockPage() {
       if (isGym) return isGymMode;
       return !isTex && !isGymMode;
     });
-
-    if (filtered.length > 0) return filtered;
-
-    if (isTextile) {
-      return [
-        { id: "wh-tex-1", name: "Main Fabric & Yarn Mill Warehouse", code: "TEX-WH-01" },
-        { id: "wh-tex-2", name: "Spinning & Dyeing Chemical Depot", code: "TEX-WH-02" },
-      ];
-    } else if (isGym) {
-      return [
-        { id: "wh-gym-1", name: "Central Gym Gear Depot", code: "GYM-WH-01" },
-      ];
-    } else {
-      return [
-        { id: "wh-ret-1", name: "Central Retail Store Warehouse", code: "RET-WH-01" },
-      ];
-    }
   }, [warehouses, isTextile, isGym]);
 
   // Map backend model shape to table-friendly shape

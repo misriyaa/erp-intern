@@ -67,7 +67,8 @@ const initialProduct = {
   reorderLevel: "10",
   minimumStock: "5",
   maximumStock: "500",
-  warehouseLocation: "Main Store Warehouse",
+  warehouseId: "",
+  warehouseLocation: "",
   rackLocation: "Shelf A-1",
 
   costPrice: "",
@@ -115,6 +116,8 @@ export default function AddRetailProductPage() {
   const [brands, setBrands] = useState([]);
   const [units, setUnits] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [warehousesLoading, setWarehousesLoading] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
@@ -282,7 +285,7 @@ export default function AddRetailProductPage() {
         const res = await apiClient.get("/brands");
         rawBrand = res.data;
       } catch (e) {
-        const res = await axios.get("http://localhost:5000/api/brands");
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/brands`);
         rawBrand = res.data;
       }
       const brandList = Array.isArray(rawBrand?.data)
@@ -315,7 +318,7 @@ export default function AddRetailProductPage() {
           status: "ACTIVE",
         });
       } catch (e) {
-        res = await axios.post("http://localhost:5000/api/brands", {
+        res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/brands`, {
           name: newBrandName.trim(),
           status: "ACTIVE",
         });
@@ -453,11 +456,13 @@ export default function AddRetailProductPage() {
   const fetchFormData = async () => {
     try {
       fetchBrands();
-      const [catRes, unitRes, suppRes, restRes] = await Promise.allSettled([
+      setWarehousesLoading(true);
+      const [catRes, unitRes, suppRes, restRes, whRes] = await Promise.allSettled([
         apiClient.get("/categories"),
         apiClient.get("/units"),
         apiClient.get("/suppliers"),
         restaurantService.getRestaurants(),
+        apiClient.get("/warehouses"),
       ]);
 
       if (catRes.status === "fulfilled") {
@@ -494,9 +499,28 @@ export default function AddRetailProductPage() {
           }));
         }
       }
+      if (whRes.status === "fulfilled") {
+        const rawWh = whRes.value.data?.data || whRes.value.data || [];
+        const whList = Array.isArray(rawWh) ? rawWh : [];
+        setWarehouses(whList);
+        if (whList.length > 0) {
+          setProduct((prev) => {
+            if (!prev.warehouseId) {
+              return {
+                ...prev,
+                warehouseId: whList[0].id,
+                warehouseLocation: whList[0].name,
+              };
+            }
+            return prev;
+          });
+        }
+      }
     } catch (error) {
       console.error("Error fetching form data:", error);
       setUnits(DEFAULT_UNITS);
+    } finally {
+      setWarehousesLoading(false);
     }
   };
 
@@ -580,6 +604,10 @@ export default function AddRetailProductPage() {
     }
     if (!product.sellingPrice || Number(product.sellingPrice) <= 0) {
       showWarning("Validation Required", "Please specify a valid selling price.");
+      return false;
+    }
+    if (!product.warehouseId) {
+      showWarning("Validation Required", "Please select a warehouse from Warehouse Management.");
       return false;
     }
     return true;
@@ -678,7 +706,8 @@ export default function AddRetailProductPage() {
       formData.append("reorderLevel", product.reorderLevel || "10");
       formData.append("minimumStock", product.minimumStock || "5");
       formData.append("maximumStock", product.maximumStock || "500");
-      formData.append("warehouseLocation", product.warehouseLocation);
+      if (product.warehouseId) formData.append("warehouseId", product.warehouseId);
+      formData.append("warehouseLocation", product.warehouseLocation || "");
       formData.append("rackLocation", product.rackLocation);
 
       formData.append("costPrice", product.costPrice || "0");
@@ -1758,14 +1787,72 @@ export default function AddRetailProductPage() {
 
                   <div className={styles.row}>
                     <div className={styles.formGroup}>
-                      <label>Warehouse / Store Location</label>
-                      <input
-                        type="text"
-                        name="warehouseLocation"
-                        value={product.warehouseLocation}
-                        onChange={handleChange}
-                        placeholder="Main Store Warehouse"
-                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                        <label style={{ margin: 0 }}>
+                          Warehouse <span className={styles.required}>*</span>
+                        </label>
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          <a
+                            href="/warehouse/add"
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              color: "#4f46e5",
+                              fontSize: "12px",
+                              fontWeight: "700",
+                              textDecoration: "none",
+                            }}
+                          >
+                            + Add Warehouse
+                          </a>
+                          <a
+                            href="/warehouse"
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", textDecoration: "underline" }}
+                          >
+                            Warehouses List ↗
+                          </a>
+                        </div>
+                      </div>
+                      <select
+                        name="warehouseId"
+                        value={product.warehouseId || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const selectedWh = warehouses.find((w) => w.id === val);
+                          setProduct((prev) => ({
+                            ...prev,
+                            warehouseId: val,
+                            warehouseLocation: selectedWh ? selectedWh.name : "",
+                          }));
+                        }}
+                        required
+                      >
+                        <option value="">
+                          {warehousesLoading
+                            ? "Loading warehouses..."
+                            : warehouses.length === 0
+                            ? "No warehouses available"
+                            : "Select Warehouse"}
+                        </option>
+                        {warehouses.map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.name} {w.code ? `(${w.code})` : ""} {w.location ? `- ${w.location}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {warehouses.length === 0 && !warehousesLoading && (
+                        <div style={{ marginTop: "6px", fontSize: "12px", color: "#ef4444", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span>No warehouses available. Please add a warehouse first.</span>
+                          <a
+                            href="/warehouse/add"
+                            style={{ color: "#2563eb", fontWeight: "700", textDecoration: "underline" }}
+                          >
+                            + Add Warehouse
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.formGroup}>

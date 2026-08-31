@@ -1,6 +1,6 @@
 "use client";
 
-import { FiX, FiPrinter, FiShoppingBag, FiUser, FiCalendar, FiDollarSign } from "react-icons/fi";
+import { FiX, FiPrinter, FiUser, FiCalendar } from "react-icons/fi";
 import { useCompany } from "@/context/CompanyContext";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -14,96 +14,407 @@ export default function InvoicePreview({ invoice, onClose, onPrint }) {
   const companyPhone = company?.phone || settings?.companyPhone || "";
   const companyAddress = company?.address || settings?.companyAddress || "";
 
+  // Normalize subtotal, discount, tax, total variables to support both database invoice and sales order records
+  const subtotalVal = Number(invoice.subtotal !== undefined ? invoice.subtotal : (invoice.subTotal !== undefined ? invoice.subTotal : 0));
+  const discountVal = Number(invoice.discountAmount !== undefined ? invoice.discountAmount : (invoice.discount !== undefined ? invoice.discount : 0));
+  const taxVal = Number(invoice.taxAmount !== undefined ? invoice.taxAmount : (invoice.tax !== undefined ? invoice.tax : 0));
+  const totalVal = Number(invoice.total !== undefined ? invoice.total : (invoice.totalAmount !== undefined ? invoice.totalAmount : 0));
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-        
+    <div className="invoice-modal-overlay">
+      {/* LOCAL STYLES SHEET */}
+      <style>{`
+        .invoice-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(4px);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          box-sizing: border-box;
+        }
+
+        .invoice-modal-card {
+          background-color: #ffffff;
+          border-radius: 16px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          max-width: 720px;
+          width: 100%;
+          max-height: 90vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          border: 1px solid #e2e8f0;
+          animation: invoiceModalFadeIn 0.2s ease-out;
+          font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        @keyframes invoiceModalFadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .invoice-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 24px;
+          border-bottom: 1px solid #f1f5f9;
+          background-color: #f8fafc;
+        }
+
+        .invoice-modal-title {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 800;
+          color: #0f172a;
+        }
+
+        .invoice-modal-subtitle {
+          margin: 4px 0 0 0;
+          font-size: 11px;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .invoice-close-btn {
+          border: none;
+          background: transparent;
+          color: #94a3b8;
+          padding: 6px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s ease;
+        }
+
+        .invoice-close-btn:hover {
+          background-color: #cbd5e1;
+          color: #334155;
+        }
+
+        .invoice-modal-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .invoice-meta-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          border-bottom: 1px solid #f1f5f9;
+          padding-bottom: 20px;
+          flex-wrap: wrap;
+        }
+
+        .invoice-brand-name {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 900;
+          color: #2563eb;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .invoice-brand-details {
+          margin: 4px 0 0 0;
+          font-size: 13px;
+          color: #64748b;
+          max-width: 320px;
+          line-height: 1.45;
+        }
+
+        .invoice-meta-info {
+          text-align: right;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .invoice-meta-label {
+          font-size: 11px;
+          color: #94a3b8;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .invoice-meta-value {
+          font-size: 16px;
+          font-weight: 800;
+          color: #0f172a;
+        }
+
+        .invoice-meta-date {
+          font-size: 12px;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 5px;
+          margin-top: 2px;
+        }
+
+        .invoice-customer-card {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          background-color: #f8fafc;
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px solid #f1f5f9;
+        }
+
+        .invoice-card-section-title {
+          margin: 0 0 6px 0;
+          font-size: 10px;
+          font-weight: 700;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .invoice-customer-name {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #1e293b;
+          font-weight: 700;
+          font-size: 13px;
+        }
+
+        .invoice-payment-details {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          font-size: 13px;
+          color: #475569;
+        }
+
+        .invoice-status-paid {
+          font-weight: 700;
+          color: #16a34a;
+          background-color: #dcfce7;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          display: inline-block;
+          width: fit-content;
+        }
+
+        .invoice-table-wrapper {
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          overflow: hidden;
+        }
+
+        .invoice-items-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+        }
+
+        .invoice-items-table th {
+          background-color: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 10px 14px;
+          font-size: 10px;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .invoice-items-table td {
+          padding: 12px 14px;
+          font-size: 13px;
+          color: #334155;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .invoice-totals-section {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 4px;
+        }
+
+        .invoice-totals-card {
+          width: 280px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          background-color: #f8fafc;
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px solid #f1f5f9;
+        }
+
+        .invoice-total-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          color: #475569;
+        }
+
+        .invoice-total-row.grand-total {
+          border-top: 1px solid #e2e8f0;
+          margin-top: 6px;
+          padding-top: 10px;
+          align-items: center;
+        }
+
+        .invoice-modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          padding: 12px 24px;
+          border-top: 1px solid #f1f5f9;
+          background-color: #f8fafc;
+        }
+
+        .invoice-btn {
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          box-sizing: border-box;
+        }
+
+        .invoice-btn-secondary {
+          border: 1px solid #cbd5e1;
+          background-color: #ffffff;
+          color: #334155;
+        }
+
+        .invoice-btn-secondary:hover {
+          background-color: #f1f5f9;
+        }
+
+        .invoice-btn-primary {
+          border: none;
+          background-color: #2563eb;
+          color: #ffffff;
+          box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+        }
+
+        .invoice-btn-primary:hover {
+          background-color: #1d4ed8;
+        }
+      `}</style>
+
+      <div className="invoice-modal-card">
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50">
+        <div className="invoice-modal-header">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Invoice Details</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Reference ID: {invoice.id}</p>
+            <h2 className="invoice-modal-title">Invoice Details</h2>
+            <p className="invoice-modal-subtitle">Reference ID: {invoice.id}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 hover:bg-gray-200 p-2 rounded-full transition-all cursor-pointer"
-          >
-            <FiX size={20} />
+          <button onClick={onClose} className="invoice-close-btn">
+            <FiX size={18} />
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="invoice-modal-body">
           {/* Top layout: Brand & Invoice Meta */}
-          <div className="flex flex-col md:flex-row justify-between gap-6 border-b border-gray-100 pb-6">
+          <div className="invoice-meta-row">
             <div>
-              <h3 className="text-2xl font-black text-blue-600 uppercase tracking-wide">
-                {companyName}
-              </h3>
-              {companyAddress && <p className="text-sm text-gray-500 mt-1 max-w-sm">{companyAddress}</p>}
-              {companyPhone && <p className="text-sm text-gray-500">Phone: {companyPhone}</p>}
+              <h3 className="invoice-brand-name">{companyName}</h3>
+              {companyAddress && <p className="invoice-brand-details">{companyAddress}</p>}
+              {companyPhone && <p className="invoice-brand-details">Phone: {companyPhone}</p>}
             </div>
 
-            <div className="md:text-right space-y-1">
-              <div className="text-sm text-gray-400 font-semibold uppercase tracking-wider">Invoice Number</div>
-              <div className="text-lg font-bold text-gray-900">{invoice.invoiceNo}</div>
-              <div className="text-sm text-gray-500 flex md:justify-end items-center gap-1.5 mt-1">
-                <FiCalendar size={14} />
+            <div className="invoice-meta-info">
+              <span className="invoice-meta-label">Invoice Number</span>
+              <span className="invoice-meta-value">{invoice.invoiceNo}</span>
+              <div className="invoice-meta-date">
+                <FiCalendar size={13} />
                 <span>Date: {invoice.date}</span>
               </div>
             </div>
           </div>
 
           {/* Customer info */}
-          <div className="grid md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-xl">
+          <div className="invoice-customer-card">
             <div>
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Billed To</h4>
-              <div className="flex items-center gap-2 text-gray-800 font-semibold">
-                <FiUser className="text-gray-400" size={16} />
+              <h4 className="invoice-card-section-title">Billed To</h4>
+              <div className="invoice-customer-name">
+                <FiUser style={{ color: "#94a3b8" }} size={15} />
                 <span>{invoice.customer}</span>
               </div>
             </div>
             <div>
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payment Details</h4>
-              <div className="space-y-1 text-sm text-gray-600">
-                <p>Method: <span className="font-semibold text-gray-800">{invoice.paymentMethod}</span></p>
-                <p>Status: <span className="font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded text-xs">PAID</span></p>
+              <h4 className="invoice-card-section-title">Payment Details</h4>
+              <div className="invoice-payment-details">
+                <p style={{ margin: 0 }}>
+                  Method: <strong style={{ color: "#1e293b" }}>{invoice.paymentMethod || "Cash"}</strong>
+                </p>
+                <div style={{ marginTop: "2px" }}>
+                  <span className="invoice-status-paid">PAID</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Table */}
-          <div className="border border-gray-100 rounded-xl overflow-hidden">
-            <table className="min-w-full">
-              <thead className="bg-gray-50 border-b border-gray-100">
+          <div className="invoice-table-wrapper">
+            <table className="invoice-items-table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Product Details</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Qty</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Price</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total</th>
+                  <th style={{ textAlign: "left" }}>Product Details</th>
+                  <th style={{ textAlign: "center", width: "80px" }}>Qty</th>
+                  <th style={{ textAlign: "right", width: "120px" }}>Price</th>
+                  <th style={{ textAlign: "right", width: "140px" }}>Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {invoice.items && invoice.items.length > 0 ? (
-                  invoice.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="px-4 py-3 text-gray-800 font-medium">
-                        {item.productName || item.product || `Product Code: ${item.productId || "N/A"}`}
-                      </td>
-                      <td className="px-4 py-3 text-center text-gray-700">
-                        {item.quantity || item.qty}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-600">
-                        ₹{(item.unitPrice || item.price || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-900 font-semibold">
-                        ₹{((item.totalPrice || ((item.quantity || item.qty || 1) * (item.unitPrice || item.price || 0)))).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))
+                  invoice.items.map((item, idx) => {
+                    const price = Number(item.unitPrice || item.price || 0);
+                    const qty = Number(item.quantity || item.qty || 1);
+                    const total = Number(item.total || (qty * price));
+                    return (
+                      <tr key={idx}>
+                        <td style={{ fontWeight: 600, color: "#1e293b" }}>
+                          {item.productName || item.product || `Product Code: ${item.productId || "N/A"}`}
+                        </td>
+                        <td style={{ textAlign: "center" }}>{qty}</td>
+                        <td style={{ textAlign: "right" }}>
+                          ₹{price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ textAlign: "right", fontWeight: 700, color: "#0f172a" }}>
+                          ₹{total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-4 py-4 text-center text-gray-500">
+                    <td colSpan={4} style={{ textAlign: "center", padding: "16px", color: "#64748b" }}>
                       No items specified for this transaction.
                     </td>
                   </tr>
@@ -113,47 +424,46 @@ export default function InvoicePreview({ invoice, onClose, onPrint }) {
           </div>
 
           {/* Totals */}
-          <div className="flex justify-end pt-4">
-            <div className="w-80 space-y-3 bg-gray-50 p-5 rounded-2xl">
-              <div className="flex justify-between text-sm text-gray-600">
+          <div className="invoice-totals-section">
+            <div className="invoice-totals-card">
+              <div className="invoice-total-row">
                 <span>Subtotal</span>
-                <span className="font-semibold text-gray-900">₹{(invoice.subTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                <strong style={{ color: "#1e293b" }}>
+                  ₹{subtotalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
               </div>
-              <div className="flex justify-between text-sm text-red-600">
+              <div className="invoice-total-row" style={{ color: "#ef4444" }}>
                 <span>Discount</span>
-                <span className="font-semibold">- ₹{(invoice.discount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                <strong>
+                  - ₹{discountVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
               </div>
-              <div className="flex justify-between text-sm text-gray-600">
+              <div className="invoice-total-row">
                 <span>Tax</span>
-                <span className="font-semibold text-gray-900">₹{(invoice.tax || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+                <strong style={{ color: "#1e293b" }}>
+                  ₹{taxVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
               </div>
-              <div className="border-t border-gray-200 my-2 pt-3 flex justify-between items-center">
-                <span className="text-base font-bold text-gray-900">Grand Total</span>
-                <span className="text-xl font-black text-blue-600">
-                  ₹{(invoice.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </span>
+              <div className="invoice-total-row grand-total">
+                <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>Grand Total</span>
+                <strong style={{ fontSize: "18px", fontWeight: 900, color: "#2563eb" }}>
+                  ₹{totalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4.5 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-semibold text-sm cursor-pointer"
-          >
+        <div className="invoice-modal-footer">
+          <button onClick={onClose} className="invoice-btn invoice-btn-secondary">
             Close
           </button>
-          <button
-            onClick={() => onPrint(invoice)}
-            className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-sm cursor-pointer shadow-md"
-          >
-            <FiPrinter size={16} />
+          <button onClick={() => onPrint(invoice)} className="invoice-btn invoice-btn-primary">
+            <FiPrinter size={15} />
             <span>Print Invoice</span>
           </button>
         </div>
-
       </div>
     </div>
   );

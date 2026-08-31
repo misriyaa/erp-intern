@@ -142,6 +142,12 @@ export const createProduct = async (data) => {
         },
       });
     }
+    if (warehouse && !cleanData.warehouseLocation) {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: { warehouseLocation: warehouse.name },
+      }).catch(() => {});
+    }
     const initialQty = cleanData.initialStock ? parseFloat(cleanData.initialStock) : 0;
     await prisma.inventory.create({
       data: {
@@ -308,6 +314,35 @@ export const updateProduct = async (id, data) => {
     ...(data.isExpiryTracking !== undefined && { isExpiryTracking: Boolean(data.isExpiryTracking) }),
     ...(data.isBatchTracking !== undefined && { isBatchTracking: Boolean(data.isBatchTracking) }),
   };
+
+  if (data.warehouseId) {
+    const warehouse = await prisma.warehouse.findFirst({
+      where: { id: data.warehouseId, companyId: product.companyId || undefined },
+    });
+    if (warehouse) {
+      cleanUpdate.warehouseLocation = warehouse.name;
+      const existingInv = await prisma.inventory.findFirst({
+        where: { productId: id },
+      });
+      if (existingInv) {
+        await prisma.inventory.update({
+          where: { id: existingInv.id },
+          data: { warehouseId: warehouse.id },
+        }).catch(() => {});
+      } else {
+        await prisma.inventory.create({
+          data: {
+            productId: id,
+            warehouseId: warehouse.id,
+            quantity: cleanUpdate.initialStock !== undefined ? cleanUpdate.initialStock : (product.initialStock || 0),
+            reorderLevel: cleanUpdate.reorderLevel !== undefined ? cleanUpdate.reorderLevel : (product.reorderLevel || 10),
+            minimumStock: cleanUpdate.minimumStock !== undefined ? cleanUpdate.minimumStock : (product.minimumStock || 0),
+            maximumStock: cleanUpdate.maximumStock !== undefined ? cleanUpdate.maximumStock : (product.maximumStock || 1000),
+          },
+        }).catch(() => {});
+      }
+    }
+  }
 
   return await productRepository.updateProduct(id, cleanUpdate);
 };

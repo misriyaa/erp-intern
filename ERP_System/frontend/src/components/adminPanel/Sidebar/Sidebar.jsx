@@ -142,8 +142,17 @@ export default function Sidebar({ isOpen, onClose }) {
     
   ];
 
+  const isRetailCashier = isCashier && !isAdmin && !isManager && (isRetail || (!isLaundry && !isGym && !isTextile && !isMedical && !isRestaurant));
+
+  const retailCashierNavItems = [
+    { label: "POS Terminal", href: "/pos", icon: FiGrid },
+    { label: "POS Sales History", href: "/pos/history", icon: FiClock },
+  ];
+
   // Filter master catalog based on enabled modules, role and industry context
-  const visibleNavItems = MASTER_NAVIGATION_CATALOG.filter((item) => {
+  const visibleNavItems = isRetailCashier
+    ? retailCashierNavItems
+    : MASTER_NAVIGATION_CATALOG.filter((item) => {
     if (item.adminOnly && !isAdmin) {
       return false;
     }
@@ -155,16 +164,23 @@ export default function Sidebar({ isOpen, onClose }) {
       if (item.href === "/dashboard") {
         return false;
       }
-      if (item.industry && item.industry !== "LAUNDRY" && !item.industry.includes("LAUNDRY")) {
+      if (!item.industry || (!item.industry.includes("LAUNDRY") && item.industry !== "LAUNDRY")) {
         return false;
       }
       return canAccessLaundryRoute(user, item.href);
     }
 
-    if (isCashier && !isAdmin && !isManager && isRestaurant) {
-      const cashierHrefs = ["/restaurant/pos", "/restaurant/orders"];
-      if (!cashierHrefs.includes(item.href)) {
-        return false;
+    if (isCashier && !isAdmin && !isManager) {
+      if (isRestaurant) {
+        const cashierHrefs = ["/restaurant/pos", "/restaurant/orders"];
+        if (!cashierHrefs.includes(item.href)) {
+          return false;
+        }
+      } else {
+        const cashierHrefs = ["/pos", "/pos/history"];
+        if (!cashierHrefs.includes(item.href)) {
+          return false;
+        }
       }
     }
     if (isWaiter && !isAdmin && !isManager) {
@@ -194,8 +210,8 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
-    // Exclude generic reports for Laundry module
-    if (codeUpper === "LAUNDRY") {
+    // Exclude generic reports for Laundry & Retail modules
+    if (codeUpper === "LAUNDRY" || codeUpper === "RETAIL") {
       if (!item.industry && item.moduleCode === "REPORTS") {
         return false;
       }
@@ -206,7 +222,6 @@ export default function Sidebar({ isOpen, onClose }) {
         return false;
       }
     }
-
 
     // Custom filtering for Manager in Gym industry
     if (isGym && isManager) {
@@ -276,7 +291,9 @@ export default function Sidebar({ isOpen, onClose }) {
         )}
 
         <h4 className={styles.title}>
-          {isGym
+          {isRetailCashier
+            ? "RETAIL POS"
+            : isGym
             ? "GYM MANAGEMENT MODULES"
             : isTextile
             ? "TEXTILE ERP MODULES"
