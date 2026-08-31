@@ -659,7 +659,7 @@ export default function InventoryPage() {
                                     )
                                       ? inv.product
                                           .image
-                                      : `http://localhost:5000${
+                                      : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${
                                           inv.product.image.startsWith(
                                             "/"
                                           )

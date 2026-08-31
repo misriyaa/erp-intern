@@ -8,18 +8,22 @@ export const getSalesReport = async (req, res, next) => {
     const companyId = req.user?.companyId;
     const { startDate, endDate, groupBy, customerId } = req.query;
 
-    // Default dates if not specified: last 30 days
-    let start = startDate;
-    let end = endDate;
-
-    if (!start || !end) {
-      const today = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      
-      start = start || thirtyDaysAgo.toISOString();
-      end = end || today.toISOString();
+    let start;
+    if (startDate) {
+      start = new Date(startDate);
+    } else {
+      start = new Date();
+      start.setDate(start.getDate() - 30);
     }
+    start.setUTCHours(0, 0, 0, 0);
+
+    let end;
+    if (endDate) {
+      end = new Date(endDate);
+    } else {
+      end = new Date();
+    }
+    end.setUTCHours(23, 59, 59, 999);
 
     const report = await reportsService.getSalesReport(
       start,
@@ -46,18 +50,22 @@ export const getPurchaseReport = async (req, res, next) => {
     const companyId = req.user?.companyId;
     const { startDate, endDate, groupBy, supplierId } = req.query;
 
-    // Default dates if not specified: last 30 days
-    let start = startDate;
-    let end = endDate;
-
-    if (!start || !end) {
-      const today = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      
-      start = start || thirtyDaysAgo.toISOString();
-      end = end || today.toISOString();
+    let start;
+    if (startDate) {
+      start = new Date(startDate);
+    } else {
+      start = new Date();
+      start.setDate(start.getDate() - 30);
     }
+    start.setUTCHours(0, 0, 0, 0);
+
+    let end;
+    if (endDate) {
+      end = new Date(endDate);
+    } else {
+      end = new Date();
+    }
+    end.setUTCHours(23, 59, 59, 999);
 
     const report = await reportsService.getPurchaseReport(
       start,

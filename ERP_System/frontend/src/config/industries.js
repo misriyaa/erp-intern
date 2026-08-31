@@ -216,6 +216,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "SALES", label: "Sales Orders", href: "/sales", icon: FiShoppingCart, industry: "RETAIL" },
   { moduleCode: "INVOICES", label: "Invoices", href: "/invoices", icon: FiFileText, industry: "RETAIL" },
   { moduleCode: "BRANCHES", label: "Store Outlets & Branches", href: "/admin/branches", icon: FiMapPin, industry: "RETAIL, MEDICAL_SHOP" },
+  { moduleCode: "REPORTS", label: "Reports & Analytics", href: "/reports", icon: FiBarChart2, industry: "RETAIL" },
  
   // Restaurant Industry Modules
   { moduleCode: "RESTAURANT", label: "Dashboard", href: "/restaurant/dashboard", icon: FiGrid, industry: "RESTAURANT" },
