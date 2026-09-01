@@ -27,11 +27,11 @@ class InvoiceRepository {
     const productIds = [...new Set(invoices.flatMap(inv => (inv.items || []).map(item => item.productId)))];
     const products = productIds.length > 0 ? await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, name: true }
+      select: { id: true, name: true, sku: true, barcode: true, sellingPrice: true }
     }).catch(() => []) : [];
     
     const productMap = products.reduce((acc, p) => {
-      acc[p.id] = p.name;
+      acc[p.id] = p;
       return acc;
     }, {});
 
@@ -40,15 +40,17 @@ class InvoiceRepository {
         let customerName = "Walk-in Customer";
         let customerPhone = "";
         let customerEmail = "";
+        let customerAddress = "";
         if (inv.customerId) {
           const customer = await prisma.customer.findUnique({
             where: { id: inv.customerId },
-            select: { name: true, phone: true, email: true },
+            select: { name: true, phone: true, email: true, address: true },
           }).catch(() => null);
           if (customer) {
             customerName = customer.name;
             customerPhone = customer.phone || "";
             customerEmail = customer.email || "";
+            customerAddress = customer.address || "";
           }
         }
 
@@ -63,10 +65,35 @@ class InvoiceRepository {
           }
         }
 
-        const enrichedItems = (inv.items || []).map((item) => ({
-          ...item,
-          productName: productMap[item.productId] || "Walk-in Product",
-        }));
+        const enrichedItems = (inv.items || []).map((item) => {
+          const prod = productMap[item.productId];
+          const qty = Number(item.quantity || 1);
+          const price = Number(item.unitPrice || prod?.sellingPrice || 0);
+          const disc = Number(item.discount || 0);
+          const tax = Number(item.tax || 0);
+          const tot = Number(item.total || (qty * price));
+          return {
+            ...item,
+            productId: item.productId,
+            productName: prod?.name || "Product Item",
+            product: prod?.name || "Product Item",
+            sku: prod?.sku || "",
+            barcode: prod?.barcode || "",
+            quantity: qty,
+            qty,
+            unitPrice: price,
+            price,
+            discount: disc,
+            tax,
+            total: tot,
+            totalPrice: tot,
+          };
+        });
+
+        const subtotal = Number(inv.subtotal || 0);
+        const taxAmount = Number(inv.taxAmount || 0);
+        const discountAmount = Number(inv.discountAmount || 0);
+        const totalAmount = Number(inv.totalAmount || (subtotal + taxAmount - discountAmount));
 
         return {
           ...inv,
@@ -75,12 +102,26 @@ class InvoiceRepository {
           customer: customerName,
           customerPhone,
           customerEmail,
+          customerAddress,
           salesOrderNumber: salesOrderNumber || inv.invoiceNumber,
           referenceNumber: salesOrderNumber || inv.invoiceNumber,
-          total: Number(inv.totalAmount || 0),
-          totalAmount: Number(inv.totalAmount || 0),
+          orderNumber: salesOrderNumber || inv.invoiceNumber,
+          subtotal,
+          subTotal: subtotal,
+          taxAmount,
+          tax: taxAmount,
+          discountAmount,
+          discount: discountAmount,
+          totalAmount,
+          total: totalAmount,
+          netAmount: totalAmount,
+          paidAmount: Number(inv.paidAmount || totalAmount),
+          balanceAmount: Number(inv.balanceAmount || 0),
+          paymentStatus: inv.paymentStatus || (inv.status === "ISSUED" ? "PAID" : "PENDING"),
           date: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString().split("T")[0] : new Date(inv.createdAt).toISOString().split("T")[0],
           invoiceNo: inv.invoiceNumber,
+          paymentMethod: "Cash",
+          cashier: "POS Staff",
         };
       })
     );
@@ -100,17 +141,24 @@ class InvoiceRepository {
         let customerName = "Walk-in Customer";
         let customerPhone = "";
         let customerEmail = "";
+        let customerAddress = "";
         if (so.customerId) {
           const customer = await prisma.customer.findUnique({
             where: { id: so.customerId },
-            select: { name: true, phone: true, email: true },
+            select: { name: true, phone: true, email: true, address: true },
           }).catch(() => null);
           if (customer) {
             customerName = customer.name;
             customerPhone = customer.phone || "";
             customerEmail = customer.email || "";
+            customerAddress = customer.address || "";
           }
         }
+
+        const subtotal = Number(so.totalAmount || 0);
+        const taxAmount = Number(so.taxAmount || 0);
+        const discountAmount = Number(so.discountAmount || 0);
+        const totalAmount = Number(so.netAmount || so.totalAmount || (subtotal + taxAmount - discountAmount));
 
         return {
           id: so.id,
@@ -124,19 +172,27 @@ class InvoiceRepository {
           customer: customerName,
           customerPhone,
           customerEmail,
+          customerAddress,
           salesOrderNumber: so.orderNumber,
           referenceNumber: so.orderNumber,
+          orderNumber: so.orderNumber,
           date: so.orderDate ? new Date(so.orderDate).toISOString().split("T")[0] : new Date(so.createdAt).toISOString().split("T")[0],
-          subtotal: Number(so.totalAmount || 0),
-          taxAmount: Number(so.taxAmount || 0),
-          discountAmount: Number(so.discountAmount || 0),
-          totalAmount: Number(so.netAmount || so.totalAmount || 0),
-          total: Number(so.netAmount || so.totalAmount || 0),
-          paidAmount: Number(so.netAmount || so.totalAmount || 0),
+          subtotal,
+          subTotal: subtotal,
+          taxAmount,
+          tax: taxAmount,
+          discountAmount,
+          discount: discountAmount,
+          totalAmount,
+          total: totalAmount,
+          netAmount: totalAmount,
+          paidAmount: totalAmount,
           balanceAmount: 0,
           paymentStatus: so.status === "COMPLETED" ? "PAID" : (so.status === "CANCELLED" ? "CANCELLED" : "PENDING"),
           status: so.status || "PAID",
           notes: `Sales Order ${so.orderNumber}`,
+          paymentMethod: "Cash",
+          cashier: "POS Staff",
           items: [],
         };
       })
@@ -150,12 +206,97 @@ class InvoiceRepository {
   // Get Invoice By ID
   // ==========================================
   async findById(id) {
-    const inv = await prisma.invoice.findUnique({
-      where: { id },
+    let inv = await prisma.invoice.findFirst({
+      where: {
+        OR: [
+          { id },
+          { invoiceNumber: id },
+          { salesOrderId: id },
+        ],
+      },
       include: {
         items: true,
       },
     }).catch(() => null);
+
+    if (!inv) {
+      // Fallback: check if id matches a sales order
+      const so = await prisma.salesOrder.findFirst({
+        where: {
+          OR: [
+            { id },
+            { orderNumber: id },
+          ],
+        },
+      }).catch(() => null);
+
+      if (so) {
+        // Check if there is an invoice linked to this sales order
+        inv = await prisma.invoice.findFirst({
+          where: { salesOrderId: so.id },
+          include: { items: true },
+        }).catch(() => null);
+
+        if (!inv) {
+          let customerName = "Walk-in Customer";
+          let customerPhone = "";
+          let customerEmail = "";
+          let customerAddress = "";
+          if (so.customerId) {
+            const customer = await prisma.customer.findUnique({
+              where: { id: so.customerId },
+              select: { name: true, phone: true, email: true, address: true },
+            }).catch(() => null);
+            if (customer) {
+              customerName = customer.name;
+              customerPhone = customer.phone || "";
+              customerEmail = customer.email || "";
+              customerAddress = customer.address || "";
+            }
+          }
+
+          const subtotal = Number(so.totalAmount || 0);
+          const taxAmount = Number(so.taxAmount || 0);
+          const discountAmount = Number(so.discountAmount || 0);
+          const totalAmount = Number(so.netAmount || so.totalAmount || (subtotal + taxAmount - discountAmount));
+
+          return {
+            id: so.id,
+            companyId: so.companyId,
+            branchId: so.branchId,
+            salesOrderId: so.id,
+            customerId: so.customerId,
+            invoiceNumber: `INV-${so.orderNumber.replace(/^SO-/, "")}`,
+            invoiceNo: `INV-${so.orderNumber.replace(/^SO-/, "")}`,
+            customerName,
+            customer: customerName,
+            customerPhone,
+            customerEmail,
+            customerAddress,
+            salesOrderNumber: so.orderNumber,
+            referenceNumber: so.orderNumber,
+            orderNumber: so.orderNumber,
+            date: so.orderDate ? new Date(so.orderDate).toISOString().split("T")[0] : new Date(so.createdAt).toISOString().split("T")[0],
+            subtotal,
+            subTotal: subtotal,
+            taxAmount,
+            tax: taxAmount,
+            discountAmount,
+            discount: discountAmount,
+            totalAmount,
+            total: totalAmount,
+            netAmount: totalAmount,
+            paidAmount: totalAmount,
+            balanceAmount: 0,
+            paymentStatus: so.status === "COMPLETED" ? "PAID" : (so.status === "CANCELLED" ? "CANCELLED" : "PENDING"),
+            status: so.status || "PAID",
+            paymentMethod: "Cash",
+            cashier: "POS Staff",
+            items: [],
+          };
+        }
+      }
+    }
 
     if (!inv) return null;
 
@@ -163,31 +304,53 @@ class InvoiceRepository {
     const productIds = [...new Set((inv.items || []).map(item => item.productId))];
     const products = productIds.length > 0 ? await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, name: true }
+      select: { id: true, name: true, sku: true, barcode: true, sellingPrice: true }
     }).catch(() => []) : [];
     
     const productMap = products.reduce((acc, p) => {
-      acc[p.id] = p.name;
+      acc[p.id] = p;
       return acc;
     }, {});
 
-    const enrichedItems = (inv.items || []).map((item) => ({
-      ...item,
-      productName: productMap[item.productId] || "Walk-in Product",
-    }));
+    const enrichedItems = (inv.items || []).map((item) => {
+      const prod = productMap[item.productId];
+      const qty = Number(item.quantity || 1);
+      const price = Number(item.unitPrice || prod?.sellingPrice || 0);
+      const disc = Number(item.discount || 0);
+      const tax = Number(item.tax || 0);
+      const tot = Number(item.total || (qty * price));
+      return {
+        ...item,
+        productId: item.productId,
+        productName: prod?.name || "Product Item",
+        product: prod?.name || "Product Item",
+        sku: prod?.sku || "",
+        barcode: prod?.barcode || "",
+        quantity: qty,
+        qty,
+        unitPrice: price,
+        price,
+        discount: disc,
+        tax,
+        total: tot,
+        totalPrice: tot,
+      };
+    });
 
     let customerName = "Walk-in Customer";
     let customerPhone = "";
     let customerEmail = "";
+    let customerAddress = "";
     if (inv.customerId) {
       const customer = await prisma.customer.findUnique({
         where: { id: inv.customerId },
-        select: { name: true, phone: true, email: true },
+        select: { name: true, phone: true, email: true, address: true },
       }).catch(() => null);
       if (customer) {
         customerName = customer.name;
         customerPhone = customer.phone || "";
         customerEmail = customer.email || "";
+        customerAddress = customer.address || "";
       }
     }
 
@@ -202,6 +365,11 @@ class InvoiceRepository {
       }
     }
 
+    const subtotal = Number(inv.subtotal || 0);
+    const taxAmount = Number(inv.taxAmount || 0);
+    const discountAmount = Number(inv.discountAmount || 0);
+    const totalAmount = Number(inv.totalAmount || (subtotal + taxAmount - discountAmount));
+
     return {
       ...inv,
       items: enrichedItems,
@@ -209,11 +377,26 @@ class InvoiceRepository {
       customer: customerName,
       customerPhone,
       customerEmail,
+      customerAddress,
       salesOrderNumber: salesOrderNumber || inv.invoiceNumber,
       referenceNumber: salesOrderNumber || inv.invoiceNumber,
-      total: Number(inv.totalAmount || 0),
+      orderNumber: salesOrderNumber || inv.invoiceNumber,
+      subtotal,
+      subTotal: subtotal,
+      taxAmount,
+      tax: taxAmount,
+      discountAmount,
+      discount: discountAmount,
+      totalAmount,
+      total: totalAmount,
+      netAmount: totalAmount,
+      paidAmount: Number(inv.paidAmount || totalAmount),
+      balanceAmount: Number(inv.balanceAmount || 0),
+      paymentStatus: inv.paymentStatus || (inv.status === "ISSUED" ? "PAID" : "PENDING"),
       date: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString().split("T")[0] : new Date(inv.createdAt).toISOString().split("T")[0],
       invoiceNo: inv.invoiceNumber,
+      paymentMethod: "Cash",
+      cashier: "POS Staff",
     };
   }
 
