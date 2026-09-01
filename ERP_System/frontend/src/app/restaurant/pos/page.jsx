@@ -137,12 +137,27 @@ function RestaurantPOSContent() {
     }
   }, [selectedRestaurantId]);
 
+  const menuSyncTimeoutRef = useRef(null);
+  const debouncedSyncMenuData = (restId) => {
+    if (menuSyncTimeoutRef.current) clearTimeout(menuSyncTimeoutRef.current);
+    menuSyncTimeoutRef.current = setTimeout(() => {
+      if (restId) loadMenuData(restId);
+    }, 400);
+  };
+
+  useEffect(() => {
+    const currentCompId = company?.id || user?.companyId;
+    if (currentCompId) {
+      joinCompanyRoom(currentCompId);
+    }
+  }, [company?.id, user?.companyId]);
+
   // Real-Time Order & Table Status Update Listener (Socket.IO)
   useEffect(() => {
     if (!selectedRestaurantId) return;
 
     const currentCompId = company?.id || user?.companyId;
-    joinCompanyRoom(currentCompId);
+    if (currentCompId) joinCompanyRoom(currentCompId);
     joinOutletRoom(selectedRestaurantId, currentCompId);
 
     const handleRealTimeUpdate = (data) => {
@@ -268,8 +283,8 @@ function RestaurantPOSContent() {
       }
 
 
-      // Automatically sync POS state in background without full reload
-      loadMenuData(selectedRestaurantId);
+      // Automatically sync POS state in background with debouncing
+      debouncedSyncMenuData(selectedRestaurantId);
 
       // Trigger non-blocking SweetAlert2 toast notification ONLY for Waiters when order becomes READY
       if (targetStatus === "READY" && !isCashier && isWaiter) {
@@ -330,20 +345,21 @@ function RestaurantPOSContent() {
     const unsubscribeCreated = subscribeToKitchenOrderCreated(handleRealTimeUpdate);
     const unsubscribeStatus = subscribeToOrderStatus(handleRealTimeUpdate);
     const unsubscribeTableStatus = subscribeToTableStatusUpdated(handleTableStatusUpdate);
-    const unsubscribeTableCreated = subscribeToTableCreated(() => loadMenuData(selectedRestaurantId));
-    const unsubscribeTableDeleted = subscribeToTableDeleted(() => loadMenuData(selectedRestaurantId));
-    const unsubscribeTableUpdated = subscribeToTableUpdated(() => loadMenuData(selectedRestaurantId));
+    const unsubscribeTableCreated = subscribeToTableCreated(() => debouncedSyncMenuData(selectedRestaurantId));
+    const unsubscribeTableDeleted = subscribeToTableDeleted(() => debouncedSyncMenuData(selectedRestaurantId));
+    const unsubscribeTableUpdated = subscribeToTableUpdated(() => debouncedSyncMenuData(selectedRestaurantId));
 
     // Handle auto-reconnection synchronization
     const unsubscribeReconnect = subscribeToReconnect(() => {
       console.log("🔄 [Waiter POS] Socket reconnected - resynchronizing active orders...");
       const compId = company?.id || user?.companyId;
-      joinCompanyRoom(compId);
-      joinOutletRoom(selectedRestaurantId, compId);
-      loadMenuData(selectedRestaurantId);
+      if (compId) joinCompanyRoom(compId);
+      if (selectedRestaurantId) joinOutletRoom(selectedRestaurantId, compId);
+      debouncedSyncMenuData(selectedRestaurantId);
     });
 
     return () => {
+      if (menuSyncTimeoutRef.current) clearTimeout(menuSyncTimeoutRef.current);
       unsubscribeUpdated();
       unsubscribeCreated();
       unsubscribeStatus();

@@ -150,7 +150,6 @@ export const ROUTE_MODULE_MAP = {
   "/medical/purchases": "MEDICAL_SHOP",
   "/medical/inventory": "MEDICAL_SHOP",
   "/medical/returns": "MEDICAL_SHOP",
-  "/medical/reports": "MEDICAL_SHOP",
 
   // Core Operations
   "/admin/expenses": "EXPENSES",
@@ -257,7 +256,7 @@ export const MASTER_NAVIGATION_CATALOG = [
   { moduleCode: "MEDICAL_SHOP", label: "Medicine Purchases", href: "/medical/purchases", icon: FiShoppingCart, industry: "MEDICAL_SHOP" },
   { moduleCode: "MEDICAL_SHOP", label: "Pharmacy Inventory", href: "/medical/inventory", icon: FiPackage, industry: "MEDICAL_SHOP" },
   { moduleCode: "MEDICAL_SHOP", label: "Returned Medicines", href: "/medical/returns", icon: FiTrash2, industry: "MEDICAL_SHOP" },
-  { moduleCode: "MEDICAL_SHOP", label: "Pharmacy Reports", href: "/medical/reports", icon: FiBarChart2, industry: "MEDICAL_SHOP" },
+  { moduleCode: "REPORTS", label: "Reports & Analytics", href: "/reports", icon: FiBarChart2, industry: "MEDICAL_SHOP" },
 
   // Shared Core Operations
   { moduleCode: "EMPLOYEES", label: "Employees / Staff", href: "/admin/employees/view", icon: FiUserCheck },

@@ -82,6 +82,7 @@ export default function RestaurantReservationsPage() {
       return;
     }
 
+    try {
       await restaurantService.createReservation({
         ...form,
         restaurantId: selectedRestaurantId,

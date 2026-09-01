@@ -37,15 +37,28 @@ export default function KitchenDisplayPage() {
     companyIdRef.current = company?.id || user?.companyId;
   }, [company?.id, user?.companyId]);
 
+  const fetchTimeoutRef = useRef(null);
+
+  const debouncedFetchKOTs = () => {
+    if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchKOTs();
+    }, 300);
+  };
+
   useEffect(() => {
+    const currentCompId = company?.id || user?.companyId;
+    if (currentCompId) {
+      joinCompanyRoom(currentCompId);
+    }
     fetchInitialData();
-  }, []);
+  }, [company?.id, user?.companyId]);
 
   useEffect(() => {
     if (!selectedRestaurantId) return;
 
     const currentCompId = company?.id || user?.companyId;
-    joinCompanyRoom(currentCompId);
+    if (currentCompId) joinCompanyRoom(currentCompId);
     joinOutletRoom(selectedRestaurantId, currentCompId);
 
     fetchKOTs();
@@ -69,27 +82,37 @@ export default function KitchenDisplayPage() {
       }
 
       // Immediate in-memory addition avoiding duplicates
-      if (data.kot) {
-        setKotOrders((prev) => {
-          const exists = prev.some(
-            (k) =>
-              k.id === data.kot.id ||
-              k.id === data.kitchenOrderId ||
-              (k.orderId && k.orderId === data.orderId)
+      const newKotObj = data.kot || {
+        id: data.kitchenOrderId || data.kotNumber,
+        orderId: data.orderId,
+        kotNumber: data.kotNumber,
+        tableNumber: data.tableNumber,
+        orderType: data.orderType,
+        status: data.status || "NEW",
+        items: data.items || [],
+        notes: data.notes || data.order?.notes,
+        createdAt: data.createdAt || new Date().toISOString(),
+      };
+
+      setKotOrders((prev) => {
+        const exists = prev.some(
+          (k) =>
+            k.id === newKotObj.id ||
+            (k.orderId && k.orderId === newKotObj.orderId) ||
+            (k.kotNumber && k.kotNumber === newKotObj.kotNumber)
+        );
+        if (exists) {
+          return prev.map((k) =>
+            k.id === newKotObj.id || k.orderId === newKotObj.orderId || k.kotNumber === newKotObj.kotNumber
+              ? { ...k, ...newKotObj, status: newKotObj.status || "NEW" }
+              : k
           );
-          if (exists) {
-            return prev.map((k) =>
-              k.id === data.kot.id || k.id === data.kitchenOrderId || k.orderId === data.orderId
-                ? { ...k, ...data.kot, status: data.status || data.kot.status || "NEW" }
-                : k
-            );
-          }
-          return [data.kot, ...prev];
-        });
-      }
+        }
+        return [newKotObj, ...prev];
+      });
 
       // Background synchronization from DB
-      fetchKOTs();
+      debouncedFetchKOTs();
     });
 
     // 2. Handle Real-Time Kitchen Order Updates (PREPARING, READY, SERVED, etc.)
@@ -144,28 +167,35 @@ export default function KitchenDisplayPage() {
           })
         );
       } else if (targetStatus === "NEW" || targetStatus === "CONFIRMED") {
-        if (data.kot) {
-          setKotOrders((prev) => {
-            const exists = prev.some(
-              (k) =>
-                k.id === data.kot.id ||
-                k.id === data.kitchenOrderId ||
-                (k.orderId && k.orderId === data.orderId)
+        const kotData = data.kot || {
+          id: data.kitchenOrderId,
+          orderId: data.orderId,
+          kotNumber: data.kotNumber,
+          tableNumber: data.tableNumber,
+          orderType: data.orderType,
+          status: "NEW",
+          items: data.items || [],
+        };
+        setKotOrders((prev) => {
+          const exists = prev.some(
+            (k) =>
+              k.id === kotData.id ||
+              k.id === data.kitchenOrderId ||
+              (k.orderId && k.orderId === data.orderId)
+          );
+          if (exists) {
+            return prev.map((k) =>
+              k.id === kotData.id || k.id === data.kitchenOrderId || k.orderId === data.orderId
+                ? { ...k, ...kotData, status: "NEW" }
+                : k
             );
-            if (exists) {
-              return prev.map((k) =>
-                k.id === data.kot.id || k.id === data.kitchenOrderId || k.orderId === data.orderId
-                  ? { ...k, ...data.kot, status: "NEW" }
-                  : k
-              );
-            }
-            return [data.kot, ...prev];
-          });
-        }
+          }
+          return [kotData, ...prev];
+        });
       }
 
       // Background synchronization from DB
-      fetchKOTs();
+      debouncedFetchKOTs();
     };
 
     const unsubscribeUpdated = subscribeToKitchenOrderUpdated(handleOrderUpdate);
@@ -175,16 +205,17 @@ export default function KitchenDisplayPage() {
     const unsubscribeReconnect = subscribeToReconnect(() => {
       console.log("🔄 [KDS] Socket reconnected - resynchronizing queue...");
       const compId = companyIdRef.current;
-      joinCompanyRoom(compId);
-      joinOutletRoom(selectedRestIdRef.current, compId);
-      fetchKOTs();
+      if (compId) joinCompanyRoom(compId);
+      if (selectedRestIdRef.current) joinOutletRoom(selectedRestIdRef.current, compId);
+      debouncedFetchKOTs();
     });
 
-    // Fallback sync interval (10s)
-    const interval = setInterval(fetchKOTs, 10000);
+    // Fallback sync interval (12s)
+    const interval = setInterval(fetchKOTs, 12000);
 
     return () => {
       clearInterval(interval);
+      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
       unsubscribeCreated();
       unsubscribeUpdated();
       unsubscribeStatus();
@@ -197,7 +228,7 @@ export default function KitchenDisplayPage() {
     try {
       setLoading(true);
       const res = await restaurantService.getRestaurants();
-      const list = res.data || [];
+      const list = res.data || res || [];
       setRestaurants(list);
       if (list.length > 0) {
         let assigned = list[0].id;
@@ -223,9 +254,10 @@ export default function KitchenDisplayPage() {
         selectedRestaurantId && selectedRestaurantId !== "ALL"
           ? selectedRestaurantId
           : undefined;
-      const res = await restaurantService.getKitchenOrders(outletId);
-      // Kitchen Display only manages active preparation tickets (NEW, CONFIRMED, PENDING, PREPARING)
-      const activeTickets = (res.data || []).filter(
+      const res = await restaurantService.getKitchenOrders(outletId, "ACTIVE");
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      // Kitchen Display only manages active preparation tickets (NEW, PREPARING)
+      const activeTickets = list.filter(
         (k) => k.status !== "READY" && k.status !== "SERVED" && k.status !== "COMPLETED" && k.status !== "CANCELLED"
       );
       setKotOrders(activeTickets);
@@ -242,10 +274,10 @@ export default function KitchenDisplayPage() {
         prev.map((k) => (k.id === id ? { ...k, status: "PREPARING" } : k))
       );
       await restaurantService.startPreparation(id);
-      fetchKOTs();
+      debouncedFetchKOTs();
     } catch (err) {
       showError("KDS Action Failed", err.message);
-      fetchKOTs();
+      debouncedFetchKOTs();
     }
   };
 
@@ -254,10 +286,10 @@ export default function KitchenDisplayPage() {
       // Optimistic removal: order has finished cooking, leaves KDS and moves to Waiter's Ready Orders
       setKotOrders((prev) => prev.filter((k) => k.id !== id));
       await restaurantService.markReady(id);
-      fetchKOTs();
+      debouncedFetchKOTs();
     } catch (err) {
       showError("KDS Action Failed", err.message);
-      fetchKOTs();
+      debouncedFetchKOTs();
     }
   };
 
@@ -634,9 +666,9 @@ function KOTCard({ kot, onAction, actionText, actionColor, icon: Icon }) {
 
       {/* Items List */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
-        {kot.items?.map((i) => (
+        {kot.items?.map((i, idx) => (
           <div
-            key={i.id}
+            key={i.id || idx}
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -648,7 +680,7 @@ function KOTCard({ kot, onAction, actionText, actionColor, icon: Icon }) {
             }}
           >
             <span style={{ fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
-              {i.quantity}x {i.menuItem?.name || "Dish"}
+              {i.quantity}x {i.menuItem?.name || i.product?.name || i.productName || i.name || "Dish"}
             </span>
           </div>
         ))}

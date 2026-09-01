@@ -76,6 +76,22 @@ export const getIO = () => {
 };
 
 /**
+ * Helper to emit event to company and restaurant rooms cleanly without duplicates
+ */
+const emitToTenant = (companyId, restaurantId, eventName, payload) => {
+  if (!io) return;
+  const rooms = new Set();
+  if (companyId) rooms.add(`company:${companyId}`);
+  if (restaurantId && restaurantId !== "ALL") rooms.add(`restaurant:${restaurantId}`);
+  rooms.add("restaurant:ALL");
+
+  const roomArray = Array.from(rooms);
+  if (roomArray.length > 0) {
+    io.to(roomArray).emit(eventName, payload);
+  }
+};
+
+/**
  * Emit kitchen order created event when Waiter sends order to kitchen (KOT created)
  */
 export const emitKitchenOrderCreated = (kotData, orderData) => {
@@ -103,27 +119,11 @@ export const emitKitchenOrderCreated = (kotData, orderData) => {
     updatedAt: new Date().toISOString(),
   };
 
-  console.log(`[KDS] Kitchen order created: ${payload.orderNumber} (${payload.kotNumber})`);
-  console.log(`[SOCKET] Emitting kitchen-order-created to company:${companyId} & restaurant:${restaurantId}`);
+  console.log(`🍳 [KDS] Kitchen order created: ${payload.orderNumber} (${payload.kotNumber})`);
+  console.log(`📢 [SOCKET] Emitting kitchen-order-created to company:${companyId} & restaurant:${restaurantId}`);
 
-  // Emit to company room (multi-tenant)
-  if (companyId) {
-    io.to(`company:${companyId}`).emit("restaurant:kitchen-order-created", payload);
-    io.to(`company:${companyId}`).emit("restaurant:kitchen-order-updated", payload);
-    io.to(`company:${companyId}`).emit("orderStatusUpdated", payload);
-  }
-
-  // Emit to specific outlet room
-  if (restaurantId) {
-    io.to(`restaurant:${restaurantId}`).emit("restaurant:kitchen-order-created", payload);
-    io.to(`restaurant:${restaurantId}`).emit("restaurant:kitchen-order-updated", payload);
-    io.to(`restaurant:${restaurantId}`).emit("orderStatusUpdated", payload);
-  }
-
-  // Emit to 'ALL' outlet room for admins monitoring all outlets in that company
-  io.to("restaurant:ALL").emit("restaurant:kitchen-order-created", payload);
-  io.to("restaurant:ALL").emit("restaurant:kitchen-order-updated", payload);
-  io.to("restaurant:ALL").emit("orderStatusUpdated", payload);
+  emitToTenant(companyId, restaurantId, "restaurant:kitchen-order-created", payload);
+  emitToTenant(companyId, restaurantId, "orderStatusUpdated", payload);
 };
 
 /**
@@ -153,21 +153,11 @@ export const emitKitchenOrderUpdated = (kotData, orderData) => {
     updatedAt: new Date().toISOString(),
   };
 
-  console.log(`[KDS] Kitchen order updated: ${payload.kotNumber} -> ${payload.status}`);
-  console.log(`[SOCKET] Emitting kitchen-order-updated to company:${companyId} & restaurant:${restaurantId}`);
+  console.log(`🍳 [KDS] Kitchen order updated: ${payload.kotNumber} -> ${payload.status}`);
+  console.log(`📢 [SOCKET] Emitting kitchen-order-updated to company:${companyId} & restaurant:${restaurantId}`);
 
-  if (companyId) {
-    io.to(`company:${companyId}`).emit("restaurant:kitchen-order-updated", payload);
-    io.to(`company:${companyId}`).emit("orderStatusUpdated", payload);
-  }
-
-  if (restaurantId) {
-    io.to(`restaurant:${restaurantId}`).emit("restaurant:kitchen-order-updated", payload);
-    io.to(`restaurant:${restaurantId}`).emit("orderStatusUpdated", payload);
-  }
-
-  io.to("restaurant:ALL").emit("restaurant:kitchen-order-updated", payload);
-  io.to("restaurant:ALL").emit("orderStatusUpdated", payload);
+  emitToTenant(companyId, restaurantId, "restaurant:kitchen-order-updated", payload);
+  emitToTenant(companyId, restaurantId, "orderStatusUpdated", payload);
 };
 
 /**
@@ -196,18 +186,8 @@ export const emitOrderStatusUpdate = (orderData) => {
 
   console.log(`📢 [SOCKET] Emitting orderStatusUpdated for Order ${orderData.orderNumber || orderData.id} (Status: ${orderData.status})`);
 
-  if (companyId) {
-    io.to(`company:${companyId}`).emit("restaurant:kitchen-order-updated", payload);
-    io.to(`company:${companyId}`).emit("orderStatusUpdated", payload);
-  }
-
-  if (restaurantId) {
-    io.to(`restaurant:${restaurantId}`).emit("restaurant:kitchen-order-updated", payload);
-    io.to(`restaurant:${restaurantId}`).emit("orderStatusUpdated", payload);
-  }
-
-  io.to("restaurant:ALL").emit("restaurant:kitchen-order-updated", payload);
-  io.to("restaurant:ALL").emit("orderStatusUpdated", payload);
+  emitToTenant(companyId, restaurantId, "restaurant:kitchen-order-updated", payload);
+  emitToTenant(companyId, restaurantId, "orderStatusUpdated", payload);
 };
 
 /**
@@ -227,9 +207,7 @@ export const emitAreaCreated = (areaData, companyId) => {
   };
 
   console.log(`[TABLES] Area created: "${areaData?.name}" (${areaData?.id})`);
-  if (targetCompId) io.to(`company:${targetCompId}`).emit("restaurant:area-created", payload);
-  if (targetRestId) io.to(`restaurant:${targetRestId}`).emit("restaurant:area-created", payload);
-  io.to("restaurant:ALL").emit("restaurant:area-created", payload);
+  emitToTenant(targetCompId, targetRestId, "restaurant:area-created", payload);
 };
 
 export const emitAreaUpdated = (areaData, companyId) => {
@@ -246,9 +224,7 @@ export const emitAreaUpdated = (areaData, companyId) => {
   };
 
   console.log(`[TABLES] Area updated: "${areaData?.name}" (${areaData?.id})`);
-  if (targetCompId) io.to(`company:${targetCompId}`).emit("restaurant:area-updated", payload);
-  if (targetRestId) io.to(`restaurant:${targetRestId}`).emit("restaurant:area-updated", payload);
-  io.to("restaurant:ALL").emit("restaurant:area-updated", payload);
+  emitToTenant(targetCompId, targetRestId, "restaurant:area-updated", payload);
 };
 
 export const emitAreaDeleted = (areaId, restaurantId, companyId) => {
@@ -261,9 +237,7 @@ export const emitAreaDeleted = (areaId, restaurantId, companyId) => {
   };
 
   console.log(`[TABLES] Area deleted: (${areaId})`);
-  if (companyId) io.to(`company:${companyId}`).emit("restaurant:area-deleted", payload);
-  if (restaurantId) io.to(`restaurant:${restaurantId}`).emit("restaurant:area-deleted", payload);
-  io.to("restaurant:ALL").emit("restaurant:area-deleted", payload);
+  emitToTenant(companyId, restaurantId, "restaurant:area-deleted", payload);
 };
 
 export const emitTableCreated = (tableData, companyId) => {
@@ -284,9 +258,7 @@ export const emitTableCreated = (tableData, companyId) => {
   };
 
   console.log(`[TABLES] Table created: "${tableData?.tableNumber}" (${tableData?.id}) in Area ${tableData?.areaId}`);
-  if (targetCompId) io.to(`company:${targetCompId}`).emit("restaurant:table-created", payload);
-  if (targetRestId) io.to(`restaurant:${targetRestId}`).emit("restaurant:table-created", payload);
-  io.to("restaurant:ALL").emit("restaurant:table-created", payload);
+  emitToTenant(targetCompId, targetRestId, "restaurant:table-created", payload);
 };
 
 export const emitTableUpdated = (tableData, companyId) => {
@@ -307,16 +279,8 @@ export const emitTableUpdated = (tableData, companyId) => {
   };
 
   console.log(`[TABLES] Table updated: "${tableData?.tableNumber}" (${tableData?.id})`);
-  if (targetCompId) {
-    io.to(`company:${targetCompId}`).emit("restaurant:table-updated", payload);
-    io.to(`company:${targetCompId}`).emit("restaurant:table-status-updated", payload);
-  }
-  if (targetRestId) {
-    io.to(`restaurant:${targetRestId}`).emit("restaurant:table-updated", payload);
-    io.to(`restaurant:${targetRestId}`).emit("restaurant:table-status-updated", payload);
-  }
-  io.to("restaurant:ALL").emit("restaurant:table-updated", payload);
-  io.to("restaurant:ALL").emit("restaurant:table-status-updated", payload);
+  emitToTenant(targetCompId, targetRestId, "restaurant:table-updated", payload);
+  emitToTenant(targetCompId, targetRestId, "restaurant:table-status-updated", payload);
 };
 
 export const emitTableStatusUpdated = (tableData, companyId) => {
@@ -336,9 +300,7 @@ export const emitTableStatusUpdated = (tableData, companyId) => {
   };
 
   console.log(`[TABLES] Table status changed: "${tableData?.tableNumber || tableData?.id}" -> ${tableData?.status}`);
-  if (targetCompId) io.to(`company:${targetCompId}`).emit("restaurant:table-status-updated", payload);
-  if (targetRestId) io.to(`restaurant:${targetRestId}`).emit("restaurant:table-status-updated", payload);
-  io.to("restaurant:ALL").emit("restaurant:table-status-updated", payload);
+  emitToTenant(targetCompId, targetRestId, "restaurant:table-status-updated", payload);
 };
 
 export const emitTableDeleted = (tableId, restaurantId, companyId) => {
@@ -351,9 +313,7 @@ export const emitTableDeleted = (tableId, restaurantId, companyId) => {
   };
 
   console.log(`[TABLES] Table deleted: (${tableId})`);
-  if (companyId) io.to(`company:${companyId}`).emit("restaurant:table-deleted", payload);
-  if (restaurantId) io.to(`restaurant:${restaurantId}`).emit("restaurant:table-deleted", payload);
-  io.to("restaurant:ALL").emit("restaurant:table-deleted", payload);
+  emitToTenant(companyId, restaurantId, "restaurant:table-deleted", payload);
 };
 
 /**

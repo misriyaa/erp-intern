@@ -61,8 +61,19 @@ function RestaurantTablesContent() {
     selectedRestIdRef.current = selectedRestaurantId;
   }, [selectedRestaurantId]);
 
+  const floorPlanTimeoutRef = useRef(null);
+  const debouncedFetchFloorPlan = (restId) => {
+    if (floorPlanTimeoutRef.current) clearTimeout(floorPlanTimeoutRef.current);
+    floorPlanTimeoutRef.current = setTimeout(() => {
+      fetchFloorPlan(restId);
+    }, 400);
+  };
+
   useEffect(() => {
-    companyIdRef.current = company?.id || user?.companyId;
+    const currentCompId = company?.id || user?.companyId;
+    if (currentCompId) {
+      joinCompanyRoom(currentCompId);
+    }
   }, [company?.id, user?.companyId]);
 
   useEffect(() => {
@@ -74,7 +85,7 @@ function RestaurantTablesContent() {
     if (!selectedRestaurantId) return;
 
     const currentCompId = company?.id || user?.companyId;
-    joinCompanyRoom(currentCompId);
+    if (currentCompId) joinCompanyRoom(currentCompId);
     joinOutletRoom(selectedRestaurantId, currentCompId);
 
     // 1. New Area Created
@@ -338,6 +349,7 @@ function RestaurantTablesContent() {
     });
 
     return () => {
+      if (floorPlanTimeoutRef.current) clearTimeout(floorPlanTimeoutRef.current);
       unsubscribeAreaCreated();
       unsubscribeAreaUpdated();
       unsubscribeAreaDeleted();

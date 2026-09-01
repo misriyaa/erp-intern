@@ -6,8 +6,19 @@ let currentCompanyId = null;
 
 const getBackendUrl = () => {
   if (typeof window !== "undefined") {
+    if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+      return process.env.NEXT_PUBLIC_SOCKET_URL;
+    }
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      try {
+        const url = new URL(process.env.NEXT_PUBLIC_API_URL);
+        return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ""}`;
+      } catch (e) {
+        return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "");
+      }
+    }
     const host = window.location.hostname || "localhost";
-    return process.env.NEXT_PUBLIC_SOCKET_URL || `http://${host}:5000`;
+    return `http://${host}:5000`;
   }
   return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 };
@@ -68,6 +79,7 @@ export const joinOutletRoom = (restaurantId, companyId) => {
   if (s.connected) {
     if (currentCompanyId) {
       s.emit("joinCompany", { companyId: currentCompanyId });
+      console.log(`🏢 [SOCKET] Joined company room: company:${currentCompanyId}`);
     }
     if (currentOutletId) {
       s.emit("joinOutlet", { restaurantId: currentOutletId, companyId: currentCompanyId });
@@ -81,9 +93,6 @@ export const leaveOutletRoom = (restaurantId) => {
   const s = getSocket();
   if (s.connected) {
     s.emit("leaveOutlet", { restaurantId });
-  }
-  if (currentOutletId === restaurantId) {
-    currentOutletId = null;
   }
 };
 

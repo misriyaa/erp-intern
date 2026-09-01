@@ -35,11 +35,11 @@ export const getKitchenOrders = async (companyId, restaurantId, status) => {
     where.restaurantId = restaurantId;
   }
 
-  if (status && status !== "ALL" && status !== "undefined" && status !== "null") {
+  if (status && status !== "ALL" && status !== "ACTIVE" && status !== "undefined" && status !== "null") {
     where.status = status;
   } else if (!status || status === "ACTIVE") {
     where.status = {
-      in: ["NEW", "CONFIRMED", "PREPARING", "PENDING"],
+      in: ["NEW", "PREPARING"],
     };
   }
 

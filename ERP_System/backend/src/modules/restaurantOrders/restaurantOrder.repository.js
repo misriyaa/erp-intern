@@ -652,8 +652,11 @@ export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, al
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    const whereOrder = { id: orderId };
+    if (companyId) whereOrder.companyId = companyId;
+
     const order = await tx.restaurantOrder.findFirst({
-      where: { id: orderId, companyId },
+      where: whereOrder,
       include: {
         restaurant: true,
         table: true,
@@ -795,8 +798,11 @@ export const confirmOrderAndSendKOT = async (orderId, companyId, warehouseId, al
   });
 
   try {
+    const fullOrderWhere = { id: orderId };
+    if (companyId) fullOrderWhere.companyId = companyId;
+
     const fullOrder = await prisma.restaurantOrder.findFirst({
-      where: { id: orderId, companyId },
+      where: fullOrderWhere,
       include: orderInclude,
     });
     const fullKot = await prisma.kitchenOrder.findUnique({
