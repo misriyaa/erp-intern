@@ -289,21 +289,66 @@ export default function InvoicePreview({ invoice, onClose, onPrint }) {
               <tbody>
                 {items.length > 0 ? (
                   items.map((item, idx) => {
-                    const name = item.productName || item.product || item.name || `Retail Product #${idx + 1}`;
+                    const name =
+                      (typeof item.product === "string" ? item.product : item.product?.name) ||
+                      item.productName ||
+                      item.name ||
+                      item.title ||
+                      (typeof item.productId === "object" ? item.productId?.name : null) ||
+                      `Retail Item #${idx + 1}`;
+
+                    const description =
+                      item.description ||
+                      item.desc ||
+                      (typeof item.product === "object" ? item.product?.description : null) ||
+                      item.productDescription ||
+                      item.notes ||
+                      "";
+
+                    const sku = item.sku || (typeof item.product === "object" ? item.product?.sku : "") || "";
+                    const barcode = item.barcode || (typeof item.product === "object" ? item.product?.barcode : "") || "";
+                    const category = item.categoryName || item.category || (typeof item.product === "object" ? item.product?.category?.name : "") || "";
+
                     const qty = Number(item.quantity || item.qty || 1);
                     const price = Number(item.unitPrice || item.price || 0);
                     const total = Number(item.total || item.totalPrice || qty * price);
+
                     return (
                       <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "12px 14px", color: "#1e293b", fontWeight: "600" }}>
-                          <div>{name}</div>
-                          {item.sku && <div style={{ fontSize: "11px", color: "#94a3b8" }}>SKU: {item.sku}</div>}
+                        <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
+                          <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "13.5px" }}>
+                            {name}
+                          </div>
+                          {description && (
+                            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "3px", lineHeight: "1.4" }}>
+                              {description}
+                            </div>
+                          )}
+                          {(sku || barcode || category) && (
+                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "5px" }}>
+                              {sku && (
+                                <span style={{ fontSize: "10.5px", background: "#f1f5f9", color: "#475569", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                  SKU: {sku}
+                                </span>
+                              )}
+                              {barcode && (
+                                <span style={{ fontSize: "10.5px", background: "#eff6ff", color: "#2563eb", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                  Barcode: {barcode}
+                                </span>
+                              )}
+                              {category && (
+                                <span style={{ fontSize: "10.5px", background: "#fdf2f8", color: "#db2777", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                  {category}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
-                        <td style={{ padding: "12px 14px", textAlign: "center", color: "#475569" }}>{qty}</td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#475569" }}>
+                        <td style={{ padding: "12px 14px", textAlign: "center", verticalAlign: "top", color: "#334155", fontWeight: "600" }}>{qty}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "right", verticalAlign: "top", color: "#334155" }}>
                           ₹{price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: "700", color: "#0f172a" }}>
+                        <td style={{ padding: "12px 14px", textAlign: "right", verticalAlign: "top", fontWeight: "800", color: "#0f172a" }}>
                           ₹{total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>
@@ -311,8 +356,9 @@ export default function InvoicePreview({ invoice, onClose, onPrint }) {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: "center", padding: "20px", color: "#94a3b8" }}>
-                      Store Sales Order Transaction (₹{totalVal.toFixed(2)})
+                    <td colSpan={4} style={{ textAlign: "center", padding: "24px", color: "#64748b", background: "#f8fafc" }}>
+                      <div style={{ fontWeight: "600", color: "#334155" }}>Store Sales Order Transaction</div>
+                      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "2px" }}>Amount: ₹{totalVal.toFixed(2)}</div>
                     </td>
                   </tr>
                 )}

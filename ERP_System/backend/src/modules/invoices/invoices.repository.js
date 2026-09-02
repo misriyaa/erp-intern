@@ -23,11 +23,21 @@ class InvoiceRepository {
       },
     }).catch(() => []);
 
-    // Collect all product IDs to resolve product names
+    // Collect all product IDs to resolve product names and descriptions
     const productIds = [...new Set(invoices.flatMap(inv => (inv.items || []).map(item => item.productId)))];
     const products = productIds.length > 0 ? await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, name: true, sku: true, barcode: true, sellingPrice: true }
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        barcode: true,
+        description: true,
+        sellingPrice: true,
+        retailPrice: true,
+        category: { select: { name: true } },
+        brand: { select: { name: true } },
+      }
     }).catch(() => []) : [];
     
     const productMap = products.reduce((acc, p) => {
@@ -77,8 +87,12 @@ class InvoiceRepository {
             productId: item.productId,
             productName: prod?.name || "Product Item",
             product: prod?.name || "Product Item",
-            sku: prod?.sku || "",
-            barcode: prod?.barcode || "",
+            name: prod?.name || "Product Item",
+            description: prod?.description || item.description || "",
+            sku: prod?.sku || item.sku || "",
+            barcode: prod?.barcode || item.barcode || "",
+            categoryName: prod?.category?.name || "",
+            brandName: prod?.brand?.name || "",
             quantity: qty,
             qty,
             unitPrice: price,
@@ -155,6 +169,60 @@ class InvoiceRepository {
           }
         }
 
+        let items = [];
+        const linkedInv = await prisma.invoice.findFirst({
+          where: { salesOrderId: so.id },
+          include: { items: true },
+        }).catch(() => null);
+
+        if (linkedInv && linkedInv.items && linkedInv.items.length > 0) {
+          const pIds = [...new Set(linkedInv.items.map((item) => item.productId))];
+          const prods = pIds.length > 0 ? await prisma.product.findMany({
+            where: { id: { in: pIds } },
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              barcode: true,
+              description: true,
+              sellingPrice: true,
+              retailPrice: true,
+              category: { select: { name: true } },
+              brand: { select: { name: true } },
+            }
+          }).catch(() => []) : [];
+          const pMap = prods.reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
+
+          items = linkedInv.items.map((item) => {
+            const prod = pMap[item.productId];
+            const qty = Number(item.quantity || 1);
+            const price = Number(item.unitPrice || prod?.sellingPrice || 0);
+            const disc = Number(item.discount || 0);
+            const tax = Number(item.tax || 0);
+            const tot = Number(item.total || (qty * price));
+            return {
+              ...item,
+              productId: item.productId,
+              productName: prod?.name || "Product Item",
+              product: prod?.name || "Product Item",
+              name: prod?.name || "Product Item",
+              description: prod?.description || item.description || "",
+              sku: prod?.sku || item.sku || "",
+              barcode: prod?.barcode || item.barcode || "",
+              categoryName: prod?.category?.name || "",
+              brandName: prod?.brand?.name || "",
+              quantity: qty,
+              qty,
+              unitPrice: price,
+              price,
+              discount: disc,
+              tax,
+              total: tot,
+              totalPrice: tot,
+            };
+          });
+        }
+
         const subtotal = Number(so.totalAmount || 0);
         const taxAmount = Number(so.taxAmount || 0);
         const discountAmount = Number(so.discountAmount || 0);
@@ -193,7 +261,7 @@ class InvoiceRepository {
           notes: `Sales Order ${so.orderNumber}`,
           paymentMethod: "Cash",
           cashier: "POS Staff",
-          items: [],
+          items,
         };
       })
     );
@@ -300,11 +368,21 @@ class InvoiceRepository {
 
     if (!inv) return null;
 
-    // Collect product IDs to resolve product names
+    // Collect product IDs to resolve product names and descriptions
     const productIds = [...new Set((inv.items || []).map(item => item.productId))];
     const products = productIds.length > 0 ? await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, name: true, sku: true, barcode: true, sellingPrice: true }
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        barcode: true,
+        description: true,
+        sellingPrice: true,
+        retailPrice: true,
+        category: { select: { name: true } },
+        brand: { select: { name: true } },
+      }
     }).catch(() => []) : [];
     
     const productMap = products.reduce((acc, p) => {
@@ -324,8 +402,12 @@ class InvoiceRepository {
         productId: item.productId,
         productName: prod?.name || "Product Item",
         product: prod?.name || "Product Item",
-        sku: prod?.sku || "",
-        barcode: prod?.barcode || "",
+        name: prod?.name || "Product Item",
+        description: prod?.description || item.description || "",
+        sku: prod?.sku || item.sku || "",
+        barcode: prod?.barcode || item.barcode || "",
+        categoryName: prod?.category?.name || "",
+        brandName: prod?.brand?.name || "",
         quantity: qty,
         qty,
         unitPrice: price,

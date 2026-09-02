@@ -4,23 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FiBriefcase,
-  FiGlobe,
   FiFileText,
-  FiShoppingCart,
-  FiShield,
   FiSave,
   FiRefreshCw,
   FiUploadCloud,
   FiCheckCircle,
   FiAlertCircle,
-  FiTrash2,
   FiImage,
-  FiBox,
   FiTag,
   FiLayout,
-  FiExternalLink,
-  FiPlus,
-  FiLayers,
   FiPrinter,
   FiAlertTriangle,
 } from "react-icons/fi";
@@ -40,7 +32,6 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
-
 
   const [toast, setToast] = useState({ type: null, message: "" });
   const [logoFile, setLogoFile] = useState(null);
@@ -93,13 +84,6 @@ export default function SettingsPage() {
     companyAddress: "",
     companyLogo: "",
 
-    // Localization & Finance
-    currency: "USD",
-    currencySymbol: "$",
-    timezone: "UTC",
-    dateFormat: "YYYY-MM-DD",
-    fiscalYearStart: "January",
-
     // Invoicing & Sales
     invoicePrefix: "INV-",
     salesOrderPrefix: "SO-",
@@ -107,20 +91,8 @@ export default function SettingsPage() {
     defaultTaxRate: 0,
     enableMultiBranch: false,
 
-    // Inventory & POS
-    enableStockAlerts: true,
-    lowStockThreshold: 10,
-    receiptHeader: "",
-    receiptFooter: "",
+    // Barcode & Paper
     receiptPaperSize: "80mm",
-    autoPrintReceipt: true,
-    showTaxOnReceipt: true,
-
-    // Security & System
-    emailNotifications: true,
-    dailyReportEmail: false,
-    sessionTimeoutMinutes: 60,
-    themePreference: "system",
   });
 
   // Fetch Settings on Mount
@@ -216,30 +188,13 @@ export default function SettingsPage() {
           companyAddress: data.companyAddress || "",
           companyLogo: data.companyLogo || "",
 
-          currency: data.currency || "USD",
-          currencySymbol: data.currencySymbol || "$",
-          timezone: data.timezone || "UTC",
-          dateFormat: data.dateFormat || "YYYY-MM-DD",
-          fiscalYearStart: data.fiscalYearStart || "January",
-
           invoicePrefix: data.invoicePrefix || "INV-",
           salesOrderPrefix: data.salesOrderPrefix || "SO-",
           purchaseOrderPrefix: data.purchaseOrderPrefix || "PO-",
           defaultTaxRate: data.defaultTaxRate !== undefined ? Number(data.defaultTaxRate) : 0,
           enableMultiBranch: Boolean(data.enableMultiBranch),
 
-          enableStockAlerts: Boolean(data.enableStockAlerts),
-          lowStockThreshold: data.lowStockThreshold !== undefined ? Number(data.lowStockThreshold) : 10,
-          receiptHeader: data.receiptHeader || "",
-          receiptFooter: data.receiptFooter || "",
           receiptPaperSize: data.receiptPaperSize || "80mm",
-          autoPrintReceipt: Boolean(data.autoPrintReceipt),
-          showTaxOnReceipt: Boolean(data.showTaxOnReceipt),
-
-          emailNotifications: Boolean(data.emailNotifications),
-          dailyReportEmail: Boolean(data.dailyReportEmail),
-          sessionTimeoutMinutes: data.sessionTimeoutMinutes !== undefined ? Number(data.sessionTimeoutMinutes) : 60,
-          themePreference: data.themePreference || "system",
         });
 
         if (data.companyLogo) {
@@ -392,7 +347,6 @@ export default function SettingsPage() {
   }
 
   return (
-
     <div className={styles.container}>
       {/* Top Header */}
       <div className={styles.header}>
@@ -400,7 +354,7 @@ export default function SettingsPage() {
           <h1>
             <FiBriefcase /> System Settings
           </h1>
-          <p>Configure business details, localization, tax rates, inventory thresholds, and system preferences.</p>
+          <p>Configure company profile, invoicing prefixes, tax rates, barcode printing, and landing page settings.</p>
         </div>
 
         <div className={styles.headerActions}>
@@ -447,38 +401,11 @@ export default function SettingsPage() {
 
           <button
             type="button"
-            className={`${styles.tabBtn} ${activeTab === "localization" ? styles.tabBtnActive : ""}`}
-            onClick={() => setActiveTab("localization")}
-          >
-            <FiGlobe className={styles.tabIcon} />
-            <span>Localization & Finance</span>
-          </button>
-
-          <button
-            type="button"
             className={`${styles.tabBtn} ${activeTab === "invoicing" ? styles.tabBtnActive : ""}`}
             onClick={() => setActiveTab("invoicing")}
           >
             <FiFileText className={styles.tabIcon} />
             <span>Invoicing & Sales</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === "pos" ? styles.tabBtnActive : ""}`}
-            onClick={() => setActiveTab("pos")}
-          >
-            <FiShoppingCart className={styles.tabIcon} />
-            <span>Inventory & POS</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === "warehouse" ? styles.tabBtnActive : ""}`}
-            onClick={() => setActiveTab("warehouse")}
-          >
-            <FiBox className={styles.tabIcon} />
-            <span>Warehouse & Stock</span>
           </button>
 
           <button
@@ -497,15 +424,6 @@ export default function SettingsPage() {
           >
             <FiLayout className={styles.tabIcon} />
             <span>Landing Page Settings</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === "security" ? styles.tabBtnActive : ""}`}
-            onClick={() => setActiveTab("security")}
-          >
-            <FiShield className={styles.tabIcon} />
-            <span>Security & System</span>
           </button>
         </nav>
 
@@ -626,95 +544,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Tab 2: Localization & Finance */}
-            {activeTab === "localization" && (
-              <div>
-                <div className={styles.sectionHeader}>
-                  <h2>Localization & Financial Configuration</h2>
-                  <p>Define base operating currency, currency symbol, timezone, and fiscal calendar.</p>
-                </div>
-
-                <div className={`${styles.formGrid} ${styles.formGrid2}`}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Primary Currency</label>
-                    <select
-                      name="currency"
-                      value={formData.currency}
-                      onChange={handleInputChange}
-                      className={styles.select}
-                    >
-                      <option value="USD">USD ($) - US Dollar</option>
-                      <option value="EUR">EUR (€) - Euro</option>
-                      <option value="GBP">GBP (£) - British Pound</option>
-                      <option value="INR">INR (₹) - Indian Rupee</option>
-                      <option value="AED">AED (د.إ) - UAE Dirham</option>
-                      <option value="CAD">CAD ($) - Canadian Dollar</option>
-                      <option value="AUD">AUD ($) - Australian Dollar</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Currency Symbol</label>
-                    <input
-                      type="text"
-                      name="currencySymbol"
-                      value={formData.currencySymbol}
-                      onChange={handleInputChange}
-                      className={styles.input}
-                      placeholder="$, €, ₹, £"
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>System Timezone</label>
-                    <select
-                      name="timezone"
-                      value={formData.timezone}
-                      onChange={handleInputChange}
-                      className={styles.select}
-                    >
-                      <option value="UTC">UTC (Coordinated Universal Time)</option>
-                      <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                      <option value="America/New_York">America/New_York (EST)</option>
-                      <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
-                      <option value="Europe/London">Europe/London (GMT/BST)</option>
-                      <option value="Asia/Dubai">Asia/Dubai (GST)</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Date Format</label>
-                    <select
-                      name="dateFormat"
-                      value={formData.dateFormat}
-                      onChange={handleInputChange}
-                      className={styles.select}
-                    >
-                      <option value="YYYY-MM-DD">YYYY-MM-DD (2026-08-11)</option>
-                      <option value="DD/MM/YYYY">DD/MM/YYYY (11/08/2026)</option>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY (08/11/2026)</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Fiscal Year Starts In</label>
-                    <select
-                      name="fiscalYearStart"
-                      value={formData.fiscalYearStart}
-                      onChange={handleInputChange}
-                      className={styles.select}
-                    >
-                      <option value="January">January</option>
-                      <option value="April">April</option>
-                      <option value="July">July</option>
-                      <option value="October">October</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 3: Invoicing & Sales */}
+            {/* Tab 2: Invoicing & Sales */}
             {activeTab === "invoicing" && (
               <div>
                 <div className={styles.sectionHeader}>
@@ -795,218 +625,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Tab 4: Inventory & POS */}
-            {activeTab === "pos" && (
-              <div>
-                <div className={styles.sectionHeader}>
-                  <h2>Inventory Control & POS Receipts</h2>
-                  <p>Manage low stock notifications, thermal printer formats, and receipt messages.</p>
-                </div>
-
-                <div className={styles.formGrid}>
-                  <div className={styles.toggleRow}>
-                    <div className={styles.toggleText}>
-                      <h4>Enable Low Stock Alerts</h4>
-                      <p>Send warning alerts when item inventory reaches or drops below minimum threshold.</p>
-                    </div>
-                    <label className={styles.switch}>
-                      <input
-                        type="checkbox"
-                        name="enableStockAlerts"
-                        checked={formData.enableStockAlerts}
-                        onChange={handleInputChange}
-                      />
-                      <span className={styles.slider}></span>
-                    </label>
-                  </div>
-
-                  <div className={`${styles.formGrid} ${styles.formGrid2}`}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Global Low Stock Threshold</label>
-                      <input
-                        type="number"
-                        min="0"
-                        name="lowStockThreshold"
-                        value={formData.lowStockThreshold}
-                        onChange={handleInputChange}
-                        className={styles.input}
-                        placeholder="10"
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Receipt Thermal Paper Size</label>
-                      <select
-                        name="receiptPaperSize"
-                        value={formData.receiptPaperSize}
-                        onChange={handleInputChange}
-                        className={styles.select}
-                      >
-                        <option value="58mm">58mm Small Thermal</option>
-                        <option value="80mm">80mm Standard Thermal</option>
-                        <option value="A4">A4 Full Sheet Format</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>POS Receipt Header Message</label>
-                    <input
-                      type="text"
-                      name="receiptHeader"
-                      value={formData.receiptHeader}
-                      onChange={handleInputChange}
-                      className={styles.input}
-                      placeholder="e.g. Welcome to ERP Store"
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>POS Receipt Footer Message</label>
-                    <textarea
-                      name="receiptFooter"
-                      value={formData.receiptFooter}
-                      onChange={handleInputChange}
-                      className={styles.textarea}
-                      placeholder="e.g. Thank you for your visit! Returns valid within 14 days."
-                    />
-                  </div>
-
-                  <div className={`${styles.formGrid} ${styles.formGrid2}`}>
-                    <div className={styles.toggleRow}>
-                      <div className={styles.toggleText}>
-                        <h4>Auto-Print Receipt</h4>
-                        <p>Trigger receipt printing automatically upon POS checkout.</p>
-                      </div>
-                      <label className={styles.switch}>
-                        <input
-                          type="checkbox"
-                          name="autoPrintReceipt"
-                          checked={formData.autoPrintReceipt}
-                          onChange={handleInputChange}
-                        />
-                        <span className={styles.slider}></span>
-                      </label>
-                    </div>
-
-                    <div className={styles.toggleRow}>
-                      <div className={styles.toggleText}>
-                        <h4>Show Tax Summary on Receipt</h4>
-                        <p>Print itemized VAT/Tax breakdowns on customer receipt slips.</p>
-                      </div>
-                      <label className={styles.switch}>
-                        <input
-                          type="checkbox"
-                          name="showTaxOnReceipt"
-                          checked={formData.showTaxOnReceipt}
-                          onChange={handleInputChange}
-                        />
-                        <span className={styles.slider}></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 5: Warehouse & Stock */}
-            {activeTab === "warehouse" && (
-              <div>
-                <div className={styles.sectionHeader}>
-                  <h2>Warehouse & Multi-Location Stock Configuration</h2>
-                  <p>Manage warehouses, stock transfers, low stock thresholds, and location tracking.</p>
-                </div>
-
-                <div className={styles.formCard}>
-                  <div className={styles.toggleRow} style={{ marginBottom: "20px" }}>
-                    <div className={styles.toggleText}>
-                      <h4>Enable Multi-Warehouse Tracking</h4>
-                      <p>Track inventory quantities separately across multiple physical warehouses and store branches.</p>
-                    </div>
-                    <label className={styles.switch}>
-                      <input
-                        type="checkbox"
-                        name="enableMultiBranch"
-                        checked={formData.enableMultiBranch}
-                        onChange={handleInputChange}
-                      />
-                      <span className={styles.slider}></span>
-                    </label>
-                  </div>
-
-                  <div className={`${styles.formGrid} ${styles.formGrid2}`}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Global Low Stock Threshold</label>
-                      <input
-                        type="number"
-                        min="1"
-                        name="lowStockThreshold"
-                        value={formData.lowStockThreshold}
-                        onChange={handleInputChange}
-                        className={styles.input}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Stock Alert Notifications</label>
-                      <select
-                        name="enableStockAlerts"
-                        value={formData.enableStockAlerts ? "true" : "false"}
-                        onChange={(e) =>
-                          handleInputChange({
-                            target: { name: "enableStockAlerts", value: e.target.value === "true", type: "checkbox", checked: e.target.value === "true" },
-                          })
-                        }
-                        className={styles.select}
-                      >
-                        <option value="true">Enabled (Alert on Dashboard)</option>
-                        <option value="false">Disabled</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <h3 style={{ fontSize: "16px", fontWeight: "700", margin: "24px 0 12px 0", color: "#0f172a" }}>
-                    Warehouse Quick Actions & Management
-                  </h3>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-                    <Link href="/warehouse" style={{ textDecoration: "none" }}>
-                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
-                        <FiBox style={{ fontSize: "24px", color: "#4f46e5", marginBottom: "8px" }} />
-                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>All Warehouses</h4>
-                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>View and manage warehouse locations</p>
-                      </div>
-                    </Link>
-
-                    <Link href="/warehouse/add" style={{ textDecoration: "none" }}>
-                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
-                        <FiPlus style={{ fontSize: "24px", color: "#10b981", marginBottom: "8px" }} />
-                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>Add Warehouse</h4>
-                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>Create a new warehouse location</p>
-                      </div>
-                    </Link>
-
-                    <Link href="/warehouse/stock" style={{ textDecoration: "none" }}>
-                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
-                        <FiLayers style={{ fontSize: "24px", color: "#f59e0b", marginBottom: "8px" }} />
-                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>Warehouse Stock</h4>
-                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>Inspect stock levels per warehouse</p>
-                      </div>
-                    </Link>
-
-                    <Link href="/warehouse/transfer" style={{ textDecoration: "none" }}>
-                      <div style={{ padding: "16px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s" }}>
-                        <FiExternalLink style={{ fontSize: "24px", color: "#ec4899", marginBottom: "8px" }} />
-                        <h4 style={{ margin: 0, fontSize: "15px", color: "#0f172a" }}>Stock Transfer</h4>
-                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b" }}>Move stock between locations</p>
-                      </div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 6: Barcode Printing */}
+            {/* Tab 3: Barcode Printing */}
             {activeTab === "barcode" && (
               <div>
                 <div className={styles.sectionHeader}>
@@ -1056,7 +675,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Tab 7: Landing Page Settings */}
+            {/* Tab 4: Landing Page Settings */}
             {activeTab === "landing" && (
               <div>
                 <div className={styles.sectionHeader}>
@@ -1227,80 +846,6 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* Tab 8: Security & Preferences */}
-            {activeTab === "security" && (
-              <div>
-                <div className={styles.sectionHeader}>
-                  <h2>Security, Notifications & System Options</h2>
-                  <p>Configure automated system notifications, session timeouts, and theme preferences.</p>
-                </div>
-
-                <div className={styles.formGrid}>
-                  <div className={styles.toggleRow}>
-                    <div className={styles.toggleText}>
-                      <h4>System Email Notifications</h4>
-                      <p>Receive system alerts for low stock, new orders, and security updates via email.</p>
-                    </div>
-                    <label className={styles.switch}>
-                      <input
-                        type="checkbox"
-                        name="emailNotifications"
-                        checked={formData.emailNotifications}
-                        onChange={handleInputChange}
-                      />
-                      <span className={styles.slider}></span>
-                    </label>
-                  </div>
-
-                  <div className={styles.toggleRow}>
-                    <div className={styles.toggleText}>
-                      <h4>Daily Executive Summary Email</h4>
-                      <p>Send daily aggregated revenue, sales, and stock performance reports to admin email.</p>
-                    </div>
-                    <label className={styles.switch}>
-                      <input
-                        type="checkbox"
-                        name="dailyReportEmail"
-                        checked={formData.dailyReportEmail}
-                        onChange={handleInputChange}
-                      />
-                      <span className={styles.slider}></span>
-                    </label>
-                  </div>
-
-                  <div className={`${styles.formGrid} ${styles.formGrid2}`}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>User Session Timeout (Minutes)</label>
-                      <input
-                        type="number"
-                        min="5"
-                        max="1440"
-                        name="sessionTimeoutMinutes"
-                        value={formData.sessionTimeoutMinutes}
-                        onChange={handleInputChange}
-                        className={styles.input}
-                        placeholder="60"
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Default Interface Theme</label>
-                      <select
-                        name="themePreference"
-                        value={formData.themePreference}
-                        onChange={handleInputChange}
-                        className={styles.select}
-                      >
-                        <option value="system">Follow System Preference</option>
-                        <option value="light">Light Mode Clean</option>
-                        <option value="dark">Dark Mode Professional</option>
-                      </select>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

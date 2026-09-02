@@ -330,15 +330,6 @@ export default function Header({ toggleSidebar }) {
                   <FiSettings />
                   <span>System Settings</span>
                 </Link>
-
-                <Link
-                  href="/admin/audit-logs"
-                  className={styles.menuItem}
-                  onClick={() => setIsProfileOpen(false)}
-                >
-                  <FiClock />
-                  <span>Audit Activity Logs</span>
-                </Link>
               </div>
 
               <div className={styles.dropdownDivider} />

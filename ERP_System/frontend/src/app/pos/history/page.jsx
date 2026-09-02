@@ -446,16 +446,53 @@ export default function PosSalesHistoryPage() {
                   </thead>
                   <tbody>
                     {(selectedSale.items || selectedSale.cart || []).length > 0 ? (
-                      (selectedSale.items || selectedSale.cart).map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.product?.name || item.name || "Product Item"}</td>
-                          <td>{item.quantity || item.qty || 1}</td>
-                          <td>₹{Number(item.unitPrice || item.price || 0).toFixed(2)}</td>
-                          <td style={{ textAlign: "right" }}>
-                            ₹{Number(item.totalPrice || (item.price * item.qty) || 0).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))
+                      (selectedSale.items || selectedSale.cart).map((item, idx) => {
+                        const name =
+                          (typeof item.product === "string" ? item.product : item.product?.name) ||
+                          item.productName ||
+                          item.name ||
+                          item.title ||
+                          (typeof item.productId === "object" ? item.productId?.name : null) ||
+                          `Product Item #${idx + 1}`;
+
+                        const description =
+                          item.description ||
+                          item.desc ||
+                          (typeof item.product === "object" ? item.product?.description : null) ||
+                          item.productDescription ||
+                          item.notes ||
+                          "";
+
+                        const sku = item.sku || (typeof item.product === "object" ? item.product?.sku : "") || "";
+                        const barcode = item.barcode || (typeof item.product === "object" ? item.product?.barcode : "") || "";
+                        const qty = Number(item.quantity || item.qty || 1);
+                        const price = Number(item.unitPrice || item.price || 0);
+                        const total = Number(item.totalPrice || item.total || (price * qty));
+
+                        return (
+                          <tr key={idx}>
+                            <td style={{ verticalAlign: "top" }}>
+                              <div style={{ fontWeight: "700", color: "#0f172a" }}>{name}</div>
+                              {description && (
+                                <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px", lineHeight: "1.3" }}>
+                                  {description}
+                                </div>
+                              )}
+                              {(sku || barcode) && (
+                                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
+                                  {sku && <span style={{ fontSize: "10px", color: "#475569", background: "#f1f5f9", padding: "1px 5px", borderRadius: "3px" }}>SKU: {sku}</span>}
+                                  {barcode && <span style={{ fontSize: "10px", color: "#2563eb", background: "#eff6ff", padding: "1px 5px", borderRadius: "3px" }}>Barcode: {barcode}</span>}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ verticalAlign: "top" }}>{qty}</td>
+                            <td style={{ verticalAlign: "top" }}>₹{price.toFixed(2)}</td>
+                            <td style={{ textAlign: "right", verticalAlign: "top", fontWeight: "700" }}>
+                              ₹{total.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
                         <td colSpan="4" style={{ textAlign: "center", color: "#94a3b8", padding: "16px" }}>
