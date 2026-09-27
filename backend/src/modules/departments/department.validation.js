@@ -1,7 +1,10 @@
 import { departmentSchema } from "./department.schema.js";
 
 const validateDepartment = (req, res, next) => {
-  const { error } = departmentSchema.validate(req.body);
+  const { error, value } = departmentSchema.validate(req.body, {
+    abortEarly: false,
+    stripUnknown: true,
+  });
 
   if (error) {
     return res.status(400).json({
@@ -10,6 +13,7 @@ const validateDepartment = (req, res, next) => {
     });
   }
 
+  req.body = value;
   next();
 };
 

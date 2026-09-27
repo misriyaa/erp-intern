@@ -51,6 +51,59 @@ export const createPurchase = async (data) => {
       const itemQty = parseInt(item.quantity);
       const itemUnitPrice = parseFloat(item.unitPrice);
       const itemTotalPrice = parseFloat(item.totalPrice);
+      const itemMrp = item.mrp ? parseFloat(item.mrp) : null;
+      const itemExpiry = item.expiryDate ? new Date(item.expiryDate) : null;
+      const rawBatchNumber = (item.batchNumber || item.batch?.batchNumber || "").trim();
+      const batchNum = rawBatchNumber || `BATCH-${data.purchaseNo.slice(-6)}`;
+
+      // 1. Batch management: check if batch already exists for this product
+      let batchId = null;
+      const existingBatch = await tx.productBatch.findUnique({
+        where: {
+          productId_batchNumber: {
+            productId: item.productId,
+            batchNumber: batchNum,
+          },
+        },
+      });
+
+      if (existingBatch) {
+        // YES -> Increase that batch quantity
+        const updatedBatch = await tx.productBatch.update({
+          where: { id: existingBatch.id },
+          data: {
+            quantity: { increment: itemQty },
+            ...(itemMrp && itemMrp > 0 ? { mrp: itemMrp } : {}),
+            ...(itemUnitPrice > 0 ? { purchasePrice: itemUnitPrice } : {}),
+            ...(item.sellingPrice ? { sellingPrice: parseFloat(item.sellingPrice) } : {}),
+            ...(itemExpiry ? { expiryDate: itemExpiry } : {}),
+          },
+        });
+        batchId = updatedBatch.id;
+      } else {
+        // NO -> Create new batch
+        const mrpVal = itemMrp && itemMrp > 0
+          ? itemMrp
+          : Math.max(itemUnitPrice, Number(product.retailPrice || product.sellingPrice || itemUnitPrice));
+
+        const sellingVal = item.sellingPrice
+          ? parseFloat(item.sellingPrice)
+          : Math.max(itemUnitPrice, Number(product.sellingPrice || mrpVal));
+
+        const newBatch = await tx.productBatch.create({
+          data: {
+            productId: item.productId,
+            batchNumber: batchNum,
+            mrp: mrpVal,
+            purchasePrice: itemUnitPrice,
+            sellingPrice: sellingVal,
+            quantity: itemQty,
+            expiryDate: itemExpiry,
+            companyId: data.companyId || null,
+          },
+        });
+        batchId = newBatch.id;
+      }
 
       await tx.purchaseItem.create({
         data: {
@@ -59,6 +112,10 @@ export const createPurchase = async (data) => {
           quantity: itemQty,
           unitPrice: itemUnitPrice,
           totalPrice: itemTotalPrice,
+          batchNumber: batchNum,
+          batchId,
+          mrp: itemMrp,
+          expiryDate: itemExpiry,
         },
       });
 
@@ -75,7 +132,7 @@ export const createPurchase = async (data) => {
             id: inventory.id,
           },
           data: {
-            quantity: inventory.quantity + itemQty,
+            quantity: { increment: itemQty },
           },
         });
       } else {
@@ -88,6 +145,16 @@ export const createPurchase = async (data) => {
         });
       }
 
+      // Sync product total stock
+      const allProductBatches = await tx.productBatch.findMany({
+        where: { productId: item.productId },
+      });
+      const totalBatchStock = allProductBatches.reduce((acc, b) => acc + (b.quantity || 0), 0);
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { initialStock: totalBatchStock },
+      });
+
       await tx.stockMovement.create({
         data: {
           productId: item.productId,
@@ -95,7 +162,9 @@ export const createPurchase = async (data) => {
           type: "PURCHASE",
           quantity: itemQty,
           referenceNo: data.purchaseNo,
-          remarks: data.notes,
+          batchNumber: batchNum,
+          batchId,
+          remarks: data.notes || `Stock In via PO ${data.purchaseNo} to Batch ${batchNum}`,
         },
       });
     }

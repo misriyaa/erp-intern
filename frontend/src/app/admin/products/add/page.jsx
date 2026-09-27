@@ -62,6 +62,9 @@ const initialProduct = {
   isTextile: false,
 
   stockUnit: "Piece / Pcs",
+  batchNumber: "",
+  mrp: "",
+  expiryDate: "",
   initialStock: "",
   openingStockDate: new Date().toISOString().split("T")[0],
   reorderLevel: "10",
@@ -606,6 +609,10 @@ export default function AddRetailProductPage() {
       showWarning("Validation Required", "Please specify a valid selling price.");
       return false;
     }
+    if (product.mrp && Number(product.mrp) < Number(product.sellingPrice)) {
+      showWarning("Validation Required", "MRP must be greater than or equal to selling price.");
+      return false;
+    }
     if (!product.warehouseId) {
       showWarning("Validation Required", "Please select a warehouse from Warehouse Management.");
       return false;
@@ -717,6 +724,10 @@ export default function AddRetailProductPage() {
       formData.append("discountValue", product.discountValue || "0");
       formData.append("discountType", product.discountType);
       formData.append("taxRate", product.taxRate || "0");
+
+      if (product.batchNumber) formData.append("batchNumber", product.batchNumber.trim());
+      if (product.mrp) formData.append("mrp", product.mrp);
+      if (product.expiryDate) formData.append("expiryDate", product.expiryDate);
 
       if (product.supplierId) formData.append("supplierId", product.supplierId);
       formData.append("supplierProductCode", product.supplierProductCode);
@@ -1701,6 +1712,49 @@ export default function AddRetailProductPage() {
                   <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Stock Metrics</span>
                 </div>
                 <div className={styles.cardBody}>
+                  {/* BATCH SETUP */}
+                  <div style={{ padding: "16px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b", display: "block", marginBottom: "4px" }}>
+                      Initial Inventory Batch & MRP Setup (Optional)
+                    </span>
+                    <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 12px" }}>
+                      A product can exist without stock. Enter initial batch details to initialize stock with a specific batch number and MRP.
+                    </p>
+                    <div className={styles.row}>
+                      <div className={styles.formGroup}>
+                        <label>Initial Batch Number</label>
+                        <input
+                          type="text"
+                          name="batchNumber"
+                          value={product.batchNumber}
+                          onChange={handleChange}
+                          placeholder="e.g. COKE001"
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Batch MRP (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name="mrp"
+                          value={product.mrp}
+                          onChange={handleChange}
+                          placeholder="e.g. 60.00"
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Expiry Date</label>
+                        <input
+                          type="date"
+                          name="expiryDate"
+                          value={product.expiryDate}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className={styles.row}>
                     <div className={styles.formGroup}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

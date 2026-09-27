@@ -7,6 +7,11 @@ const commonInclude = {
   supplier: true,
   barcodes: true,
   variants: true,
+  batches: {
+    orderBy: {
+      createdAt: "asc",
+    },
+  },
   inventories: {
     include: {
       warehouse: true,

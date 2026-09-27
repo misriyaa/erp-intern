@@ -174,6 +174,30 @@ export const createProduct = async (data) => {
         },
       }).catch(() => {});
     }
+
+    // Initial Inventory Batch Creation (Logically separated flow)
+    const initialBatchNumber = (data.batchNumber || data.initialBatch?.batchNumber || "").trim();
+    if (initialBatchNumber || initialQty > 0) {
+      const batchNum = initialBatchNumber || `BATCH-${Date.now().toString().slice(-4)}`;
+      const batchMrp = parseFloat(data.mrp || data.initialBatch?.mrp || data.retailPrice || cleanData.sellingPrice);
+      const batchPurchasePrice = parseFloat(data.purchasePrice || data.initialBatch?.purchasePrice || cleanData.costPrice);
+      const batchSellingPrice = parseFloat(data.sellingPrice || data.initialBatch?.sellingPrice || cleanData.sellingPrice);
+      const batchQuantity = initialQty > 0 ? initialQty : Math.max(0, parseInt(data.quantity || data.initialBatch?.quantity || 0, 10));
+      const batchExpiry = data.expiryDate || data.initialBatch?.expiryDate || null;
+
+      await prisma.productBatch.create({
+        data: {
+          productId: product.id,
+          batchNumber: batchNum,
+          mrp: isNaN(batchMrp) || batchMrp <= 0 ? (batchSellingPrice > 0 ? batchSellingPrice : 10) : batchMrp,
+          purchasePrice: isNaN(batchPurchasePrice) ? 0 : batchPurchasePrice,
+          sellingPrice: isNaN(batchSellingPrice) ? 0 : batchSellingPrice,
+          quantity: batchQuantity,
+          expiryDate: batchExpiry ? new Date(batchExpiry) : null,
+          companyId: cleanData.companyId || null,
+        },
+      }).catch(() => {});
+    }
   } catch (invErr) {
     // Inventory initialization soft notice
   }
@@ -187,11 +211,60 @@ export const createProduct = async (data) => {
     }
   }
 
-  return await productRepository.getProductById(product.id);
+  const createdProduct = await productRepository.getProductById(product.id);
+  return formatProductWithBatchMetrics(createdProduct);
+};
+
+export const formatProductWithBatchMetrics = (product) => {
+  if (!product) return product;
+
+  const batches = Array.isArray(product.batches) ? product.batches : [];
+  const batchCount = batches.length;
+
+  let totalStock = 0;
+  if (batchCount > 0) {
+    totalStock = batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+  } else if (Array.isArray(product.inventories) && product.inventories.length > 0) {
+    totalStock = product.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0);
+  } else {
+    totalStock = Number(product.initialStock || 0);
+  }
+
+  let minMrp = null;
+  let maxMrp = null;
+  let hasMultipleMrps = false;
+  let mrpDisplay = null;
+
+  if (batchCount > 0) {
+    const mrpValues = batches.map((b) => Number(b.mrp)).filter((v) => !isNaN(v) && v > 0);
+    if (mrpValues.length > 0) {
+      minMrp = Math.min(...mrpValues);
+      maxMrp = Math.max(...mrpValues);
+      hasMultipleMrps = minMrp !== maxMrp;
+      mrpDisplay = hasMultipleMrps ? `₹${minMrp.toFixed(2)} - ₹${maxMrp.toFixed(2)}` : `₹${minMrp.toFixed(2)}`;
+    }
+  }
+
+  if (!mrpDisplay) {
+    const defaultMrp = Number(product.retailPrice || product.sellingPrice || 0);
+    mrpDisplay = `₹${defaultMrp.toFixed(2)}`;
+  }
+
+  return {
+    ...product,
+    totalStock,
+    currentStock: totalStock,
+    batchCount,
+    hasMultipleMrps,
+    minMrp,
+    maxMrp,
+    mrpDisplay,
+  };
 };
 
 export const getAllProducts = async (companyId) => {
-  return await productRepository.getAllProducts(companyId);
+  const products = await productRepository.getAllProducts(companyId);
+  return products.map(formatProductWithBatchMetrics);
 };
 
 export const getProductById = async (id) => {
@@ -201,11 +274,12 @@ export const getProductById = async (id) => {
     throw new Error("Product not found.");
   }
 
-  return product;
+  return formatProductWithBatchMetrics(product);
 };
 
 export const searchProducts = async (search) => {
-  return await productRepository.searchProducts(search);
+  const products = await productRepository.searchProducts(search);
+  return products.map(formatProductWithBatchMetrics);
 };
 
 export const updateProduct = async (id, data) => {
@@ -344,7 +418,8 @@ export const updateProduct = async (id, data) => {
     }
   }
 
-  return await productRepository.updateProduct(id, cleanUpdate);
+  const updated = await productRepository.updateProduct(id, cleanUpdate);
+  return formatProductWithBatchMetrics(updated);
 };
 
 export const deleteProduct = async (id) => {

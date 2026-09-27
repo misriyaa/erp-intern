@@ -11,6 +11,7 @@ import Swal from "sweetalert2";
 import apiClient from "@/services/apiClient";
 import { useAlert } from "@/context/AlertContext";
 import PrintInvoice from "@/app/invoices/components/PrintInvoice";
+import BatchSelectionModal from "./components/BatchSelectionModal";
 
 export default function POSPage() {
   const [products, setProducts] = useState([]);
@@ -33,6 +34,7 @@ export default function POSPage() {
   const [selectedPayment, setSelectedPayment] = useState("Cash");
   const [cart, setCart] = useState([]);
   const [localHeldDrafts, setLocalHeldDrafts] = useState([]);
+  const [batchModalProduct, setBatchModalProduct] = useState(null);
 
   useEffect(() => {
     if (customer === "" && selectedPayment === "Credit") {
@@ -78,7 +80,10 @@ export default function POSPage() {
         );
 
         const mapped = retailOnly.map((p) => {
-          const stockQty = (p.inventories && p.inventories.length > 0)
+          const batches = p.batches || [];
+          const stockQty = (batches.length > 0)
+            ? batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0)
+            : (p.inventories && p.inventories.length > 0)
             ? p.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0)
             : (p.currentStock !== undefined && p.currentStock !== null
                 ? Number(p.currentStock)
@@ -101,6 +106,9 @@ export default function POSPage() {
             sellingPrice: Number(p.sellingPrice) || 0,
             costPrice: Number(p.costPrice) || 0,
             stock: stockQty,
+            batches: batches,
+            batchCount: p.batchCount || batches.length,
+            mrpRange: p.mrpRange || null,
             category: categoryName || "General",
             categoryId: p.categoryId || categoryObj?.id || null,
             brand: brandName || "Generic",
@@ -158,26 +166,46 @@ export default function POSPage() {
     });
   }, [products, activeCategory, selectedBrand, query]);
 
-  const addToCart = (product) => {
-    const available = Number(product.stock ?? 0);
+  const addToCart = (product, chosenBatch = null) => {
+    // If product has multiple batches and no specific batch is chosen, prompt selection
+    const activeBatches = (product.batches || []).filter((b) => Number(b.quantity) > 0);
+    if (!chosenBatch && activeBatches.length > 1) {
+      setBatchModalProduct(product);
+      return;
+    }
+
+    // Auto-select batch if exactly 1 active batch exists
+    const targetBatch = chosenBatch || (activeBatches.length === 1 ? activeBatches[0] : null);
+
+    const available = targetBatch ? Number(targetBatch.quantity || 0) : Number(product.stock ?? 0);
     if (available <= 0) {
       Swal.fire({
         title: "Out of Stock",
-        text: `"${product.name}" is currently out of stock (0 available).`,
+        text: targetBatch
+          ? `Batch "${targetBatch.batchNumber}" of "${product.name}" is out of stock.`
+          : `"${product.name}" is currently out of stock (0 available).`,
         icon: "warning",
         confirmButtonColor: "#f59e0b",
       });
       return;
     }
 
+    const itemPrice = targetBatch
+      ? Number(targetBatch.sellingPrice || targetBatch.mrp || product.price)
+      : Number(product.price);
+    const itemKey = targetBatch ? `${product.id}-${targetBatch.id}` : product.id;
+
     setCart((prev) => {
-      const existingIndex = prev.findIndex((item) => item.id === product.id);
+      const existingIndex = prev.findIndex((item) =>
+        targetBatch ? item.itemKey === itemKey : (item.id === product.id && !item.batchId)
+      );
+
       if (existingIndex > -1) {
         const currentQty = prev[existingIndex].qty;
         if (currentQty + 1 > available) {
           Swal.fire({
             title: "Stock Limit Reached",
-            text: `Cannot add more than ${available} unit(s) of "${product.name}".`,
+            text: `Cannot add more than ${available} unit(s) of "${product.name}"${targetBatch ? ` (Batch: ${targetBatch.batchNumber})` : ""}.`,
             icon: "warning",
             confirmButtonColor: "#f59e0b",
           });
@@ -187,14 +215,20 @@ export default function POSPage() {
           idx === existingIndex ? { ...item, qty: item.qty + 1 } : item
         );
       }
+
       return [
         ...prev,
         {
-          cartId: Date.now(),
+          cartId: Date.now() + Math.random(),
+          itemKey,
           id: product.id,
           name: product.name,
           sku: product.sku,
-          price: product.price,
+          price: itemPrice,
+          mrp: targetBatch ? Number(targetBatch.mrp || itemPrice) : Number(product.mrp || itemPrice),
+          batchId: targetBatch ? targetBatch.id : null,
+          batchNumber: targetBatch ? targetBatch.batchNumber : null,
+          expiryDate: targetBatch ? targetBatch.expiryDate : null,
           qty: 1,
           stock: available,
           imageUrl: product.imageUrl,
@@ -389,15 +423,30 @@ export default function POSPage() {
 
     // Pre-validate that all cart items have enough stock
     for (const item of cart) {
-      const prod = products.find((p) => p.id === item.id);
-      if (prod && item.qty > (prod.stock ?? 0)) {
-        Swal.fire({
-          title: "Insufficient Stock",
-          text: `Cannot sell ${item.qty} unit(s) of "${item.name}". Only ${prod.stock ?? 0} available in stock.`,
-          icon: "error",
-          confirmButtonColor: "#ef4444",
-        });
-        return;
+      if (item.batchId) {
+        const prod = products.find((p) => p.id === item.id);
+        const batch = prod?.batches?.find((b) => b.id === item.batchId || b.batchNumber === item.batchNumber);
+        const avail = batch ? Number(batch.quantity) : (item.stock ?? 0);
+        if (item.qty > avail) {
+          Swal.fire({
+            title: "Insufficient Batch Stock",
+            text: `Cannot sell ${item.qty} unit(s) of "${item.name}" (Batch ${item.batchNumber}). Only ${avail} available in stock.`,
+            icon: "error",
+            confirmButtonColor: "#ef4444",
+          });
+          return;
+        }
+      } else {
+        const prod = products.find((p) => p.id === item.id);
+        if (prod && item.qty > (prod.stock ?? 0)) {
+          Swal.fire({
+            title: "Insufficient Stock",
+            text: `Cannot sell ${item.qty} unit(s) of "${item.name}". Only ${prod.stock ?? 0} available in stock.`,
+            icon: "error",
+            confirmButtonColor: "#ef4444",
+          });
+          return;
+        }
       }
     }
 
@@ -424,6 +473,8 @@ export default function POSPage() {
         quantity: item.qty,
         unitPrice: item.price,
         totalPrice: item.price * item.qty,
+        batchId: item.batchId || null,
+        batchNumber: item.batchNumber || null,
       })),
     };
 
@@ -839,11 +890,23 @@ export default function POSPage() {
             tax: selectedReceipt.taxAmount || 0,
             total: selectedReceipt.netAmount,
             items: selectedReceipt.cart?.map(item => ({
-              productName: item.name,
+              productName: item.batchNumber ? `${item.name} (${item.batchNumber})` : item.name,
               quantity: item.qty,
               unitPrice: item.price,
               totalPrice: item.qty * item.price,
             })) || [],
+          }}
+        />
+      )}
+
+      {batchModalProduct && (
+        <BatchSelectionModal
+          isOpen={Boolean(batchModalProduct)}
+          onClose={() => setBatchModalProduct(null)}
+          product={batchModalProduct}
+          onSelectBatch={(p, b) => {
+            addToCart(p, b);
+            setBatchModalProduct(null);
           }}
         />
       )}

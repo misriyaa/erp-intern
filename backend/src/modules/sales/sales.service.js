@@ -119,24 +119,67 @@ class SalesService {
       const inventoryUpdates = [];
       const items = Array.isArray(data.items) ? data.items : [];
 
-      // 2. Validate and Deduct Inventory Stock for all sold items
+      // 2. Validate and Deduct Inventory Stock for all sold items (Batch-wise & Authoritative)
       for (const item of items) {
         const productId = item.productId || item.id;
         const soldQty = Number(item.quantity || item.qty || 1);
 
         if (!productId || soldQty <= 0) continue;
 
-        // Fetch product with inventories
+        // Fetch product with inventories and batches
         const product = await tx.product.findUnique({
           where: { id: productId },
           include: {
             inventories: true,
+            batches: {
+              orderBy: [
+                { expiryDate: "asc" },
+                { createdAt: "asc" },
+              ],
+            },
             unit: true,
           },
         });
 
         if (!product) {
           throw new Error(`Product not found with ID: ${productId}`);
+        }
+
+        // BATCH SELECTION LOGIC (Manual batchId or auto FEFO/FIFO fallback)
+        let selectedBatch = null;
+        if (item.batchId) {
+          selectedBatch = product.batches.find((b) => b.id === item.batchId);
+          if (!selectedBatch) {
+            throw new Error(`Batch ID "${item.batchId}" not found for "${product.name}".`);
+          }
+        } else if (item.batchNumber) {
+          selectedBatch = product.batches.find((b) => b.batchNumber === item.batchNumber);
+        }
+
+        // If no explicit batch specified, apply automated batch selection (FEFO/FIFO)
+        if (!selectedBatch && product.batches && product.batches.length > 0) {
+          // Find first batch with available stock
+          selectedBatch = product.batches.find((b) => Number(b.quantity) >= soldQty) || product.batches.find((b) => Number(b.quantity) > 0) || product.batches[0];
+        }
+
+        // Validate batch stock if product has batches
+        if (selectedBatch) {
+          const batchAvailable = Number(selectedBatch.quantity);
+          if (soldQty > batchAvailable) {
+            throw new Error(
+              `Insufficient stock for "${product.name}" in Batch "${selectedBatch.batchNumber}". Available: ${batchAvailable}, Requested: ${soldQty}`
+            );
+          }
+
+          // Deduct from the selected batch only
+          const newBatchQuantity = batchAvailable - soldQty;
+          await tx.productBatch.update({
+            where: { id: selectedBatch.id },
+            data: { quantity: newBatchQuantity },
+          });
+
+          item.batchId = selectedBatch.id;
+          item.batchNumber = selectedBatch.batchNumber;
         }
 
         // Find or auto-initialize inventory record in warehouse
@@ -157,13 +200,18 @@ class SalesService {
           });
         }
 
-        const availableStock = Number(invRecord.quantity);
+        let availableStock = Number(invRecord.quantity);
 
         // PREVENT NEGATIVE STOCK / VALIDATE STOCK AVAILABILITY
         if (soldQty > availableStock) {
-          throw new Error(
-            `Insufficient stock for "${product.name}". Available: ${availableStock}, Requested: ${soldQty}`
-          );
+          const totalBatchQty = product.batches?.reduce((acc, b) => acc + (b.quantity || 0), 0) || 0;
+          if (totalBatchQty >= soldQty) {
+            availableStock = totalBatchQty;
+          } else {
+            throw new Error(
+              `Insufficient warehouse stock for "${product.name}". Available: ${availableStock}, Requested: ${soldQty}`
+            );
+          }
         }
 
         const newStock = Math.max(0, availableStock - soldQty);
@@ -174,13 +222,24 @@ class SalesService {
           data: { quantity: newStock },
         });
 
-        // Also sync Product initialStock field
-        await tx.product.update({
-          where: { id: product.id },
-          data: { initialStock: newStock },
-        });
+        // Also sync Product initialStock field with total batch stock or warehouse stock
+        if (product.batches && product.batches.length > 0) {
+          const remainingBatches = await tx.productBatch.findMany({
+            where: { productId: product.id },
+          });
+          const totalRemainingBatchStock = remainingBatches.reduce((acc, b) => acc + (b.quantity || 0), 0);
+          await tx.product.update({
+            where: { id: product.id },
+            data: { initialStock: totalRemainingBatchStock },
+          });
+        } else {
+          await tx.product.update({
+            where: { id: product.id },
+            data: { initialStock: newStock },
+          });
+        }
 
-        // Create Stock Movement record for full audit history
+        // Create Stock Movement record for full audit history with batch details
         await tx.stockMovement.create({
           data: {
             productId: product.id,
@@ -188,7 +247,11 @@ class SalesService {
             type: "SALE",
             quantity: -soldQty,
             referenceNo: finalOrderNumber,
-            remarks: `POS Sale ${finalOrderNumber} (${soldQty} ${product.unit?.name || "units"})`,
+            batchNumber: selectedBatch ? selectedBatch.batchNumber : null,
+            batchId: selectedBatch ? selectedBatch.id : null,
+            remarks: `POS Sale ${finalOrderNumber} (${soldQty} ${product.unit?.name || "units"}${
+              selectedBatch ? ` from Batch ${selectedBatch.batchNumber}` : ""
+            })`,
             performedBy,
             companyId: companyId || null,
           },
@@ -197,6 +260,7 @@ class SalesService {
         inventoryUpdates.push({
           productId: product.id,
           productName: product.name,
+          batchNumber: selectedBatch ? selectedBatch.batchNumber : null,
           previousQuantity: availableStock,
           newQuantity: newStock,
           soldQuantity: soldQty,
@@ -249,6 +313,8 @@ class SalesService {
                 item.totalPrice ||
                   Number(item.price || item.unitPrice || 0) * Number(item.quantity || item.qty || 1)
               ),
+              batchId: item.batchId || null,
+              batchNumber: item.batchNumber || null,
             })),
           },
         },
