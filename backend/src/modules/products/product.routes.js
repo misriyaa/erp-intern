@@ -7,8 +7,12 @@ import {
 
 import validateRequest from "../../middlewares/validateRequest.js";
 import upload from "../../middlewares/upload.middleware.js";
+import batchRoutes from "../batches/batch.routes.js";
 
 const router = Router();
+
+// Nested batch routes: /api/products/:productId/batches
+router.use("/:productId/batches", batchRoutes);
 
 router.post(
   "/",

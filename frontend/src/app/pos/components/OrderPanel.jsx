@@ -357,6 +357,24 @@ export default function OrderPanel({
                           <div className="pos-cart-product-title">{item.name}</div>
                           <div className="pos-cart-product-sku">
                             SKU: {item.sku || item.code || "N/A"}
+                            {item.batchNumber && (
+                              <span
+                                style={{
+                                  marginLeft: "6px",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  backgroundColor: "#eff6ff",
+                                  color: "#2563eb",
+                                  fontWeight: "700",
+                                  fontSize: "11px",
+                                }}
+                              >
+                                Batch: {item.batchNumber}
+                                {item.mrp && Number(item.mrp) !== Number(item.price)
+                                  ? ` (MRP ₹${Number(item.mrp).toFixed(2)})`
+                                  : ""}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

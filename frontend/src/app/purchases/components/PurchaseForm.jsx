@@ -41,6 +41,9 @@ export default function PurchaseForm({ purchaseId, isEdit = false }) {
   const [items, setItems] = useState([
     {
       productId: "",
+      batchNumber: "",
+      mrp: "",
+      expiryDate: "",
       quantity: 1,
       unitPrice: 0,
       totalPrice: 0,
@@ -117,6 +120,9 @@ export default function PurchaseForm({ purchaseId, isEdit = false }) {
               const totP = Number(it.totalPrice !== undefined ? it.totalPrice : qty * unitP);
               return {
                 productId: it.productId || it.product?.id || "",
+                batchNumber: it.batchNumber || it.batch?.batchNumber || "",
+                mrp: it.mrp !== undefined && it.mrp !== null ? it.mrp : "",
+                expiryDate: it.expiryDate ? new Date(it.expiryDate).toISOString().split("T")[0] : "",
                 quantity: qty,
                 unitPrice: unitP,
                 totalPrice: totP,
@@ -148,9 +154,20 @@ export default function PurchaseForm({ purchaseId, isEdit = false }) {
         const price = Number(selectedProd.costPrice || selectedProd.sellingPrice || 0);
         currentItem.unitPrice = price;
         currentItem.totalPrice = currentItem.quantity * price;
+        const primaryBatch = selectedProd.batches?.[0];
+        if (primaryBatch) {
+          currentItem.mrp = primaryBatch.mrp || selectedProd.sellingPrice || 0;
+          if (!currentItem.batchNumber) {
+            currentItem.batchNumber = primaryBatch.batchNumber || "";
+          }
+        } else {
+          currentItem.mrp = Number(selectedProd.sellingPrice || price);
+        }
       } else {
         currentItem.unitPrice = 0;
         currentItem.totalPrice = 0;
+        currentItem.mrp = "";
+        currentItem.batchNumber = "";
       }
     } else if (field === "quantity") {
       const qty = Math.max(1, Number(value) || 1);
@@ -160,6 +177,12 @@ export default function PurchaseForm({ purchaseId, isEdit = false }) {
       const price = Math.max(0, Number(value) || 0);
       currentItem.unitPrice = price;
       currentItem.totalPrice = currentItem.quantity * price;
+    } else if (field === "batchNumber") {
+      currentItem.batchNumber = value;
+    } else if (field === "mrp") {
+      currentItem.mrp = value;
+    } else if (field === "expiryDate") {
+      currentItem.expiryDate = value;
     }
 
     updated[index] = currentItem;
@@ -172,6 +195,9 @@ export default function PurchaseForm({ purchaseId, isEdit = false }) {
       ...prev,
       {
         productId: "",
+        batchNumber: "",
+        mrp: "",
+        expiryDate: "",
         quantity: 1,
         unitPrice: 0,
         totalPrice: 0,
@@ -226,6 +252,9 @@ export default function PurchaseForm({ purchaseId, isEdit = false }) {
         totalAmount: grandTotal,
         items: items.map((item) => ({
           productId: item.productId,
+          batchNumber: item.batchNumber ? item.batchNumber.trim() : undefined,
+          mrp: item.mrp !== "" && !isNaN(Number(item.mrp)) ? Number(item.mrp) : undefined,
+          expiryDate: item.expiryDate || undefined,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice,
@@ -412,150 +441,216 @@ export default function PurchaseForm({ purchaseId, isEdit = false }) {
             </span>
           </div>
 
-          {/* Table Header */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "5fr 2fr 2fr 2fr 1fr",
-              gap: "12px",
-              background: "#f8fafc",
-              border: "1px solid #e1e6ec",
-              borderRadius: "7px",
-              padding: "10px 14px",
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "#17304b",
-              textTransform: "uppercase",
-              marginBottom: "8px",
-            }}
-          >
-            <div>Product Name</div>
-            <div style={{ textAlign: "center" }}>Quantity</div>
-            <div style={{ textAlign: "right" }}>Unit Price (₹)</div>
-            <div style={{ textAlign: "right" }}>Total (₹)</div>
-            <div style={{ textAlign: "center" }}>Action</div>
-          </div>
-
-          {/* Item Rows */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {items.map((item, index) => (
+          {/* Table Container with horizontal scroll */}
+          <div style={{ overflowX: "auto", border: "1px solid #e1e6ec", borderRadius: "8px", background: "#f8fafc" }}>
+            <div style={{ minWidth: "860px", padding: "8px" }}>
+              {/* Table Header */}
               <div
-                key={index}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "5fr 2fr 2fr 2fr 1fr",
-                  gap: "12px",
-                  alignItems: "center",
-                  background: "#ffffff",
-                  border: "1px solid #dce2e8",
-                  borderRadius: "7px",
-                  padding: "8px 14px",
+                  gridTemplateColumns: "2.8fr 1.6fr 1.2fr 1.5fr 1fr 1.2fr 1.3fr 0.6fr",
+                  gap: "10px",
+                  background: "#f1f5f9",
+                  borderRadius: "6px",
+                  padding: "10px 12px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "#17304b",
+                  textTransform: "uppercase",
+                  marginBottom: "8px",
                 }}
               >
-                <div>
-                  <select
-                    required
-                    value={item.productId}
-                    onChange={(e) => updateItem(index, "productId", e.target.value)}
-                    style={{
-                      width: "100%",
-                      height: "38px",
-                      padding: "6px 10px",
-                      borderRadius: "6px",
-                      border: "1px solid #dce2e8",
-                      fontSize: "13px",
-                      outline: "none",
-                      color: "#263b55",
-                      background: "#ffffff",
-                    }}
-                    disabled={loadingData}
-                  >
-                    <option value="">Select Product</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} {p.sku ? `(SKU: ${p.sku})` : ""} - ₹{p.costPrice || p.sellingPrice || 0}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={item.quantity}
-                    onChange={(e) => updateItem(index, "quantity", e.target.value)}
-                    style={{
-                      width: "100%",
-                      height: "38px",
-                      padding: "6px 10px",
-                      textAlign: "center",
-                      borderRadius: "6px",
-                      border: "1px solid #dce2e8",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      outline: "none",
-                      color: "#263b55",
-                    }}
-                    placeholder="1"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                    value={item.unitPrice}
-                    onChange={(e) => updateItem(index, "unitPrice", e.target.value)}
-                    style={{
-                      width: "100%",
-                      height: "38px",
-                      padding: "6px 10px",
-                      textAlign: "right",
-                      borderRadius: "6px",
-                      border: "1px solid #dce2e8",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      outline: "none",
-                      color: "#263b55",
-                    }}
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div
-                  style={{
-                    textAlign: "right",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    color: "#1f344d",
-                  }}
-                >
-                  ₹{(item.totalPrice || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </div>
-
-                <div style={{ textAlign: "center" }}>
-                  <button
-                    type="button"
-                    onClick={() => removeItemRow(index)}
-                    disabled={items.length === 1}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: items.length === 1 ? "#cbd5e1" : "#94a3b8",
-                      cursor: items.length === 1 ? "not-allowed" : "pointer",
-                      padding: "4px",
-                    }}
-                    title="Remove item"
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
-                </div>
+                <div>Product Name</div>
+                <div>Batch No.</div>
+                <div style={{ textAlign: "right" }}>MRP (₹)</div>
+                <div>Expiry Date</div>
+                <div style={{ textAlign: "center" }}>Qty</div>
+                <div style={{ textAlign: "right" }}>Cost (₹)</div>
+                <div style={{ textAlign: "right" }}>Total (₹)</div>
+                <div style={{ textAlign: "center" }}>Action</div>
               </div>
-            ))}
+
+              {/* Item Rows */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {items.map((item, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "2.8fr 1.6fr 1.2fr 1.5fr 1fr 1.2fr 1.3fr 0.6fr",
+                      gap: "10px",
+                      alignItems: "center",
+                      background: "#ffffff",
+                      border: "1px solid #dce2e8",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                    }}
+                  >
+                    <div>
+                      <select
+                        required
+                        value={item.productId}
+                        onChange={(e) => updateItem(index, "productId", e.target.value)}
+                        style={{
+                          width: "100%",
+                          height: "36px",
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid #dce2e8",
+                          fontSize: "13px",
+                          outline: "none",
+                          color: "#263b55",
+                          background: "#ffffff",
+                        }}
+                        disabled={loadingData}
+                      >
+                        <option value="">Select Product</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.sku ? `(SKU: ${p.sku})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <input
+                        type="text"
+                        value={item.batchNumber}
+                        onChange={(e) => updateItem(index, "batchNumber", e.target.value)}
+                        style={{
+                          width: "100%",
+                          height: "36px",
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid #dce2e8",
+                          fontSize: "12px",
+                          outline: "none",
+                          color: "#263b55",
+                        }}
+                        placeholder="e.g. BATCH-01"
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.mrp}
+                        onChange={(e) => updateItem(index, "mrp", e.target.value)}
+                        style={{
+                          width: "100%",
+                          height: "36px",
+                          padding: "6px 8px",
+                          textAlign: "right",
+                          borderRadius: "6px",
+                          border: "1px solid #dce2e8",
+                          fontSize: "12px",
+                          outline: "none",
+                          color: "#263b55",
+                        }}
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        type="date"
+                        value={item.expiryDate}
+                        onChange={(e) => updateItem(index, "expiryDate", e.target.value)}
+                        style={{
+                          width: "100%",
+                          height: "36px",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid #dce2e8",
+                          fontSize: "12px",
+                          outline: "none",
+                          color: "#263b55",
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                        style={{
+                          width: "100%",
+                          height: "36px",
+                          padding: "6px 8px",
+                          textAlign: "center",
+                          borderRadius: "6px",
+                          border: "1px solid #dce2e8",
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          outline: "none",
+                          color: "#263b55",
+                        }}
+                        placeholder="1"
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={item.unitPrice}
+                        onChange={(e) => updateItem(index, "unitPrice", e.target.value)}
+                        style={{
+                          width: "100%",
+                          height: "36px",
+                          padding: "6px 8px",
+                          textAlign: "right",
+                          borderRadius: "6px",
+                          border: "1px solid #dce2e8",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          outline: "none",
+                          color: "#263b55",
+                        }}
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "right",
+                        fontWeight: 700,
+                        fontSize: "13px",
+                        color: "#1f344d",
+                      }}
+                    >
+                      ₹{(item.totalPrice || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </div>
+
+                    <div style={{ textAlign: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => removeItemRow(index)}
+                        disabled={items.length === 1}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: items.length === 1 ? "#cbd5e1" : "#94a3b8",
+                          cursor: items.length === 1 ? "not-allowed" : "pointer",
+                          padding: "4px",
+                        }}
+                        title="Remove item"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <button

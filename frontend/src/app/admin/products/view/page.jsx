@@ -270,6 +270,12 @@ export default function ProductsPage() {
   ]);
 
   const getProductQuantity = (product) => {
+    if (Array.isArray(product.batches) && product.batches.length > 0) {
+      return product.batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+    }
+    if (product.totalStock !== undefined && product.totalStock !== null) {
+      return Number(product.totalStock);
+    }
     if (product.currentStock !== undefined && product.currentStock !== null) {
       return Number(product.currentStock);
     }
@@ -277,6 +283,26 @@ export default function ProductsPage() {
       return product.inventories.reduce((sum, inv) => sum + (Number(inv.quantity) || 0), 0);
     }
     return Number(product.initialStock || 0);
+  };
+
+  const getProductMrpDisplay = (product) => {
+    const batches = Array.isArray(product.batches) ? product.batches : [];
+    if (batches.length > 0) {
+      const mrpList = batches.map((b) => Number(b.mrp)).filter((v) => !isNaN(v) && v > 0);
+      if (mrpList.length > 0) {
+        const minMrp = Math.min(...mrpList);
+        const maxMrp = Math.max(...mrpList);
+        if (minMrp !== maxMrp) {
+          return { text: `₹${minMrp.toFixed(2)} - ₹${maxMrp.toFixed(2)}`, isRange: true, count: batches.length };
+        }
+        return { text: `₹${minMrp.toFixed(2)}`, isRange: false, count: batches.length };
+      }
+    }
+    if (product.mrpDisplay) {
+      return { text: product.mrpDisplay, isRange: Boolean(product.hasMultipleMrps), count: product.batchCount || 0 };
+    }
+    const val = Number(product.retailPrice || product.sellingPrice || 0);
+    return { text: `₹${val.toFixed(2)}`, isRange: false, count: 0 };
   };
 
   /* =========================================================
@@ -370,41 +396,57 @@ export default function ProductsPage() {
 
   const handleExport = () => {
     const headers = [
-      "Code",
-      "Product",
+      "Product Name",
       "SKU",
+      "Batch Number",
+      "MRP",
+      "Purchase Price",
+      "Selling Price",
+      "Quantity",
+      "Expiry Date",
       "Category",
       "Brand",
-      "Unit",
-      "Quantity",
       "Status",
-      "Selling Price",
-      "Purchase Price",
     ];
 
-    const rows = filteredProducts.map(
-      (product) => [
-        product.code || "N/A",
+    const rows = [];
+    filteredProducts.forEach((product) => {
+      const batches = Array.isArray(product.batches) && product.batches.length > 0
+        ? product.batches
+        : null;
 
-        product.name || "N/A",
-
-        product.sku || "N/A",
-
-        product.category?.name || "N/A",
-
-        product.brand?.name || "N/A",
-
-        product.unit?.name || "N/A",
-
-        product.inventories?.[0]?.quantity || 0,
-
-        getProductStatus(product),
-
-        product.sellingPrice || 0,
-
-        product.costPrice || 0,
-      ]
-    );
+      if (batches) {
+        batches.forEach((b) => {
+          rows.push([
+            product.name || "N/A",
+            product.sku || "N/A",
+            b.batchNumber || "N/A",
+            b.mrp ? Number(b.mrp).toFixed(2) : "0.00",
+            b.purchasePrice ? Number(b.purchasePrice).toFixed(2) : "0.00",
+            b.sellingPrice ? Number(b.sellingPrice).toFixed(2) : "0.00",
+            b.quantity || 0,
+            b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : "N/A",
+            product.category?.name || "N/A",
+            product.brand?.name || "N/A",
+            getProductStatus(product),
+          ]);
+        });
+      } else {
+        rows.push([
+          product.name || "N/A",
+          product.sku || "N/A",
+          "Default",
+          Number(product.retailPrice || product.sellingPrice || 0).toFixed(2),
+          Number(product.costPrice || 0).toFixed(2),
+          Number(product.sellingPrice || 0).toFixed(2),
+          getProductQuantity(product),
+          "N/A",
+          product.category?.name || "N/A",
+          product.brand?.name || "N/A",
+          getProductStatus(product),
+        ]);
+      }
+    });
 
     const csv = [
       headers.join(","),
@@ -814,12 +856,11 @@ export default function ProductsPage() {
                     <th>Product</th>
                     <th>SKU</th>
                     <th>Category</th>
-                    <th>Brand</th>
-                    <th>Unit</th>
-                    <th>Quantity</th>
-                    <th>Status</th>
+                    <th>Total Stock</th>
+                    <th>Batches</th>
+                    <th>MRP</th>
                     <th>Selling Price</th>
-                    <th>Purchase Price</th>
+                    <th>Status</th>
                     <th>Action</th>
                   </tr>
                 )}
@@ -992,28 +1033,71 @@ export default function ProductsPage() {
                               "N/A"}
                           </td>
 
-                          {/* BRAND */}
+                          {/* TOTAL STOCK */}
 
-                          <td>
-                            {product.brand
-                              ?.name ||
-                              "N/A"}
+                          <td style={{ fontWeight: "700", color: "#0f172a" }}>
+                            {quantity}
                           </td>
 
-                          {/* UNIT */}
+                          {/* BATCHES */}
 
                           <td>
-                            {product.unit
-                              ?.name ||
-                              "N/A"}
+                            <span
+                              style={{
+                                display: "inline-block",
+                                padding: "3px 10px",
+                                borderRadius: "12px",
+                                fontSize: "12px",
+                                fontWeight: "700",
+                                backgroundColor: "#eff6ff",
+                                color: "#1d4ed8",
+                              }}
+                            >
+                              {Array.isArray(product.batches) ? product.batches.length : (product.batchCount || 0)}{" "}
+                              {(Array.isArray(product.batches) ? product.batches.length : (product.batchCount || 0)) === 1 ? "Batch" : "Batches"}
+                            </span>
                           </td>
 
-                          {/* QUANTITY */}
+                          {/* MRP */}
 
                           <td>
-                            {String(
-                              quantity
-                            ).padStart(2, "0")}
+                            {(() => {
+                              const mrpInfo = getProductMrpDisplay(product);
+                              return (
+                                <div>
+                                  <span style={{ fontWeight: "700", color: "#16a34a" }}>
+                                    {mrpInfo.text}
+                                  </span>
+                                  {mrpInfo.isRange && (
+                                    <span
+                                      style={{
+                                        display: "block",
+                                        fontSize: "11px",
+                                        color: "#64748b",
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      Multiple MRPs
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
+
+                          {/* SELLING PRICE */}
+
+                          <td
+                            className={
+                              styles.price
+                            }
+                            style={{ fontWeight: "600" }}
+                          >
+                            ₹
+                            {Number(
+                              product.sellingPrice ||
+                                0
+                            ).toFixed(2)}
                           </td>
 
                           {/* STATUS */}
@@ -1026,34 +1110,6 @@ export default function ProductsPage() {
                             >
                               {status}
                             </span>
-                          </td>
-
-                          {/* SELLING PRICE */}
-
-                          <td
-                            className={
-                              styles.price
-                            }
-                          >
-                            $
-                            {Number(
-                              product.sellingPrice ||
-                                0
-                            ).toFixed(2)}
-                          </td>
-
-                          {/* PURCHASE PRICE */}
-
-                          <td
-                            className={
-                              styles.price
-                            }
-                          >
-                            $
-                            {Number(
-                              product.costPrice ||
-                                0
-                            ).toFixed(2)}
                           </td>
 
                           {/* =================================================

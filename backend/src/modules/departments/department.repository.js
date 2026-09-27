@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "../../config/prisma.js";
 
 const getAllDepartments = async () => {
   return await prisma.department.findMany({
@@ -14,13 +13,13 @@ const getDepartmentById = async (id) => {
 };
 
 const getDepartmentByName = async (name) => {
-  return await prisma.department.findUnique({
+  return await prisma.department.findFirst({
     where: { name },
   });
 };
 
 const getDepartmentByCode = async (code) => {
-  return await prisma.department.findUnique({
+  return await prisma.department.findFirst({
     where: { code },
   });
 };

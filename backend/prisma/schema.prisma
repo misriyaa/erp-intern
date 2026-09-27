@@ -695,6 +695,7 @@ model Product {
 
   medicine     Medicine?
   medicineBatches MedicineBatch[]
+  batches      ProductBatch[]
 
   createdAt DateTime @default(now())
 
@@ -706,6 +707,30 @@ model Product {
   @@index([unitId])
   @@index([supplierId])
   @@map("products")
+}
+
+// PRODUCT BATCH
+
+model ProductBatch {
+  id            String    @id @default(uuid())
+  productId     String
+  batchNumber   String    @map("batch_number")
+  mrp           Decimal   @db.Decimal(18, 2)
+  purchasePrice Decimal   @map("purchase_price") @db.Decimal(18, 2)
+  sellingPrice  Decimal   @map("selling_price") @db.Decimal(18, 2)
+  quantity      Int       @default(0)
+  expiryDate    DateTime? @map("expiry_date")
+  companyId     String?   @map("company_id")
+
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([productId, batchNumber])
+  @@index([productId])
+  @@index([companyId])
+  @@map("product_batches")
 }
 
 // BARCODE
@@ -957,6 +982,11 @@ model PurchaseItem {
 
   totalPrice Decimal @db.Decimal(18, 2)
 
+  batchNumber String? @map("batch_number")
+  batchId String? @map("batch_id")
+  mrp Decimal? @db.Decimal(18, 2)
+  expiryDate DateTime? @map("expiry_date")
+
   purchase Purchase @relation(fields: [purchaseId], references: [id])
 
   product Product @relation(fields: [productId], references: [id])
@@ -987,6 +1017,9 @@ model StockMovement {
   remarks String?
 
   performedBy String?
+
+  batchNumber String? @map("batch_number")
+  batchId String? @map("batch_id")
 
   product Product @relation(fields: [productId], references: [id])
 
@@ -1170,6 +1203,9 @@ model InvoiceItem {
   tax Decimal @default(0) @db.Decimal(18, 2)
 
   total Decimal @db.Decimal(18, 2)
+
+  batchId String? @map("batch_id")
+  batchNumber String? @map("batch_number")
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 

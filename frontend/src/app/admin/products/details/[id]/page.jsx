@@ -21,11 +21,14 @@ import {
   FiBarChart2,
   FiGrid,
   FiCheckCircle,
+  FiPlus,
 } from "react-icons/fi";
 import { Loader2 } from "lucide-react";
 
 import styles from "../details.module.css";
 import { useCompany } from "@/context/CompanyContext";
+import AddBatchModal from "../../components/AddBatchModal";
+import EditBatchModal from "../../components/EditBatchModal";
 
 export default function ProductDetailsPage({ params }) {
   const { id } = use(params);
@@ -34,6 +37,8 @@ export default function ProductDetailsPage({ params }) {
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAddBatchOpen, setIsAddBatchOpen] = useState(false);
+  const [selectedEditBatch, setSelectedEditBatch] = useState(null);
 
   useEffect(() => {
     fetchProduct();
@@ -92,7 +97,17 @@ export default function ProductDetailsPage({ params }) {
   const profit = sellingPrice - costPrice;
   const profitMargin = costPrice > 0 ? (profit / costPrice) * 100 : 100;
 
-  const currentStock = product.initialStock || product.inventories?.reduce((acc, inv) => acc + (inv.quantity || 0), 0) || 0;
+  const batches = Array.isArray(product.batches) ? product.batches : [];
+  const batchCount = batches.length;
+  const currentStock = batchCount > 0
+    ? batches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0)
+    : (product.initialStock || product.inventories?.reduce((acc, inv) => acc + (inv.quantity || 0), 0) || 0);
+
+  const mrpList = batches.map((b) => Number(b.mrp)).filter((m) => !isNaN(m) && m > 0);
+  const minMrp = mrpList.length > 0 ? Math.min(...mrpList) : Number(product.retailPrice || product.sellingPrice || 0);
+  const maxMrp = mrpList.length > 0 ? Math.max(...mrpList) : Number(product.retailPrice || product.sellingPrice || 0);
+  const mrpRangeDisplay = minMrp === maxMrp ? formatPrice(minMrp) : `${formatPrice(minMrp)} - ${formatPrice(maxMrp)}`;
+
   const maxStock = product.maximumStock || 1000;
   const minStock = product.minimumStock || 10;
   const stockPercentage = maxStock > 0 ? (currentStock / maxStock) * 100 : 0;
@@ -546,8 +561,8 @@ export default function ProductDetailsPage({ params }) {
             <FiTag />
           </div>
           <div>
-            <span>Selling Price</span>
-            <h3>{formatPrice(sellingPrice)}</h3>
+            <span>MRP / Price</span>
+            <h3>{batchCount > 0 ? mrpRangeDisplay : formatPrice(sellingPrice)}</h3>
           </div>
         </div>
 
@@ -557,20 +572,211 @@ export default function ProductDetailsPage({ params }) {
           </div>
           <div>
             <span>Total Available Stock</span>
-            <h3>{currentStock} {product.stockUnit || "Meters"}</h3>
+            <h3>{currentStock} {product.stockUnit || "units"}</h3>
           </div>
         </div>
 
         <div className={styles.statCard}>
           <div className={`${styles.statIcon} ${styles.purple}`}>
-            <FiBarChart2 />
+            <FiLayers />
           </div>
           <div>
-            <span>Profit Margin</span>
-            <h3>{profitMargin.toFixed(1)}%</h3>
+            <span>Active Batches</span>
+            <h3>{batchCount} {batchCount === 1 ? "Batch" : "Batches"}</h3>
           </div>
         </div>
       </div>
+
+      {/* BATCH-WISE INVENTORY & MULTIPLE MRPs CARD */}
+      <section className={styles.card} style={{ marginBottom: "28px", padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f1f5f9", paddingBottom: "16px", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "10px", backgroundColor: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <FiLayers size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: "17px", fontWeight: "700", color: "#0f172a", margin: 0 }}>
+                Batch-Wise Inventory & Multiple MRPs
+              </h3>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: "4px 0 0" }}>
+                Each batch maintains its own Batch Number, MRP, Purchase Price, Selling Price, and Stock
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddBatchOpen(true)}
+            style={{
+              padding: "10px 18px",
+              backgroundColor: "#2563eb",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)",
+            }}
+          >
+            <FiPlus size={16} /> Add New Batch
+          </button>
+        </div>
+
+        {/* Aggregated Summary Stats */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "16px",
+            padding: "16px 20px",
+            backgroundColor: "#f8fafc",
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+            marginBottom: "20px",
+          }}
+        >
+          <div>
+            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Total Product Stock
+            </span>
+            <strong style={{ fontSize: "20px", color: "#0f172a", display: "block", marginTop: "4px" }}>
+              {currentStock}
+            </strong>
+          </div>
+          <div>
+            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Number of Batches
+            </span>
+            <strong style={{ fontSize: "20px", color: "#2563eb", display: "block", marginTop: "4px" }}>
+              {batchCount}
+            </strong>
+          </div>
+          <div>
+            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              MRP Range
+            </span>
+            <strong style={{ fontSize: "20px", color: "#16a34a", display: "block", marginTop: "4px" }}>
+              {mrpRangeDisplay}
+            </strong>
+          </div>
+        </div>
+
+        {/* Batch Table */}
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569" }}>Batch Number</th>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569" }}>MRP</th>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569" }}>Purchase Price</th>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569" }}>Selling Price</th>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569" }}>Quantity</th>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569" }}>Expiry</th>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569" }}>Status</th>
+                <th style={{ padding: "12px 16px", fontSize: "12px", fontWeight: "700", color: "#475569", textAlign: "center" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {batches.length > 0 ? (
+                batches.map((b) => {
+                  const isExpired = b.expiryDate && new Date(b.expiryDate) < new Date();
+                  const isOutOfStock = b.quantity === 0;
+                  const isLowStock = b.quantity > 0 && b.quantity <= 10;
+                  const statusLabel = isExpired ? "Expired" : isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
+                  const statusBg = isExpired || isOutOfStock ? "#fee2e2" : isLowStock ? "#ffedd5" : "#dcfce7";
+                  const statusColor = isExpired || isOutOfStock ? "#991b1b" : isLowStock ? "#9a3412" : "#166534";
+
+                  return (
+                    <tr key={b.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "14px 16px", fontWeight: "700", color: "#0f172a" }}>
+                        {b.batchNumber}
+                      </td>
+                      <td style={{ padding: "14px 16px", fontWeight: "800", color: "#16a34a" }}>
+                        {formatPrice(b.mrp)}
+                      </td>
+                      <td style={{ padding: "14px 16px", color: "#475569" }}>
+                        {formatPrice(b.purchasePrice)}
+                      </td>
+                      <td style={{ padding: "14px 16px", fontWeight: "600", color: "#2563eb" }}>
+                        {formatPrice(b.sellingPrice)}
+                      </td>
+                      <td style={{ padding: "14px 16px", fontWeight: "800", color: "#0f172a" }}>
+                        {b.quantity}
+                      </td>
+                      <td style={{ padding: "14px 16px", color: "#64748b", fontSize: "13px" }}>
+                        {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : "No Expiry"}
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span
+                          style={{
+                            padding: "4px 12px",
+                            borderRadius: "12px",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            backgroundColor: statusBg,
+                            color: statusColor,
+                          }}
+                        >
+                          {statusLabel}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEditBatch(b)}
+                          style={{
+                            padding: "6px 14px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            backgroundColor: "#ffffff",
+                            color: "#334155",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <FiEdit size={13} /> Edit
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{ padding: "36px", textAlign: "center", color: "#64748b" }}>
+                    <p style={{ margin: 0, fontSize: "14px", fontWeight: "500" }}>
+                      No batches added yet. Each product batch can have its own MRP, cost, and stock.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddBatchOpen(true)}
+                      style={{
+                        marginTop: "12px",
+                        padding: "8px 18px",
+                        backgroundColor: "#2563eb",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "8px",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                      }}
+                    >
+                      + Add First Batch
+                    </button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Content Layout */}
       <div className={styles.contentGrid}>
@@ -849,6 +1055,22 @@ export default function ProductDetailsPage({ params }) {
           </section>
         </div>
       </div>
+
+      {/* Add Batch Modal */}
+      <AddBatchModal
+        isOpen={isAddBatchOpen}
+        onClose={() => setIsAddBatchOpen(false)}
+        product={product}
+        onSuccess={fetchProduct}
+      />
+
+      {/* Edit Batch Modal */}
+      <EditBatchModal
+        isOpen={Boolean(selectedEditBatch)}
+        onClose={() => setSelectedEditBatch(null)}
+        batch={selectedEditBatch}
+        onSuccess={fetchProduct}
+      />
     </div>
   );
 }

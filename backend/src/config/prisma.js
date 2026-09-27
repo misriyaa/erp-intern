@@ -34,13 +34,17 @@ const prisma = prismaInstance.$extends({
           if (["findMany", "findFirst", "findUnique", "count", "updateMany", "deleteMany", "update", "delete", "aggregate"].includes(operation)) {
             args.where = args.where || {};
             if (operation === "findUnique") {
-              return prismaInstance[model.charAt(0).toLowerCase() + model.slice(1)].findFirst({
-                ...args,
-                where: {
-                  ...args.where,
-                  companyId: tenantId,
-                }
-              });
+              const modelKey = model.charAt(0).toLowerCase() + model.slice(1);
+              const modelDelegate = prismaInstance[modelKey];
+              if (modelDelegate && typeof modelDelegate.findFirst === "function") {
+                return modelDelegate.findFirst({
+                  ...args,
+                  where: {
+                    ...args.where,
+                    companyId: tenantId,
+                  }
+                });
+              }
             } else if (operation === "update" || operation === "delete") {
               // Prisma update/delete requires a strict WhereUniqueInput.
               // Do not inject non-unique companyId into args.where to prevent schema validation errors.
@@ -63,8 +67,8 @@ const prisma = prismaInstance.$extends({
             args.create.companyId = tenantId;
             args.update = args.update || {};
             args.update.companyId = tenantId;
-            args.where = args.where || {};
-            args.where.companyId = tenantId;
+            // Prisma upsert requires a strict WhereUniqueInput.
+            // Do not inject non-unique companyId into args.where to prevent schema validation errors.
           }
         }
         

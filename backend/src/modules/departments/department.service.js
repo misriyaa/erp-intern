@@ -43,7 +43,15 @@ const addDepartment = async (departmentData) => {
     throw new Error("Department Code already exists");
   }
 
-  const department = await createDepartment(departmentData);
+  const payload = {
+    ...departmentData,
+    employees:
+      departmentData.employees !== undefined && departmentData.employees !== ""
+        ? Math.max(0, parseInt(departmentData.employees, 10) || 0)
+        : 0,
+  };
+
+  const department = await createDepartment(payload);
 
   return {
     success: true,
@@ -74,7 +82,15 @@ const modifyDepartment = async (id, updateData) => {
     }
   }
 
-  const updatedDepartment = await updateDepartment(id, updateData);
+  const payload = { ...updateData };
+  if (payload.employees !== undefined) {
+    payload.employees =
+      payload.employees !== ""
+        ? Math.max(0, parseInt(payload.employees, 10) || 0)
+        : 0;
+  }
+
+  const updatedDepartment = await updateDepartment(id, payload);
 
   return {
     success: true,

@@ -25,6 +25,7 @@ import branchRoutes from "./modules/branch/branch.routes.js";
 
 import categoryRoutes from "./modules/categories/category.routes.js";
 import productRoutes from "./modules/products/product.routes.js";
+import batchRoutes from "./modules/batches/batch.routes.js";
 import supplierRoutes from "./modules/suppliers/supplier.routes.js";
 import warehouseRoutes from "./modules/warehouse/warehouse.routes.js";
 import inventoryRoutes from "./modules/inventory/inventory.routes.js";
@@ -220,6 +221,12 @@ app.use(
   "/api/products",
   requireModuleAccess("PRODUCTS"),
   productRoutes
+);
+
+app.use(
+  "/api/batches",
+  requireModuleAccess("PRODUCTS"),
+  batchRoutes
 );
 
 app.use(

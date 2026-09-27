@@ -124,7 +124,12 @@ export default function PurchaseCard({ purchase }) {
                 return (
                   <tr key={index} className="hover:bg-slate-50/50">
                     <td className="px-4 py-3.5 font-medium text-slate-800 text-sm">
-                      {prodName}
+                      <div>{prodName}</div>
+                      {item.batchNumber && (
+                        <div className="text-xs text-blue-600 font-semibold mt-0.5">
+                          Batch: {item.batchNumber} {item.mrp ? `• MRP: ₹${Number(item.mrp).toFixed(2)}` : ""}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-center text-slate-700 text-sm font-semibold">
                       {qty}

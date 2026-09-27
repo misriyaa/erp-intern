@@ -68,6 +68,20 @@ export default function ProductGrid({ products = [], totalProducts = 0, addToCar
                       {product.category}
                     </span>
                   )}
+                  {product.batches && product.batches.length > 1 && (
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "9999px",
+                        backgroundColor: "#fef3c7",
+                        color: "#92400e",
+                        fontWeight: "600",
+                        fontSize: "11px",
+                      }}
+                    >
+                      {product.batches.length} Batches ({product.mrpRange || "Multi-MRP"})
+                    </span>
+                  )}
                 </div>
                 <div className="pos-product-item-meta">
                   <span>SKU: <strong>{product.sku || product.code || "N/A"}</strong></span>
